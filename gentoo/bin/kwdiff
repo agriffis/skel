@@ -1,0 +1,432 @@
+#!/usr/bin/perl -w
+#
+# kwdiff -- generate changelog message from cvs differences
+# Copyright 2005 Aron Griffis <agriffis@gentoo.org>
+# Released under the GNU GPL v2
+#
+
+use Data::Dumper;
+use Getopt::Long;
+use strict;
+
+######################################################################
+# Global vars
+######################################################################
+
+(my $zero = $0) =~ s,.*/,,;
+(my $version = '$Revision: 4036 $') =~ s/.*?(\d.*\d).*/$zero version $1\n/;
+my $verbose = 0;
+my %opt = (
+    'v' => \$verbose,
+);
+my $usage = <<EOT;
+usage: $zero [ OPTIONS ]
+
+    -h     --help          Show this help message
+    -v     --verbose       Verbose output
+    -V     --version       Show version information
+EOT
+
+my ($joiner) = '/';
+my (@msgs, @ebuilds, @cvsnup, @diffs);
+
+######################################################################
+# Utility routines
+######################################################################
+
+sub PN { $_[0] =~ /[^\/]+?(?=-\d)/ ? $& : undef; }
+sub PVR { $_[0] =~ /(?<=-)\d.*?(?=\.ebuild$)/ ? $& : undef; }
+sub PV { $_[0] =~ /(?<=-)\d.*?(?=(?:-r\d+)?\.ebuild$)/ ? $& : undef; }
+
+sub uniq {
+    my (@nlist);
+    for (@_) {
+        next if @nlist and $nlist[-1] eq $_;
+        push @nlist, $_;
+    }
+    return @nlist;
+}
+
+######################################################################
+# Option parsing
+######################################################################
+
+# Allow bundling of options
+Getopt::Long::Configure("bundling");
+
+# Parse the options on the cmdline.  Put the short versions first in
+# each optionstring so that the hash keys are created using the short
+# versions.  For example, use 'q|qar', not 'qar|q'.
+my ($result) = GetOptions(
+    \%opt,
+    'h|help',           # help message
+    'v|verbose+',       # verbose, more v's for more verbosity
+    'V|version',        # version information
+);
+if ($opt{'h'}) { print STDERR $usage; exit 0 }
+if ($opt{'V'}) { print STDERR $version; exit 0 }
+
+######################################################################
+# Main
+######################################################################
+
+# 
+# STAGE 1: cvs -n up
+#
+
+print STDERR "\n#\n# STAGE 1: cvs -n up\n#\n\n" if $verbose;
+
+my ($bump, @adds, @dels, @mods, @odd);
+my ($cvsnup_count) = 0;
+
+if (@ARGV and ($ARGV[0] =~ /\n/ or ! -f $ARGV[0])) {
+    print STDERR "using cvsnup from cmdline\n" if $verbose;
+    @cvsnup = grep /\S/, split("\n", $ARGV[0]);
+} else {
+    print STDERR "running cvs -n up\n" if $verbose;
+    # we expect some stderr output from sortvers such as:
+    # no differences found between A files/digest-mercurial-0.6c 
+    # and A mercurial-0.6c.ebuild
+    chomp(@cvsnup = grep /\S/, `cvs -n up | sortvers -F'' 2>/dev/null | tac`);
+}
+
+if (grep /^[^ARM]/, @cvsnup) {
+    die "cvs -n up says you're not up to date:\n", join("\n", @cvsnup), "\n";
+}
+
+while (@cvsnup) {
+    my ($flag, $file) = split(' ', shift @cvsnup, 2);
+
+    if ($file =~ /^(?:files\/digest.*|Manifest|ChangeLog)$/) {
+        next;
+    }
+
+    if ($file =~ /\.ebuild$/) {
+        push @ebuilds, $file;
+        if (@ebuilds == 1 and
+            $flag eq 'A') { $bump = $file; next; }
+        if ($flag eq 'A') { push @adds, $file; next; }
+        if ($flag eq 'R') { push @dels, $file; next; }
+        if ($flag eq 'M') { push @mods, $file; next; }
+        die "shouldn't be here";
+    }
+
+    if ($file eq 'metadata.xml') {
+        if ($flag eq 'A') { push @msgs, "Add metadata.xml"; next; }
+        if ($flag eq 'M') { push @msgs, "Update metadata.xml"; next; }
+    }
+
+    push @odd, "$flag $file";
+}
+
+if (@dels) {
+    unshift @msgs, "Remove ".join(", ", map PVR($_), @dels);
+}
+
+if (@mods) {
+    print STDERR "\n#\n# STAGE 2: analysis\n#\n\n" if $verbose;
+    if (@ARGV > 1 and ($ARGV[1] =~ /\n/ or ! -f $ARGV[1])) {
+        print STDERR "using diffs from cmdline\n" if $verbose;
+        @diffs = grep /\S/, split("\n", $ARGV[1]);
+    } else {
+        print STDERR "running cvs diff -U0 @ebuilds\n" if $verbose;
+        chomp(@diffs = grep /\S/, `cvs diff -U0 @ebuilds 2>&1`);
+    }
+    die "failed to run cvs diff" unless @diffs;
+    push @odd, grep {/^[+-]/ and !/^.(?:--|\+\+|KEYWORDS)/} @diffs;
+    unshift @msgs, analyze(@diffs);
+}
+
+if (@adds) {
+    unshift @msgs, "Add ".join(", ", map PVR($_), @adds);
+}
+
+if ($bump) {
+    local $/ = undef;
+    open(B, "<$bump");
+    if (<B> =~ /\$Header: .*?([^\/]+?),v/ and PN($1) eq PN($bump)) {
+        unshift @msgs, "Bump to ".PVR($bump)." (from ".PVR($1).")";
+    } else {
+        unshift @msgs, "Bump to ".PVR($bump);
+    }
+}
+
+if (@odd) {
+    print STDERR "cvs output I don't understand:\n", join("\n", @odd), "\n";
+}
+
+print join(".  ", @msgs), "\n";
+exit(@odd ? 2 : 0);
+
+# 
+# STAGE 2: analyze the diff
+#
+
+sub analyze {
+    my (@diffs) = @_;
+    my (@msgs, @versions, %kmatrix);
+    my (%h_strings, %v_strings, $h_area, $v_area, $try_area, 
+        @try_keywords, @try_versions, @common_keywords, @common_versions);
+    my (%kstates) = (
+        "missing" => "missing",
+        ""        => "stable",
+        "~"       => "testing",
+        "-"       => "masked"
+    );
+
+    # build kmatrix from diff
+    for (@diffs) {
+        if (/^Index: (\S.*)/) {
+            (my $v = $1) =~ s/.*?-(\d.*).ebuild.*/$1/ or next;
+            push @versions, $v;
+            next;
+        }
+        if (/^([-+])KEYWORDS=(['\''"])(.*?)\2/) {
+            my ($action, $v) = ($1, $versions[-1]);
+            for my $k (sort split " ", $3) {
+                (my ($leader), $k) = ($k =~ /^(\W?)(.*)/);
+                $kmatrix{$v}{$k} ||= [ "", "" ];
+                $kmatrix{$v}{$k}[$action eq "-" ? 0 : 1] = $leader.$k;
+                print STDERR "kmatrix{$v}{$k} = [ @{$kmatrix{$v}{$k}} ]\n" if $verbose;
+            }
+            next;
+        }
+    }
+
+    for my $v (keys %kmatrix) {
+        for my $k (keys %{$kmatrix{$v}}) {
+            # remove non-deltas from the matrix
+            if ($kmatrix{$v}{$k}[0] eq $kmatrix{$v}{$k}[1]) {
+                print STDERR "removing kmatrix{$v}{$k} = [@{$kmatrix{$v}{$k}}]\n" if $verbose;
+                delete $kmatrix{$v}{$k};
+                next;
+            }
+            # reduce some deltas between which we don't differentiate
+            #   "anything,-alpha" and ",-alpha"
+            #   "anything,alpha" and ",alpha"
+            #   "-alpha,~alpha" and ",~alpha"
+            if ($kmatrix{$v}{$k}[1] =~ /^[-\w]/ or
+                ($kmatrix{$v}{$k}[0] =~ /^-/ and $kmatrix{$v}{$k}[1] =~ /^~/))
+            {
+                $kmatrix{$v}{$k}[0] = "";
+                next;
+            }
+        }
+        # remove row if it's empty now
+        delete $kmatrix{$v} unless keys %{$kmatrix{$v}};
+    }
+
+    # find horizontally and vertically common delta patterns in the matrix:
+    #
+    # 1 ~a,a ~b,b ~c,c
+    # 2 ~a,a ~b,b ~c,c
+    # 3 ~a,a  ~b  ~c,c
+    # 4  ~a   ~b   ~c
+    #
+    # horizontally, versions 1 and 2 share a common delta pattern:
+    #   stable on a, b, c (1, 2)
+    #
+    # vertically, keywords a and c share a common delta pattern:
+    #   stable on a, c (1, 2, 3)
+    # 
+    # find the largest pattern (versions * keywords), report, remove, loop
+
+    for (my $pass = 1; %kmatrix; $pass++) {
+        # collect current list of keywords
+        my (@keywords) = uniq sort map keys %$_, values %kmatrix;
+
+        # collect current list of versions, maintaining sort order
+        @versions = grep exists $kmatrix{$_}, @versions;
+
+        print STDERR ">>> pass $pass\n" if $verbose;
+        print STDERR ">>> keywords @keywords\n" if $verbose;
+        print STDERR ">>> versions @versions\n" if $verbose;
+        print STDERR Dumper(\%kmatrix) if $verbose;
+
+        # horiz
+        # -----
+
+        # start by building strings that are easily compared.
+        %h_strings = ();
+        for my $v (@versions) {
+            $h_strings{$v} = join(" ", 
+                sort map "$_->[0],$_->[1]", values %{$kmatrix{$v}});
+            print STDERR "h_strings{$v} = $h_strings{$v}\n" if $verbose;
+        }
+
+        # find largest horizontally common delta pattern.
+        # this could be optimized by keeping track of versions with h_strings
+        # that have already been seen.
+        $h_area = 0;
+        @common_versions = ();
+        for (my $i = 0; $i < @versions; $i++) {
+            @try_versions = ( $versions[$i] );
+            for (my $j = $i+1; $j < @versions; $j++) {
+                if ($h_strings{$versions[$i]} eq $h_strings{$versions[$j]}) {
+                    push @try_versions, $versions[$j];
+                }
+            }
+            $try_area = @try_versions * (my @dummy = split(" ", $h_strings{$versions[$i]}));
+            if ($try_area > $h_area) {
+                print STDERR "--- $try_area > $h_area; using @try_versions\n" if $verbose;
+                @common_versions = @try_versions;
+                $h_area = $try_area;
+            }
+        }
+
+        # vert
+        # ----
+
+        # start by building strings that are easily compared.
+        %v_strings = ();
+        for my $k (@keywords) {
+            $v_strings{$k} = join(" ", map 
+                "$kstates{$kmatrix{$_}{$k}[0] =~ /^(\W?)\w/ ? $1 : 'missing'},".
+                "$kstates{$kmatrix{$_}{$k}[1] =~ /^(\W?)\w/ ? $1 : 'missing'}",
+                grep $kmatrix{$_}{$k}, @versions);
+            print STDERR "v_strings{$k} = $v_strings{$k}\n" if $verbose;
+        }
+
+        # find largest vertically common delta pattern.
+        # this could be optimized by keeping track of keywords with v_strings
+        # that have already been seen.
+        $v_area = 0;
+        @common_keywords = ();
+        for (my $i = 0; $i < @keywords; $i++) {
+            @try_keywords = ( $keywords[$i] );
+            for (my $j = $i+1; $j < @keywords; $j++) {
+                if ($v_strings{$keywords[$i]} eq $v_strings{$keywords[$j]}) {
+                    push @try_keywords, $keywords[$j];
+                }
+            }
+            $try_area = @try_keywords * (my @dummy = split(" ", $v_strings{$keywords[$i]}));
+            if ($try_area > $v_area) {
+                print STDERR "||| $try_area > $v_area; using @try_keywords\n" if $verbose;
+                @common_keywords = @try_keywords;
+                $v_area = $try_area;
+            }
+        }
+
+        # choose between horiz and vert, arbitrarily preferring vert
+        if ($h_area > $v_area) {
+            push @msgs, report_horiz("@common_versions",
+                map($kmatrix{$common_versions[0]}{$_}, 
+                    sort keys %{$kmatrix{$common_versions[0]}}));
+            delete @kmatrix{@common_versions};
+        } else {
+            push @msgs, report_vert(\@common_keywords, 
+                map { $_ => $kmatrix{$_}{$common_keywords[0]} }
+                grep exists $kmatrix{$_}{$common_keywords[0]}, @versions);
+            for my $v (@versions) {
+                map delete $kmatrix{$v}{$_}, @common_keywords;
+            }
+            # clean up empty rows
+            for my $v (@versions) {
+                delete $kmatrix{$v} unless keys %{$kmatrix{$v}};
+            }
+        }
+    }
+
+    return @msgs;
+}
+
+# report_horiz is called when there's a set of versions with the same keyword
+# changes.  In that case, report in the form:
+#   Add ~alpha/~ia64; mark stable on ppc; arch-mask on hppa (1.0, 1.1, 1.2)
+sub report_horiz {
+    my ($common_versions, @deltas) = @_;
+    my ($msg) = "";
+    my (@stable, @regress, @test, @mask, @remove);
+
+    for my $d (@deltas) {
+        if ($d->[1] =~ /^\w/) {
+            push @stable, $d->[1];
+            next;
+        }
+        if ($d->[1] =~ /^~/) {
+            if ($d->[0] =~ /^\w/) {
+                push @regress, $d->[0];
+            } else {
+                push @test, $d->[1];
+            }
+            next;
+        }
+        if ($d->[1] =~ /^-/) {
+            push @mask, substr($d->[1],1);
+            next;
+        }
+        if ($d->[1] eq '') {
+            push @remove, $d->[0];
+            next;
+        }
+        die "@$d";
+    }
+    
+    $msg = join(", ",
+        @stable ? "stable on ".join($joiner, @stable) : (),
+        @regress ? "regress from ".join($joiner, @regress)." to ".join($joiner,
+            map "~$_", @regress) : (),
+        @test ? "mark ".join($joiner, @test) : (),
+        @mask ? "arch-mask ".join($joiner, @mask) : ());
+
+    # capitalize the first letter, append the modified versions
+    $msg =~ s/./\U$&/;
+    $msg .= " ($common_versions)";
+    return $msg;
+}
+
+# report_vert is called when there's a set of keywords with equivalent deltas
+# across all versions.  In that case, report in the form:
+#   Mark 1.0 1.1 stable on alpha/ia64/sparc, 2.0 testing on ~alpha/~ia64/~sparc,
+#   2.1 arch-masked on alpha/ia64/sparc
+sub report_vert {
+    my (@common_keywords) = @{shift @_};
+    my (@deltas) = @_;
+    my (@versions, %deltas);
+    my ($msg) = "";
+    my (@stable, @regress, @test, @mask, @remove);
+
+    # construct @versions and %deltas from @deltas
+    for (my $i = 0; $i < @deltas; $i+=2) {
+        push @versions, $deltas[$i];
+    }
+    %deltas = @deltas;
+
+    # use @versions to maintain sort order
+    for my $v (@versions) {
+        next unless defined $deltas{$v};
+        my $d = $deltas{$v};
+        if ($d->[1] =~ /^\w/) {
+            push @stable, $v;
+            next;
+        }
+        if ($d->[1] =~ /^~/) {
+            if ($d->[0] =~ /^\w/) {
+                push @regress, $v;
+            } else {
+                push @test, $v;
+            }
+            next;
+        }
+        if ($d->[1] =~ /^-/) {
+            push @mask, $v;
+            next;
+        }
+        if ($d->[1] eq '') {
+            push @remove, $v;
+            next;
+        }
+        die "@$d";
+    }
+
+    $msg = join(", ",
+        @stable ? "mark @stable stable on ".join($joiner, @common_keywords) : (),
+        @regress ? "regress @regress from ".join($joiner, @common_keywords)." to ".join($joiner,
+            map "~$_", @common_keywords) : (),
+        @test ? "mark @test ".join($joiner, map "~$_", @common_keywords) : (),
+        @mask ? "arch-mask @mask on ".join($joiner, @common_keywords) : ());
+
+    # capitalize the first letter
+    $msg =~ s/./\U$&/;
+    return $msg;
+}

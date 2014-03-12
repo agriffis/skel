@@ -1,0 +1,29 @@
+#!/usr/bin/env python
+
+import json
+import sys
+
+inputs = sys.argv[1:] or [sys.stdin]
+status = 0
+
+for inp in inputs:
+    if not callable(getattr(inp, 'read', None)):
+        try:
+            inp = open(inp)
+        except Exception as e:
+            sys.stderr.write('%s: %s\n' % (e.__class__.__name__, e))
+            status |= 1
+            continue
+
+    content = inp.read()
+
+    try:
+        data = json.loads(content)
+    except ValueError as e:
+        sys.stderr.write('%s: %s\n' % (e.__class__.__name__, e))
+        status |= 2
+        continue
+
+    json.dump(data, sys.stdout, indent=4, sort_keys=True)
+
+sys.exit(status)

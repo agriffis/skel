@@ -1,0 +1,4 @@
+# $Id: muttrc 1804 2006-06-29 15:22:36Z agriffis $
+# vim:set tw=79 sw=2 nowrap ft=muttrc:
+
+source "~/bin/mutt_conf|"

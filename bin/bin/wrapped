@@ -1,0 +1,62 @@
+#!/bin/bash
+# $Id: wrapped 4161 2010-09-22 12:53:10Z agriffis $
+#
+# wrapped -- call the next instance of $1 in PATH
+# Copyright 2007,2010 Aron Griffis <agriffis@n01se.net>
+# Released under the GNU GPL v3
+#
+
+main() {
+  declare this=$1 next prev
+  declare -a cand
+
+  # use setarray to separate on newline
+  setarray cand "$(type -Pa "${this##*/}")" $'\n'
+
+  # try to find the next instance in PATH
+  for next in "${cand[@]}" "|SENTINAL|"; do
+    if [[ -n $prev && $prev -ef $this ]]; then
+      if [[ $next == "|SENTINAL|" ]]; then
+        notfound "$this: end of the line"
+      elif [[ $next -ef $this ]]; then
+        continue  # repeated in PATH
+      else
+        echo "$next"
+        exit 0
+      fi
+    fi
+    prev=$next
+  done
+
+  # otherwise just use the first instance in PATH
+  next=${cand[0]}
+  if [[ -n $next && ! $next -ef $this ]]; then
+    echo "$next"
+    exit 0
+  fi
+
+  # ugh
+  notfound "$this: command not found"
+}
+
+setarray() {
+  declare IFS=$3
+  eval "$1=( \$2 )"
+}
+
+error() {
+  echo "${0##*/}: ${*:-unknown}" >&2
+}
+
+notfound() {
+  error "$1"
+  exit 127  # bash exit code for "command not found"
+}
+
+echo() {
+  printf '%s\n' "$*"
+}
+
+main "$@"
+
+# vim:shiftwidth=2 expandtab smarttab

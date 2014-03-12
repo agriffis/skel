@@ -1,0 +1,3 @@
+#!/bin/bash
+zone=$(date +%Z)
+TZ=Asia/Calcutta date ${1:+-d "$* $zone"}

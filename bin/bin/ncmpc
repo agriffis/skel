@@ -1,0 +1,6 @@
+#!/bin/bash
+# 
+# ncmpc stopped honoring MPD_HOST in recent versions, bring that back.
+#
+
+exec "$(wrapped $0)" ${MPD_HOST:+--host "$MPD_HOST"} "$@"

@@ -1,0 +1,6 @@
+#!/bin/bash
+
+tmp=$(mktemp -td xerox.$$.XXXXXX) || exit
+trap 'rm -r "$tmp"' 0 1 2 15
+scan2any "$tmp/foo.pdf"
+lpr "$tmp/foo.pdf"

@@ -1,0 +1,9 @@
+#!/bin/bash
+
+PATH=$HOME/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH
+
+# Load keychain variables and check for private key
+. $HOME/.keychain/$HOSTNAME-sh 2>/dev/null
+ssh-add -l &>/dev/null || exit 1
+
+exec "$@"

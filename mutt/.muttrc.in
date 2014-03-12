@@ -1,0 +1,645 @@
+# $Id: muttrc.in 4896 2013-10-15 13:02:16Z aron $
+# vim:set tw=79 sw=2 nowrap ft=muttrc:
+
+divert(-1)
+changequote(<<,>>)
+
+define(HOME, esyscmd(<<echo -n "$HOME">>))
+define(USER, esyscmd(<<echo -n "$USER">>))
+define(HOSTNAME, esyscmd(<<echo -n $(hostname | cut -d. -f1)>>))
+dnl define(MUTTV, esyscmd(<<$MUTT -v>>))
+dnl define(MUTTVER, regexp(MUTTV, <<.*?\(\<[0-9]+\.[0-9]+\.[0-9]+\>\).*>>, <<\1>>))
+define(MUTTVER, esyscmd(<<$MUTT -v | awk '/^Mutt/{printf "%s",$2;exit}'>>))
+define(MUTTMAJOR, regexp(MUTTVER, <<^\([0-9]+\)\.\([0-9]+\)\.\([0-9]+\)$>>, <<\1>>))
+define(MUTTMINOR, regexp(MUTTVER, <<^\([0-9]+\)\.\([0-9]+\)\.\([0-9]+\)$>>, <<\2>>))
+define(MUTTPOINT, regexp(MUTTVER, <<^\([0-9]+\)\.\([0-9]+\)\.\([0-9]+\)$>>, <<\3>>))
+define(OFFLMAIL, <<~/mail>>)
+# this should really be a check in /etc/msmtprc for the auth tokens we need...
+syscmd(<<which msmtp >/dev/null 2>&1>>)
+define(<<MSMTP>>, ifelse(sysval, 0, <<msmtp>>, <<false>>))
+
+# Settings that vary by user
+ifelse(USER, aron, <<
+  define(NAME, Aron Griffis)
+  define(G1_ADDR, aron<<@>>griffis1.net)
+  define(G1_GPG, B7DC85DF)
+  define(GM_ADDR, aron<<@>>arongriffis.com)
+  define(GM_USER, agriffis<<@>>gmail.com)
+  define(HP_GPG, 20104EB0) dnl 5E6A3C6B
+>>, <<
+  define(NAME, Amy Griffis)
+  define(G1_ADDR, amy<<@>>griffis1.net)
+  define(G1_GPG, 603909BA)
+  define(GM_ADDR, amy.griffis<<@>>gmail.com)
+  define(GM_USER, amy.griffis<<@>>gmail.com)
+>>)
+
+# Can stash passwords here
+sinclude(HOME/.muttrc-local)
+
+define(G1_HOST, ifdef(<<OFFLINE>>, <<OFFLMAIL/g1>>, <<imaps://griffis1.net>>))
+define(G1_USER, USER)
+# generally G1_SMTP / G1_SENDMAIL aren't used in favor of sendbox
+define(G1_SMTP, <<smtp://G1_USER@mail.griffis1.net:587/>>)
+define(G1_SENDMAIL, <<MSMTP --host=mail.griffis1.net --port=587 --auth=on --user=G1_USER --from=G1_ADDR>>)
+ifdef(<<NO_TUNNEL>>,, <<
+  define(G1_TUNNEL, <<ssh -q griffis1.net 'set -a; source /etc/courier/imapd; exec /usr/bin/imapd Maildir'>>)
+>>)
+
+define(GM_HOST, ifdef(<<OFFLINE>>, <<OFFLMAIL/gm>>, <<imaps://imap.gmail.com>>))
+ifdef(<<GM_PASS>>, <<
+  define(GM_SMTP, <<smtp://GM_USER:GM_PASS@smtp.gmail.com:587/>>)
+>>, <<
+  define(GM_SMTP, <<smtp://GM_USER@smtp.gmail.com:587/>>)
+>>)
+
+# When using offlineimap, folders are stored at the top level instead of under
+# INBOX, e.g. OFFLMAIL/hp/xen
+ifdef(<<OFFLINE>>, <<
+  define(G1_FOLDER, <<G1_HOST>>)
+  define(GM_FOLDER, <<GM_HOST>>)
+>>, <<
+  define(G1_FOLDER, <<G1_HOST/INBOX>>)
+  define(GM_FOLDER, <<GM_HOST>>)
+>>)
+ifdef(<<DEFAULT_HOST>>,, define(DEFAULT_HOST, <<GM_HOST>>))
+ifdef(<<DEFAULT_FOLDER>>,, define(DEFAULT_FOLDER, <<GM_FOLDER>>))
+
+# Send settings, applied in
+#     - in send-hooks (compose),
+#     - in send2-hooks (compose),
+#     - index,pager macros
+#       Why?  bounce-message, recall-message and resend-message are the three
+#       ways to "compose" new messages without triggering send-hooks.
+#       (bounce-message also doesn't trigger send2-hooks, ugh!)
+#       So we guess the best we can based on the current folder...
+# Don't use record=+sent here because that resolves dynamically in a hook.
+
+# NOTE: if -DNO_SENDBOX then don't touch $sendbox since this
+# mutt might not understand it.
+ifdef(<<NO_SENDBOX>>, <<
+  define(<<sendbox>>,     <<my_sendbox>>)
+>>)
+
+# NOTE: don't touch $smtp_url if it isn't supported
+ifelse(eval(MUTTMAJOR < 2 && MUTTMINOR < 6 && MUTTPOINT < 15), 1, <<
+  define(<<smtp_url>>, <<my_smtp_url>>)
+  undefine(<<G1_SMTP>>, <<GM_SMTP>>)
+>>)
+
+define(<<G1_PATT>>, <<@griffis1.net>>)
+define(<<G1_SEND>>, <<set \
+  from="NAME <G1_ADDR>" \
+  pgp_autoencrypt=no \
+  pgp_autosign=no \
+  pgp_sign_as=G1_GPG \
+ifelse(USER, aron, 
+  <<record=G1_HOST/INBOX>>,
+  <<record=G1_FOLDER/sent>>) >>)
+define(<<G1_SEND2>>, <<set \
+  hostname=griffis1.net \
+  postponed=G1_FOLDER/postponed \
+  ifdef(<<G1_SMTP>>,
+    <<smtp_url="G1_SMTP"     &sendmail >>,
+    <<sendmail="G1_SENDMAIL" nosmtp_url >>) \
+  ifdef(<<G1_TUNNEL>>,
+    <<sendbox=G1_FOLDER/Outbox>>) >>)
+
+define(<<GM_PATT>>, <<@gmail.com>>)
+define(<<GM_SEND>>, <<set \
+  from="NAME <GM_ADDR>" \
+  pgp_autoencrypt=no \
+  pgp_autosign=no \
+  pgp_sign_as=G1_GPG \
+  norecord >>)
+define(<<GM_SEND2>>, <<set \
+  hostname=gmail.com \
+  postponed=GM_FOLDER/Drafts \
+  smtp_url="GM_SMTP" &sendmail \
+  ifdef(<<OFFLINE>>,
+    <<sendbox=GM_FOLDER/Outbox>>) >>)
+
+define(<<ML>>, <<
+  patsubst($2, <<\([^
+	 ]+\)@\([^
+	 ]+\)>>, <<
+    alias \1 \&
+    alias ml-\1 \&
+    $1 \1@
+    ifelse($#, 3, <<send-hook '~C \1@\2' $3>>)
+    >>)
+>>)
+divert
+
+# ========================================================================
+# Settings
+# ========================================================================
+
+  set abort_nosubject=no
+  set abort_unmodified=no
+  set alias_file=~/.muttrc-aliases
+  set allow_8bit=yes
+  set ascii_chars=no
+  set attribution="%n wrote:  [%[%a %b %2d %Y, %2I:%M:%S%p %Z]]"
+  set beep=no
+  set confirmappend=no
+  set delete=yes # delete messages w/out confirm for x command
+  set display_filter=mutt_display_filter
+  set edit_headers=yes
+  set editor="vim -f '+:silent! /^$'" # -f in case :gui is used
+  set fast_reply=yes
+  set folder_format="%5N %f"
+  set forward_format="Fw: %s"
+  set followup_to=no	# regardless of subscribe/lists
+  set help=no
+  set imap_passive=yes  # open connections to imap servers on demand
+  set imap_peek=no      # mark mail read immediately instead of on folder exit
+  set implicit_autoview=no
+  set include=yes
+  set my_inbox_index_format="%4C %Z %{%b %d} %-15.15F %?M? %4Mx&(%4c)? %s"
+  set my_other_index_format="%4C %Z %{%b %d} %-15.15n %?M? %4Mx&(%4c)? %s"
+  set index_format=$my_inbox_index_format	# not really necessary
+ifdef(<<OFFLINE>>, <<
+  set mail_check=5   # seconds before polling mailboxes
+>>, <<
+  set mail_check=600 # seconds before polling mailboxes
+>>)
+  set mark_old=yes
+  set markers=no # no + at the beginning of wrapped lines
+  set mbox_type=maildir # for new mailboxes only
+  set mime_forward=ask-no
+  set move=no
+  set pager_context=2
+  set pager_stop=yes
+  set pipe_decode=yes
+  set postpone=no # don't ask postpone on message cancel
+  set print_command="a2ps -g -Email -2 -d"
+  set prompt_after=no
+  set read_inc=25
+  set realname="NAME"
+  set recall=ask-no         # ask recall postponed message for m command
+  set reply_regexp="^((\\[assembla\\]|\\[ppart\\]|re:)[ \\t]*)+"
+  set reverse_alias=yes     # show the name of sender from my aliases
+  set reverse_name=yes      # reply as the user to whom the mail was sent
+  set save_name=no
+  set status_on_top=yes
+  set tilde=yes
+  set use_from=yes
+  set wait_key=yes
+  set write_bcc=yes         # debian shuts this off, and it breaks Outbox bcc's
+  set write_inc=25
+
+  # header/message caching by host, since the caches can be incompatible
+  # depending on the backend database (berkeley db vs. gdbm, for example)
+syscmd(mkdir -p "HOME/.mutt/by-host/HOSTNAME/MUTTVER/header_cache" dnl
+	        "HOME/.mutt/by-host/HOSTNAME/MUTTVER/message_cache")
+ifelse(sysval, 0, <<
+  set header_cache="HOME/.mutt/by-host/HOSTNAME/MUTTVER/header_cache/"
+  set message_cachedir="HOME/.mutt/by-host/HOSTNAME/MUTTVER/message_cache/"
+>>)
+
+  # $postponed depends on $folder
+  set folder=DEFAULT_FOLDER
+  set spoolfile=DEFAULT_HOST/INBOX
+
+  # only used when recalling from the command-line, otherwise hooks and
+  # bindings kick in.
+  GM_SEND
+  GM_SEND2
+
+  # Headers to display in the pager
+define(<<HEADERS>>, <<\
+    resent-from resent-to reply-to from \
+    organization organisation \
+    date to cc bcc \
+    list-archive message-id user-agent x-mailer x-subject subject>>)dnl
+  ignore *
+  unignore HEADERS
+  unhdr_order *
+  hdr_order HEADERS
+
+  # Force lookup in mime.types
+  mime_lookup application/octet-stream
+  mime_lookup application/octetstream
+  mime_lookup application/oleobject
+
+  # Auto-view a limited list
+  unauto_view *
+  auto_view text/html text/x-csrc text/x-diff text/x-patch text/calendar
+  auto_view application/msword application/vnd.oasis.opendocument.text application/vnd.openxmlformats-officedocument.wordprocessingml.document
+  auto_view application/rtf
+  auto_view application/pdf
+
+# ========================================================================
+# Bindings
+# ========================================================================
+
+  bind  index       $           last-entry
+  bind  pager       $           bottom
+  bind  index       ' '         next-page
+  bind  index       *           tag-entry
+  bind  pager       *           tag-message
+  bind  pager       -           previous-page
+  macro index       =           "<limit>="
+  macro pager       =           "<exit>="
+  bind  index       ^           first-entry
+  macro pager       ~           "<exit>~"
+  macro index       ~           "<limit>~"
+  macro index       A           "<tag-pattern>~A<enter>"
+  bind  index,pager <backspace> previous-page
+  bind  index       <down>      next-entry
+  bind  pager       <down>      next-line
+  bind  browser     i           exit
+  bind  index       j           next-entry
+  bind  pager       j           next-line
+  bind  index       k           previous-entry
+  bind  pager       k           previous-line
+  bind  pager       N           search-opposite
+  macro index       O           "<clear-flag>O"
+  bind  index,pager P           recall-message
+  bind  index       <right>     display-message
+  macro pager       t           "<exit>t"
+  macro pager       T           "<exit>T"
+  bind  index       t           tag-pattern
+  macro index       T           "<untag-pattern>~A<enter>"
+  bind  index       <up>        previous-entry
+  bind  pager       <up>        previous-line
+  bind  index,pager x           sync-mailbox
+  macro index,pager y           "<change-folder>?<toggle-mailboxes>" "show incoming mailboxes list"
+  bind  browser     y           exit
+  macro index       Z           "<limit>~A<enter>"                               "unzoom"
+  macro index       z           "<tag-thread><limit>~T<enter><untag-pattern>~A<enter>" "zoom"
+ifdef(<<OFFLINE>>, <<
+  macro index       \cf         "<sync-mailbox><shell-escape>offlineimap<enter>"
+  macro index       \co         "<sync-mailbox><shell-escape>outq -f; offlineimap<enter>"
+  macro index       \ef         "<shell-escape>outq -f<enter>"
+>>, <<
+  bind  index       \cf         imap-fetch-mail
+>>)
+  bind  attach      <return>    view-mailcap
+  bind  attach      <enter>     view-mailcap
+  bind  attach      v           view-attach
+
+# Make sure *_send macros fire on return from compose menu
+  macro compose q '<exit><enter-command>             GM_SEND; GM_SEND2<enter>'
+# macro compose q '<enter-command> set postponed=GM_FOLDER/[Gmail]/Drafts<enter><postpone-message><enter-command> GM_SEND; GM_SEND2<enter>'
+  macro compose P '<postpone-message><enter-command> GM_SEND; GM_SEND2<enter>'
+
+# Change bindings according to folder/account we're presently accessing.
+# SEND macros contain double quotes, so use only single quotes here.
+  folder-hook G1_HOST 'G1_SEND; G1_SEND2'
+  folder-hook G1_HOST 'macro compose q '\''<exit><enter-command>             G1_SEND; G1_SEND2<enter>'\'
+# folder-hook G1_HOST 'macro compose q '\''<enter-command> set postponed=G1_FOLDER/drafts<enter><postpone-message><enter-command> G1_SEND; G1_SEND2<enter>'\'
+  folder-hook G1_HOST 'macro compose P '\''<postpone-message><enter-command> G1_SEND; G1_SEND2<enter>'\'
+  folder-hook G1_HOST 'macro index,pager S '\''<save-message>G1_FOLDER/spammy<enter>'\'
+  folder-hook GM_HOST 'GM_SEND; GM_SEND2'
+  folder-hook GM_HOST 'macro compose q '\''<exit><enter-command>             GM_SEND; GM_SEND2<enter>'\'
+# folder-hook GM_HOST 'macro compose q '\''<enter-command> set postponed=GM_FOLDER/[Gmail]/Drafts<enter><postpone-message><enter-command> GM_SEND; GM_SEND2<enter>'\'
+  folder-hook GM_HOST 'macro compose P '\''<postpone-message><enter-command> GM_SEND; GM_SEND2<enter>'\'
+  folder-hook GM_HOST 'bind index,pager S noop'
+
+# END OPTION 2
+
+  define(<<MANUAL>>, <<\`echo /usr/share/doc/mutt*/manual.txt | awk '{print \$NF}'\`>>) dnl`
+  macro generic H "<enter-command> set my_wait_key=\$wait_key<enter><enter-command> set wait_key=no<enter><shell-escape>less MANUAL<enter><enter-command> set wait_key=\$my_wait_key<enter>"
+
+  # 'M'icrosoft vs. 'I'nternet reply modes
+  set my_in_attribution=$attribution 
+  set my_in_indent_string=$indent_string 
+  set my_in_sig_on_top=$sig_on_top
+  set my_ms_attribution="-----Original Message-----\nFrom: %n [mailto:%a]\nSent: %{%A, %B %d, %Y %I:%M %p}\nSubject: %s\n\n"
+  set my_ms_indent_string=""
+  set my_ms_sig_on_top=yes
+  macro index,pager I '<enter-command> set attribution=$my_in_attribution indent_string=$my_in_indent_string sig_on_top=$my_in_sig_on_top<enter>'
+  macro index,pager M '<enter-command> set attribution=$my_ms_attribution indent_string=$my_ms_indent_string sig_on_top=$my_ms_sig_on_top<enter>'
+
+  # Multi-mutt, default if -DMULTI
+  define(<<XMUTT>>, <<xmutt ifdef(<<OFFLINE>>, <<-D>>, <<-U>>)OFFLINE>>)dnl
+  define(<<MM_SAVE>>, <<dnl
+<enter-command> set my_auto_flag=$auto_flag<enter>dnl
+<enter-command> set my_editor=$editor<enter>dnl
+<enter-command> set my_fast_reply=$fast_reply<enter>dnl
+<enter-command> set my_postponed=$postponed<enter>dnl
+<enter-command> set my_reply_to=$reply_to<enter>dnl
+<enter-command> set my_resolve=$resolve<enter>dnl
+<enter-command> set my_shell=$shell<enter>dnl
+<enter-command> set my_wait_key=$wait_key<enter>dnl
+>>)
+  define(<<MM_RESTORE>>, <<dnl
+<enter-command> set auto_tag=$my_auto_tag<enter>dnl
+<enter-command> set editor=$my_editor<enter>dnl
+<enter-command> set fast_reply=$my_fast_reply<enter>dnl
+<enter-command> set postponed=$my_postponed<enter>dnl
+<enter-command> set reply_to=$my_reply_to<enter>dnl
+<enter-command> set resolve=$my_resolve<enter>dnl
+<enter-command> set shell=$my_shell<enter>dnl
+<enter-command> set wait_key=$my_wait_key<enter>dnl
+>>)
+  define(<<MM_BEFORE_REPLY>>, <<dnl
+<enter-command> set auto_tag=yes<enter>dnl
+<enter-command> set resolve=no<enter>dnl
+dnl<set-flag>r<enter>dnl
+<enter-command> set editor=touch<enter>dnl
+<enter-command> set fast_reply=yes<enter>dnl
+>>)
+  define(<<MM_AFTER_REPLY>>, <<dnl
+<enter-command> set postponed=`mktemp /tmp/xmutt_reply.XXXXXX`<enter>dnl
+<enter-command> set wait_key=no<enter>dnl
+<enter-command> set shell="XMUTT $postponed"<enter>dnl
+<postpone-message><shell-escape><enter>dnl
+>>)
+  ifdef(<<MULTI>>, <<define(<<MM_KEY>>,) define(<<NOMM_KEY>>, <Esc>)>>,
+                   <<define(<<MM_KEY>>, <Esc>) define(<<NOMM_KEY>>,)>>)
+  # http://dev.mutt.org/trac/ticket/3212 -- <set-flag> should be available in the pager
+  macro index,pager MM_KEY<<>>m 'MM_SAVE<<>><enter-command> set wait_key=no<enter><shell-escape>XMUTT ""<enter>MM_RESTORE'
+  macro index       MM_KEY<<>>g 'MM_SAVE<<>><enter-command> set reply_to=no<enter>MM_BEFORE_REPLY<set-flag>r<enter><group-reply>MM_AFTER_REPLY<<>>MM_RESTORE'
+  macro       pager MM_KEY<<>>g 'MM_SAVE<<>><enter-command> set reply_to=no<enter>MM_BEFORE_REPLY<group-reply>MM_AFTER_REPLY<<>>MM_RESTORE'
+  macro index       MM_KEY<<>>r 'MM_SAVE<<>><enter-command> set reply_to=yes<enter>MM_BEFORE_REPLY<set-flag>r<enter><reply>MM_AFTER_REPLY<<>>MM_RESTORE'
+  macro       pager MM_KEY<<>>r 'MM_SAVE<<>><enter-command> set reply_to=yes<enter>MM_BEFORE_REPLY<reply>MM_AFTER_REPLY<<>>MM_RESTORE'
+  macro index       MM_KEY<<>>L 'MM_SAVE<<>>MM_BEFORE_REPLY<set-flag>r<enter><list-reply>MM_AFTER_REPLY<<>>MM_RESTORE'
+  macro       pager MM_KEY<<>>L 'MM_SAVE<<>>MM_BEFORE_REPLY<list-reply>MM_AFTER_REPLY<<>>MM_RESTORE'
+  bind  index,pager NOMM_KEY<<>>m mail
+  bind  index,pager NOMM_KEY<<>>g group-reply
+  bind  index,pager NOMM_KEY<<>>r reply
+  bind  index,pager NOMM_KEY<<>>L list-reply
+
+  # Canned replies
+  define(<<MUTTCAN_SAVE>>, MM_SAVE)
+  define(<<MUTTCAN_RESTORE>>, MM_RESTORE)
+  define(<<MUTTCAN_BEFORE_REPLY>>, <<dnl
+<enter-command> set auto_tag=yes<enter>dnl
+<enter-command> set editor="muttcan $my_editor"<enter>dnl
+<enter-command> set fast_reply=yes<enter>dnl
+<enter-command> set reply_to=yes<enter>dnl
+>>)
+  define(<<MUTTCAN_AFTER_REPLY>>, <<>>)
+  macro index,pager <Esc>c 'MUTTCAN_SAVE<<>>MUTTCAN_BEFORE_REPLY<reply>MUTTCAN_AFTER_REPLY<<>>MUTTCAN_RESTORE'
+
+ifdef(<<OFFLINE>>, <<
+  # When offline, reference all folders as =hp/xen etc.
+  folder-hook . 'set folder=OFFLMAIL; \
+                 macro index \cf "<sync-mailbox><shell-escape>offlineimap\r"'
+
+  folder-hook G1_HOST  'set spoolfile=G1_HOST/INBOX; \
+                        macro index \cf "<sync-mailbox><shell-escape>offlineimap -a DreamRecv\r"'
+  folder-hook GM_HOST  'set spoolfile=GM_HOST/INBOX; \
+                        macro index \cf "<sync-mailbox><shell-escape>offlineimap -a Gmail\r"'
+>>, <<
+  # When online, reference all folders as =xen starting at INBOX of current
+  # account
+  folder-hook G1_HOST  'set folder=G1_FOLDER spoolfile=G1_HOST/INBOX'
+  folder-hook GM_HOST  'set folder=GM_FOLDER spoolfile=GM_HOST/INBOX'
+
+  account-hook . 'unset imap_user; unset imap_pass; unset tunnel'
+
+  account-hook G1_HOST 'set imap_user=G1_USER'
+  ifdef(<<G1_TUNNEL>>, <<
+    # ease quoting issues
+    set my_g1_tunnel="G1_TUNNEL"
+    account-hook G1_HOST 'set tunnel=$my_g1_tunnel'>>)
+  ifdef(<<G1_PASS>>, <<
+    account-hook G1_HOST 'set imap_pass="G1_PASS"'>>)
+
+  account-hook GM_HOST 'set imap_user=GM_USER'
+  ifdef(<<GM_TUNNEL>>, <<
+    # ease quoting issues
+    set my_gm_tunnel="GM_TUNNEL"
+    account-hook GM_HOST 'set tunnel=$my_gm_tunnel'>>)
+  ifdef(<<GM_PASS>>, <<
+    account-hook GM_HOST 'set imap_pass="GM_PASS"'>>)
+>>)
+
+  # Browser always remains at last browsed location, update it to the root of
+  # the new current folder...
+  # http://marc.theaimsgroup.com/?l=mutt-dev&m=112698094131784&w=2
+  folder-hook G1_HOST \
+    "push '<change-folder>?<change-dir><kill-line>G1_FOLDER\r<exit>'"
+  folder-hook GM_HOST \
+    "push '<change-folder>?<change-dir><kill-line>GM_FOLDER\r<exit>'"
+
+# ========================================================================
+# HOOKS
+# ========================================================================
+
+  folder-hook .                set timeout=5    # idle seconds before checking
+  folder-hook imaps?://        set timeout=60   #   current box for new mail
+  folder-hook .                set sort=threads sort_aux=last-date-sent
+  folder-hook 'sent|Outbox'    set sort=date-sent
+ifelse(USER, aron, <<
+  folder-hook '/INBOX$'         set sort=date-sent
+>>)
+  folder-hook .                set noread_only
+# folder-hook backup           set read_only
+  folder-hook .                set pager_index_lines=10
+  folder-hook '/INBOX$'        set pager_index_lines=0
+  folder-hook .                set sort_re
+  folder-hook '/work.pagepart$' set nosort_re
+  folder-hook .                set index_format=\$my_other_index_format
+  folder-hook '/INBOX$'        set index_format=\$my_inbox_index_format
+  folder-hook 'sent|Outbox'    set index_format=\$my_inbox_index_format
+  folder-hook .                set alias_file=~/.muttrc-aliases
+
+  # Generally prefer text/html over text/plain
+  message-hook ~A                              'unalternative_order *'
+  message-hook ~A                              'alternative_order text/calendar'
+  message-hook '~h "^User-Agent: KMail"'       'alternative_order text/plain'
+  message-hook '~h "^User-Agent: Thunderbird"' 'alternative_order text/plain'
+  message-hook '~f @alerts.assembla.com'       'alternative_order text/plain'
+  message-hook ~A                              'alternative_order text/html'
+  message-hook ~A                              'alternative_order text/plain'
+
+# ========================================================================
+# GnuPG settings
+# ========================================================================
+
+  sinclude(HOME/.muttrc-gpg)
+  set pgp_replyencrypt=yes
+  set pgp_replysign=yes
+  set pgp_replysignencrypted=yes
+  set pgp_timeout=1800
+  set pgp_good_sign="^gpg: Good signature from"
+  set pgp_autosign=no
+  set pgp_autoencrypt=no
+
+# ========================================================================
+# COLORS
+# ========================================================================
+
+  color attachment brightblue default
+  color hdrdefault magenta default
+  color indicator black cyan
+  color markers brightred default
+  color normal default default
+  color quoted green default
+  color signature magenta default
+ifdef(<<OFFLINE>>, <<
+  color status white magenta
+>>, <<
+  color status white blue
+>>)
+  color tilde blue default
+  color tree red default
+
+  # links
+  color body brightblue default '[-\.+_a-zA-Z0-9]+@[-\.a-zA-Z0-9]+'
+  color body brightblue default '(https?|ftp)://[-\.,/%~_:?&=\#a-zA-Z0-9]+'
+
+  # quotes
+  color body blue default " *^[A-Za-z0-9]*[>|#:}].*"
+  color body green default " *^[>|#:}] *[A-Za-z0-9]*[>|#:}].*"
+
+  # diffs
+  color body red default '^-.*'
+  color body blue default '^\+.*'
+  color body magenta default '^@.*'
+  color body yellow default '^Modified: .*'
+  color body yellow default '^==================================================================='
+
+  # *Bold*  -- will not work if split over lines
+  color body red default "\\*+[A-Za-z']+([ \n][A-Za-z']+)*\\*+"
+  # _Underlined_ -- will not work if split over lines
+  color body red default " _[A-Za-z']+([ \n][A-Za-z']+)*_"
+  # /Italics/  -- will not work if split over lines
+  color body red default " /[A-Za-z']+([ \n][A-Za-z']+)*/"
+
+  # quickref: ~p = to me, ~P = from me
+  folder-hook . uncolor index *
+ifelse(USER, amg, <<
+  folder-hook . color index green default \'~p\'
+  folder-hook . color index blue default \'~P\'
+  folder-hook . color index brightdefault default \'~p ~s urgent\'
+  folder-hook . color index brightdefault default \'~p ~s reminder\'
+>>, <<
+  folder-hook . color index brightdefault default \'~p ~$\'
+>>)
+  folder-hook . color index cyan default \'~f @bitscrap ~s \"^\\[[0-9]\"\'
+  folder-hook . color index yellow default \'~f eprintcenter@ ~s Django\'
+  folder-hook . color index yellow default \'~f appserver@ ~s Django\'
+  folder-hook . color index brightred default \'~F\'
+
+# ========================================================================
+# Default send hooks
+# ========================================================================
+
+  send-hook . unset signature
+  send-hook . set pgp_autosign=no pgp_autoencrypt=no
+  send-hook . unmy_hdr *
+  send-hook .               'set text_flowed=no'
+  send-hook '~C @gmail.com' 'set text_flowed=yes'
+  send-hook . 'GM_SEND'
+  send2-hook . 'GM_SEND2'
+
+# ========================================================================
+# Inboxes
+# ========================================================================
+
+  #mailboxes G1_HOST/INBOX
+  mailboxes GM_HOST/INBOX
+
+# ========================================================================
+# Griffis1 hooks
+# ========================================================================
+
+ifelse(USER, aron, <<
+  alternates '^aron(|\+.*)<<@>>arongriffis\.com$'
+  alternates '(^|[-<, ])(aron|v|agriffis)<<@>>griffis1\.net$'
+  alternates '^agriffis<<@>>n01se\.net$'
+  alternates '^agriffis<<@>>sourceforge\.net$'
+  alternates '^agriffis(|\+.*)<<@>>sourceforge\.net$'
+  alternates '^aron<<@>>pagepart\.com$'
+  alternates '^aron<<@>>facebook\.com$'
+>>, <<
+  alternates '(^|[-<, ])(amy|m|amg)<<@>>griffis1\.net$'
+  alternates '^amygriffis<<@>>sourceforge\.net$'
+>>)
+
+  set folder=G1_FOLDER     # simplify mailboxes settings
+
+  dnl send-hook '~C @griffis1.net' 'G1_SEND'
+  dnl send2-hook '~f G1_PATT' 'G1_SEND2'
+
+  # Encrypt mail to each other
+  send-hook '^~C ifelse(USER, aron, amy, aron)@griffis1.net' \
+      'set pgp_autosign=yes pgp_autoencrypt=yes'
+
+ifelse(USER, aron, <<
+  send-hook '~C @bugs.debian.org' 'set from="NAME <agriffis<<@>>n01se.net>"'
+  send-hook '~C @bugs.launchpad.net' 'set from="NAME <agriffis<<@>>n01se.net>" pgp_autosign=yes pgp_sign_as=HP_GPG'
+  send-hook '~C @pagepart.com' 'set from="NAME <aron<<@>>pagepart.com>"'
+  ML(subscribe, <<
+    ion-general<<@>>lists.berlios.de
+    klibc<<@>>zytor.com
+    mutt-dev<<@>>mutt.org
+    mutt-users<<@>>mutt.org
+    notion-devel<<@>>lists.sourceforge.net
+    notion-general<<@>>lists.sourceforge.net
+    notmuch<<@>>notmuchmail.org
+    rxvt-unicode<<@>>lists.schmorp.de
+    static<<@>>signal.n01se.net
+    static<<@>>n01se.net
+  >>, <<'set from="NAME <agriffis<<@>>n01se.net>"'>>)
+  #mailboxes +mutt
+  #mailboxes +notmuch
+>>, <<
+  send-hook '~C cearthward@' 'set from="NAME <coop<<@>>griffis1.net>"'
+>>)
+
+# ========================================================================
+# Gmail hooks
+# ========================================================================
+
+ifelse(USER, aron, <<
+  alternates '^aron(|\+.*)<<@>>arongriffis\.com$'
+  alternates '^agriffis(|\+.*)<<@>>gmail\.com$'
+>>, <<
+  alternates '^amy(|\+.*)<<@>>amygriffis\.com$'
+  alternates '^amy\.griffis(|\+.*)<<@>>gmail\.com$'
+>>)
+
+  set folder=GM_FOLDER     # simplify mailboxes settings
+  mailboxes +work.pagepart
+  mailboxes +work.pagepart.zendesk
+  mailboxes +dev.celery
+  mailboxes +dev.django-develop
+
+# send-hook '~C GM_PATT' 'GM_SEND'
+  send-hook '~C @googlegroups.com' 'GM_SEND'
+  send2-hook '~f GM_PATT' 'GM_SEND2'
+
+# ========================================================================
+# Fallbacks and Overrides
+# ========================================================================
+
+  # These send-hooks must come after all the other send-hooks to "reset" the
+  # pgp settings and fcc for replies if reverse_name fires.  In that case, we
+  # want to ignore the ~C send-hooks and go with the appropriate settings based
+  # on the From address.
+  #
+  # Unfortunately it's not possible to check if reverse_name fires, it's only
+  # possible to check if this is a reply.  Since G1 is the default, it can
+  # match here for the conditions '~Q (is a reply) ~f G1 (from griffis1)' even
+  # if reverse_name actually did not fire... the result is that alternate
+  # addresses such as agriffis<<@>>n01se.net are never used. :-(
+  #send-hook '~Q ~f G1_PATT' 'G1_SEND'
+
+  # reset this since it's set temporarily by the host sections
+ifdef(<<OFFLINE>>, <<
+  set folder=OFFLMAIL
+>>, <<
+  set folder=DEFAULT_FOLDER
+>>)
+
+  # no signature or signing for mailing lists or majordomo
+  send-hook '~l|~C majordomo@' unset signature
+  send-hook '~l|~C majordomo@' set pgp_autosign=no pgp_autoencrypt=no
+
+  source ~/.muttrc-aliases
+ifelse(USER, aron, <<
+  alias notme_g1 amy
+  alias mom mom_g
+  alias dad dad_g
+>>, <<
+  alias notme_g1 aron
+  alias mom mom_y
+  alias dad dad_y
+>>)

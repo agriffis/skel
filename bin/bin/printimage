@@ -1,0 +1,16 @@
+#!/bin/bash
+
+read w h <<<$(identify -format "%w %h\n" "$1")
+
+# for debugging
+#lpr() { cat; }
+
+# 8 inches at 72 dpi (pnmtops default)
+if [[ $w -lt 576 ]]; then
+    anytopnm "$1" | pnmtops -noturn | lpr
+elif [[ $h -lt 576 ]]; then
+    anytopnm "$1" | pnmtops -turn | lpr
+else
+    convert -rotate '90>' -resize '2250x3000' "$1" pnm:- | \
+    pnmtops -noturn -dpi 300 -equalpixels | lpr
+fi

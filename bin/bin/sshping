@@ -1,0 +1,13 @@
+#!/bin/bash
+# 
+# sshping -- determine if an ssh server is reachable, honoring .ssh/config
+#
+# syntax: sshping hostname [seconds]
+#
+# Copyright 2009 Aron Griffis <agriffis@n01se.net>
+# Released under the terms of the GNU General Public License v2
+#
+
+exec 2> >(grep -v Terminated >&2)
+exec 3< <(env -i HOME="$HOME" PATH="$PATH" setsid timeout -15 "${2:-5}" ssh -S none -v "$1" 2>&1)
+grep -q 'Remote protocol version' <&3

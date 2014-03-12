@@ -1,0 +1,212 @@
+# $Id: mailcap 4888 2013-10-15 12:57:21Z aron $
+
+# Note regarding %s in different contexts:
+#   In test= context, %s is the filename specified in the MIME header.  If there
+#   is no name specified, then %s will resolve to blank (and will not even be
+#   quoted as an empty argument by mutt).  For example:
+#       Content-Type: application/x-msdownload; name="pack276.exe"
+#   
+#   In viewer context, %s is the temporary filename created by mutt.  It will
+#   almost certainly be different from the name used in test= context since it
+#   will be a temporary file.  Unless nametemplate= is specified, the extension
+#   of the temporary file will not be significant and should be ignored by the
+#   viewer.  Additionally %s should never be blank in viewer context.
+#
+# Refer to for reference only:
+#   w=`(stty size </dev/tty||echo '24 80') | cut -d' ' -f2 | xargs expr -10 +` && \
+#   ... \
+#   | sed 's/[[:blank:]]*$//' | cat -s
+
+text/html; mailcap_bg %s browser file://@s ; nametemplate=%s.html ; test=test -n "$DISPLAY" && which browser >/dev/null 2>&1
+text/html; mailcap_bg %s chromium-browser file://@s ; nametemplate=%s.html ; test=test -n "$DISPLAY" && which chromium-browser >/dev/null 2>&1
+text/html; mailcap_bg %s firefox file://@s ; nametemplate=%s.html ; test=test -n "$DISPLAY" && which firefox >/dev/null 2>&1
+text/html; mailcap_bg %s mozilla file://@s ; nametemplate=%s.html ; test=test -n "$DISPLAY" && which mozilla >/dev/null 2>&1
+text/html; w3m    %s ; nametemplate=%s.html ; needsterminal ; test=which w3m    >/dev/null 2>&1
+text/html; links2 %s ; nametemplate=%s.html ; needsterminal ; test=which links2 >/dev/null 2>&1
+text/html; elinks %s ; nametemplate=%s.html ; needsterminal ; test=which elinks >/dev/null 2>&1
+text/html; links  %s ; nametemplate=%s.html ; needsterminal ; test=which links  >/dev/null 2>&1
+text/html; fix-html %s | env RAN_HTML_FIXUPS=1 run-mailcap --action=cat text/html:- ; \
+           copiousoutput ; test=test -z "$RAN_HTML_FIXUPS" && which fix-html >/dev/null 2>&1
+text/html; w=`(stty size </dev/tty||echo '24 80') | cut -d' ' -f2 | xargs expr -10 +` && \
+           w3m -T text/html -cols $w -o frame=1 -o graphic_char=1 -o ignore_null_img_alt=1 -o color=0 -o follow_locale=1 -dump %s ; \
+           copiousoutput ; nametemplate=%s.html ; \
+           print=w3m -dump -cols 132 -T text/html %s | mpage -bLetter -1 -P -M132 ; \
+           test=which w3m >/dev/null 2>&1
+text/html; w=`(stty size </dev/tty||echo '24 80') | cut -d' ' -f2 | xargs expr -10 +` && \
+           c=`eval $(locale)\; case "$LC_CTYPE" in *.utf8) echo " -codepage iso-10646-1" \;\; esac` && \
+           links2 $c -width $w -html-margin 0 -html-numbered-links 1 -force-html -dump %s | sed 's/[[:blank:]]*$//' | cat -s; \
+           nametemplate=%s.html ; copiousoutput ; test=which links2 >/dev/null 2>&1
+text/html; w=`(stty size </dev/tty||echo '24 80') | cut -d' ' -f2 | xargs expr -10 +` && \
+           elinks -dump 1 -dump-width $w -localhost 1 -eval "set document.browse.margin_width = 0" %s ; \
+           nametemplate=%s.html ; copiousoutput ; test=which elinks >/dev/null 2>&1
+text/html; w=`(stty size </dev/tty||echo '24 80') | cut -d' ' -f2 | xargs expr -10 +` && \
+           links -dump -width $w %s ; \
+           nametemplate=%s.html ; copiousoutput ; test=which links >/dev/null 2>&1
+
+text/calendar; vcalendar-filter %s 2>&1 ; copiousoutput ; test=which vcalendar-filter >/dev/null 2>&1
+
+application/pdf; LC_ALL=C mailcap_bg %s acroread ; nametemplate=%s.pdf ; test=test -n "$DISPLAY" && which acroread >/dev/null 2>&1
+application/pdf; LC_ALL=C mailcap_bg %s evince   ; nametemplate=%s.pdf ; test=test -n "$DISPLAY" && which evince   >/dev/null 2>&1
+application/pdf; LC_ALL=C mailcap_bg %s xpdf     ; nametemplate=%s.pdf ; test=test -n "$DISPLAY" && which xpdf     >/dev/null 2>&1
+application/pdf; pdftotext -layout %s - | perl -pe 's//("━" x 75)."\\n"/e' | perl -pe 's//• /g' ; \
+                 copiousoutput ; nametemplate=%s.pdf ; print=lpr %s
+
+application/postscript; LC_ALL=C mailcap_bg %s evince ; nametemplate=%s.pdf ; test=test -n "$DISPLAY" && which evince >/dev/null 2>&1
+application/postscript; ps2pdf %s - | run-mailcap --action=cat application/pdf:- ; \
+                        copiousoutput ; nametemplate=%s.ps ; print=lpr %s
+
+image/*; mailcap_bg %s eog     ; test=test -n "$DISPLAY" && which eog     >/dev/null 2>&1
+image/*; mailcap_bg %s gqview  ; test=test -n "$DISPLAY" && which gqview  >/dev/null 2>&1
+image/*; mailcap_bg %s display ; test=test -n "$DISPLAY" && which display >/dev/null 2>&1
+image/*; mailcap_bg %s xv      ; test=test -n "$DISPLAY" && which xv      >/dev/null 2>&1
+image/*; w=`(stty size </dev/tty||echo '24 80') | cut -d' ' -f2 | xargs expr -5 +` && convert -geometry ${w}x1000 %s pbm:- | pbmtoascii ; \
+         copiousoutput ; print=printimage %s
+
+# Code/diffs/patches
+text/x-csrc; cat %s ; copiousoutput ; print=a2ps -1 -Ec -g --chars-per-line=132 --borders=no
+text/x-diff; cat %s ; copiousoutput
+text/x-patch; cat %s ; copiousoutput
+
+application/x-redhat-package-manager; rpm -K %s && echo && rpm -qpi %s && echo && rpm -qpl %s ; copiousoutput
+
+message/partial; showpartial %s %{id} %{number} %{total} | less ; needsterminal
+message/partial; showpartial %s %{id} %{number} %{total} ; copiousoutput
+
+application/zip;              mailcap_bg %s mime-unzipper ; test=test -n "$DISPLAY" && which mime-unzipper >/dev/null 2>&1
+application/x-zip-compressed; mailcap_bg %s mime-unzipper ; test=test -n "$DISPLAY" && which mime-unzipper >/dev/null 2>&1
+application/zip;              mime-unzipper --dump %s ; copiousoutput
+application/x-zip-compressed; mime-unzipper --dump %s ; copiousoutput
+
+application/x-compressed-tar; mailcap_bg %s mime-unzipper ; test=test -n "$DISPLAY" && which mime-unzipper >/dev/null 2>&1
+application/x-compressed-tar; mime-unzipper --dump %s ; copiousoutput
+
+# Staroffice/Openoffice, converted for mailcap_bg
+# awk '/soffice/{print $1}' /etc/mailcap | egrep 'application/(vnd|ms)' | sort
+
+application/msexcel;                                                       mailcap_bg %s gnumeric ; test=test -n "$DISPLAY" && which gnumeric >/dev/null 2>&1
+application/vnd.ms-excel;                                                  mailcap_bg %s gnumeric ; test=test -n "$DISPLAY" && which gnumeric >/dev/null 2>&1
+application/x-msexcel;                                                     mailcap_bg %s gnumeric ; test=test -n "$DISPLAY" && which gnumeric >/dev/null 2>&1
+application/vnd.ms-excel.sheet.macroEnabled.12;                            mailcap_bg %s gnumeric ; test=test -n "$DISPLAY" && which gnumeric >/dev/null 2>&1
+application/vnd.ms-excel.template.macroEnabled.12;                         mailcap_bg %s gnumeric ; test=test -n "$DISPLAY" && which gnumeric >/dev/null 2>&1
+application/vnd.ms-excel;                                                  mailcap_bg %s gnumeric ; test=test -n "$DISPLAY" && which gnumeric >/dev/null 2>&1
+
+application/msexcel;                                                       mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/x-msexcel;                                                     mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/mspowerpoint;                                                  mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/x-mspowerpoint;                                                mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/msword;                                                        mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/x-msword;                                                      mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/vnd.lotus-1-2-3;                                               mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/vnd.ms-excel.sheet.macroEnabled.12;                            mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/vnd.ms-excel.template.macroEnabled.12;                         mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/vnd.ms-excel;                                                  mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/vnd.ms-powerpoint.presentation.macroEnabled.12;                mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/vnd.ms-powerpoint.slideshow.macroEnabled.12;                   mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/vnd.ms-powerpoint.template.macroEnabled.12;                    mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/vnd.ms-powerpoint;                                             mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/vnd.ms-word.document.macroEnabled.12;                          mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/vnd.ms-word.template.macroEnabled.12;                          mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/vnd.ms-works;                                                  mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/vnd.oasis.opendocument.chart;                                  mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/vnd.oasis.opendocument.database;                               mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/vnd.oasis.opendocument.formula;                                mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/vnd.oasis.opendocument.graphics-template;                      mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/vnd.oasis.opendocument.graphics;                               mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/vnd.oasis.opendocument.presentation-template;                  mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/vnd.oasis.opendocument.presentation;                           mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/vnd.oasis.opendocument.spreadsheet-template;                   mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/vnd.oasis.opendocument.spreadsheet;                            mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/vnd.oasis.opendocument.text-master;                            mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/vnd.oasis.opendocument.text-template;                          mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/vnd.oasis.opendocument.text-web;                               mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/vnd.oasis.opendocument.text;                                   mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/vnd.openxmlformats-officedocument.presentationml.presentation; mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/vnd.openxmlformats-officedocument.presentationml.slideshow;    mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/vnd.openxmlformats-officedocument.presentationml.template;     mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;         mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/vnd.openxmlformats-officedocument.spreadsheetml.template;      mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/vnd.openxmlformats-officedocument.wordprocessingml.document;   mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/vnd.openxmlformats-officedocument.wordprocessingml.template;   mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/vnd.stardivision.calc;                                         mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/vnd.stardivision.chart;                                        mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/vnd.stardivision.draw;                                         mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/vnd.stardivision.impress;                                      mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/vnd.stardivision.math;                                         mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/vnd.stardivision.writer-global;                                mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/vnd.stardivision.writer;                                       mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/vnd.sun.xml.base;                                              mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/vnd.sun.xml.calc.template;                                     mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/vnd.sun.xml.calc;                                              mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/vnd.sun.xml.draw.template;                                     mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/vnd.sun.xml.draw;                                              mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/vnd.sun.xml.impress.template;                                  mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/vnd.sun.xml.impress;                                           mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/vnd.sun.xml.math;                                              mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/vnd.sun.xml.writer.global;                                     mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/vnd.sun.xml.writer.template;                                   mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/vnd.sun.xml.writer;                                            mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/vnd.wordperfect;                                               mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+application/rtf;                                                           mailcap_bg %s ooffice ; test=test -n "$DISPLAY" && which ooffice >/dev/null 2>&1
+
+application/msword;                      antiword -w 70 %s     ; copiousoutput ; test=which antiword >/dev/null 2>&1
+application/vnd.oasis.opendocument.text; odt2txt --width=70 %s ; copiousoutput ; test=which odt2txt >/dev/null 2>&1
+
+mailcap/spreadsheet-html; sed '/^<TABLE/{s/BORDER=0/BORDER=1/\;s/RULES=NONE//}' %s | run-mailcap --action=cat text/html:- ; copiousoutput
+
+application/msexcel;                                                       timeout -15 20 unoconv --doctype=spreadsheet  --format=html --stdout %s | run-mailcap --action=cat mailcap/spreadsheet-html:- ; copiousoutput ; test=test -n "$DISPLAY" && which unoconv >/dev/null 2>&1
+application/mspowerpoint;                                                  timeout -15 20 unoconv --doctype=presentation --format=pdf  --stdout %s | run-mailcap --action=cat application/pdf:-                                 ; copiousoutput ; test=test -n "$DISPLAY" && which unoconv >/dev/null 2>&1
+application/x-mspowerpoint;                                                timeout -15 20 unoconv --doctype=presentation --format=pdf  --stdout %s | run-mailcap --action=cat application/pdf:-                                 ; copiousoutput ; test=test -n "$DISPLAY" && which unoconv >/dev/null 2>&1
+application/msword;                                                        timeout -15 20 unoconv --doctype=document     --format=html --stdout %s | run-mailcap --action=cat text/html:-                                       ; copiousoutput ; test=test -n "$DISPLAY" && which unoconv >/dev/null 2>&1
+application/vnd.lotus-1-2-3;                                               timeout -15 20 unoconv --doctype=spreadsheet  --format=html --stdout %s | run-mailcap --action=cat mailcap/spreadsheet-html:- ; copiousoutput ; test=test -n "$DISPLAY" && which unoconv >/dev/null 2>&1
+application/vnd.ms-excel.sheet.macroEnabled.12;                            timeout -15 20 unoconv --doctype=spreadsheet  --format=html --stdout %s | run-mailcap --action=cat mailcap/spreadsheet-html:- ; copiousoutput ; test=test -n "$DISPLAY" && which unoconv >/dev/null 2>&1
+application/vnd.ms-excel.template.macroEnabled.12;                         timeout -15 20 unoconv --doctype=spreadsheet  --format=html --stdout %s | run-mailcap --action=cat mailcap/spreadsheet-html:- ; copiousoutput ; test=test -n "$DISPLAY" && which unoconv >/dev/null 2>&1
+application/vnd.ms-excel;                                                  timeout -15 20 unoconv --doctype=spreadsheet  --format=html --stdout %s | run-mailcap --action=cat mailcap/spreadsheet-html:- ; copiousoutput ; test=test -n "$DISPLAY" && which unoconv >/dev/null 2>&1
+application/vnd.ms-powerpoint.presentation.macroEnabled.12;                timeout -15 20 unoconv --doctype=presentation --format=pdf  --stdout %s | run-mailcap --action=cat application/pdf:-                                 ; copiousoutput ; test=test -n "$DISPLAY" && which unoconv >/dev/null 2>&1
+application/vnd.ms-powerpoint.slideshow.macroEnabled.12;                   timeout -15 20 unoconv --doctype=presentation --format=pdf  --stdout %s | run-mailcap --action=cat application/pdf:-                                 ; copiousoutput ; test=test -n "$DISPLAY" && which unoconv >/dev/null 2>&1
+application/vnd.ms-powerpoint.template.macroEnabled.12;                    timeout -15 20 unoconv --doctype=presentation --format=pdf  --stdout %s | run-mailcap --action=cat application/pdf:-                                 ; copiousoutput ; test=test -n "$DISPLAY" && which unoconv >/dev/null 2>&1
+application/vnd.ms-powerpoint;                                             timeout -15 20 unoconv --doctype=presentation --format=pdf  --stdout %s | run-mailcap --action=cat application/pdf:-                                 ; copiousoutput ; test=test -n "$DISPLAY" && which unoconv >/dev/null 2>&1
+application/vnd.ms-word.document.macroEnabled.12;                          timeout -15 20 unoconv --doctype=document     --format=html --stdout %s | run-mailcap --action=cat text/html:-                                       ; copiousoutput ; test=test -n "$DISPLAY" && which unoconv >/dev/null 2>&1
+application/vnd.ms-word.template.macroEnabled.12;                          timeout -15 20 unoconv --doctype=document     --format=html --stdout %s | run-mailcap --action=cat text/html:-                                       ; copiousoutput ; test=test -n "$DISPLAY" && which unoconv >/dev/null 2>&1
+application/vnd.ms-works;                                                  timeout -15 20 unoconv --doctype=document     --format=html --stdout %s | run-mailcap --action=cat text/html:-                                       ; copiousoutput ; test=test -n "$DISPLAY" && which unoconv >/dev/null 2>&1
+application/vnd.oasis.opendocument.chart;                                  timeout -15 20 unoconv --doctype=graphics     --format=png  --stdout %s | run-mailcap --action=cat image/png:-                                       ; copiousoutput ; test=test -n "$DISPLAY" && which unoconv >/dev/null 2>&1
+application/vnd.oasis.opendocument.database;                               XXX
+application/vnd.oasis.opendocument.formula;                                XXX
+application/vnd.oasis.opendocument.graphics-template;                      timeout -15 20 unoconv --doctype=graphics     --format=png  --stdout %s | run-mailcap --action=cat image/png:-                                       ; copiousoutput ; test=test -n "$DISPLAY" && which unoconv >/dev/null 2>&1
+application/vnd.oasis.opendocument.graphics;                               timeout -15 20 unoconv --doctype=graphics     --format=png  --stdout %s | run-mailcap --action=cat image/png:-                                       ; copiousoutput ; test=test -n "$DISPLAY" && which unoconv >/dev/null 2>&1
+application/vnd.oasis.opendocument.presentation-template;                  timeout -15 20 unoconv --doctype=presentation --format=pdf  --stdout %s | run-mailcap --action=cat application/pdf:-                                 ; copiousoutput ; test=test -n "$DISPLAY" && which unoconv >/dev/null 2>&1
+application/vnd.oasis.opendocument.presentation;                           timeout -15 20 unoconv --doctype=presentation --format=pdf  --stdout %s | run-mailcap --action=cat application/pdf:-                                 ; copiousoutput ; test=test -n "$DISPLAY" && which unoconv >/dev/null 2>&1
+application/vnd.oasis.opendocument.spreadsheet-template;                   timeout -15 20 unoconv --doctype=spreadsheet  --format=html --stdout %s | run-mailcap --action=cat mailcap/spreadsheet-html:- ; copiousoutput ; test=test -n "$DISPLAY" && which unoconv >/dev/null 2>&1
+application/vnd.oasis.opendocument.spreadsheet;                            timeout -15 20 unoconv --doctype=spreadsheet  --format=html --stdout %s | run-mailcap --action=cat mailcap/spreadsheet-html:- ; copiousoutput ; test=test -n "$DISPLAY" && which unoconv >/dev/null 2>&1
+application/vnd.oasis.opendocument.text-master;                            timeout -15 20 unoconv --doctype=document     --format=html --stdout %s | run-mailcap --action=cat text/html:-                                       ; copiousoutput ; test=test -n "$DISPLAY" && which unoconv >/dev/null 2>&1
+application/vnd.oasis.opendocument.text-template;                          timeout -15 20 unoconv --doctype=document     --format=html --stdout %s | run-mailcap --action=cat text/html:-                                       ; copiousoutput ; test=test -n "$DISPLAY" && which unoconv >/dev/null 2>&1
+application/vnd.oasis.opendocument.text-web;                               timeout -15 20 unoconv --doctype=document     --format=html --stdout %s | run-mailcap --action=cat text/html:-                                       ; copiousoutput ; test=test -n "$DISPLAY" && which unoconv >/dev/null 2>&1
+application/vnd.oasis.opendocument.text;                                   timeout -15 20 unoconv --doctype=document     --format=html --stdout %s | run-mailcap --action=cat text/html:-                                       ; copiousoutput ; test=test -n "$DISPLAY" && which unoconv >/dev/null 2>&1
+application/vnd.openxmlformats-officedocument.presentationml.presentation; timeout -15 20 unoconv --doctype=presentation --format=pdf  --stdout %s | run-mailcap --action=cat application/pdf:-                                 ; copiousoutput ; test=test -n "$DISPLAY" && which unoconv >/dev/null 2>&1
+application/vnd.openxmlformats-officedocument.presentationml.slideshow;    timeout -15 20 unoconv --doctype=presentation --format=pdf  --stdout %s | run-mailcap --action=cat application/pdf:-                                 ; copiousoutput ; test=test -n "$DISPLAY" && which unoconv >/dev/null 2>&1
+application/vnd.openxmlformats-officedocument.presentationml.template;     timeout -15 20 unoconv --doctype=presentation --format=pdf  --stdout %s | run-mailcap --action=cat application/pdf:-                                 ; copiousoutput ; test=test -n "$DISPLAY" && which unoconv >/dev/null 2>&1
+application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;         timeout -15 20 unoconv --doctype=spreadsheet  --format=html --stdout %s | run-mailcap --action=cat mailcap/spreadsheet-html:- ; copiousoutput ; test=test -n "$DISPLAY" && which unoconv >/dev/null 2>&1
+application/vnd.openxmlformats-officedocument.spreadsheetml.template;      timeout -15 20 unoconv --doctype=spreadsheet  --format=html --stdout %s | run-mailcap --action=cat mailcap/spreadsheet-html:- ; copiousoutput ; test=test -n "$DISPLAY" && which unoconv >/dev/null 2>&1
+application/vnd.openxmlformats-officedocument.wordprocessingml.document;   timeout -15 20 unoconv --doctype=document     --format=html --stdout %s | run-mailcap --action=cat text/html:-                                       ; copiousoutput ; test=test -n "$DISPLAY" && which unoconv >/dev/null 2>&1
+application/vnd.openxmlformats-officedocument.wordprocessingml.template;   timeout -15 20 unoconv --doctype=document     --format=html --stdout %s | run-mailcap --action=cat text/html:-                                       ; copiousoutput ; test=test -n "$DISPLAY" && which unoconv >/dev/null 2>&1
+application/vnd.stardivision.calc;                                         timeout -15 20 unoconv --doctype=spreadsheet  --format=html --stdout %s | run-mailcap --action=cat mailcap/spreadsheet-html:- ; copiousoutput ; test=test -n "$DISPLAY" && which unoconv >/dev/null 2>&1
+application/vnd.stardivision.chart;                                        timeout -15 20 unoconv --doctype=graphics     --format=png  --stdout %s | run-mailcap --action=cat image/png:-                                       ; copiousoutput ; test=test -n "$DISPLAY" && which unoconv >/dev/null 2>&1
+application/vnd.stardivision.draw;                                         timeout -15 20 unoconv --doctype=graphics     --format=png  --stdout %s | run-mailcap --action=cat image/png:-                                       ; copiousoutput ; test=test -n "$DISPLAY" && which unoconv >/dev/null 2>&1
+application/vnd.stardivision.impress;                                      timeout -15 20 unoconv --doctype=presentation --format=pdf  --stdout %s | run-mailcap --action=cat application/pdf:-                                 ; copiousoutput ; test=test -n "$DISPLAY" && which unoconv >/dev/null 2>&1
+application/vnd.stardivision.math;                                         XXX
+application/vnd.stardivision.writer-global;                                timeout -15 20 unoconv --doctype=document     --format=html --stdout %s | run-mailcap --action=cat text/html:-                                       ; copiousoutput ; test=test -n "$DISPLAY" && which unoconv >/dev/null 2>&1
+application/vnd.stardivision.writer;                                       timeout -15 20 unoconv --doctype=document     --format=html --stdout %s | run-mailcap --action=cat text/html:-                                       ; copiousoutput ; test=test -n "$DISPLAY" && which unoconv >/dev/null 2>&1
+application/vnd.sun.xml.base;                                              timeout -15 20 unoconv --doctype=document     --format=html --stdout %s | run-mailcap --action=cat text/html:-                                       ; copiousoutput ; test=test -n "$DISPLAY" && which unoconv >/dev/null 2>&1
+application/vnd.sun.xml.calc.template;                                     timeout -15 20 unoconv --doctype=spreadsheet  --format=html --stdout %s | run-mailcap --action=cat mailcap/spreadsheet-html:- ; copiousoutput ; test=test -n "$DISPLAY" && which unoconv >/dev/null 2>&1
+application/vnd.sun.xml.calc;                                              timeout -15 20 unoconv --doctype=spreadsheet  --format=html --stdout %s | run-mailcap --action=cat mailcap/spreadsheet-html:- ; copiousoutput ; test=test -n "$DISPLAY" && which unoconv >/dev/null 2>&1
+application/vnd.sun.xml.draw.template;                                     XXX
+application/vnd.sun.xml.draw;                                              XXX
+application/vnd.sun.xml.impress.template;                                  timeout -15 20 unoconv --doctype=presentation --format=pdf  --stdout %s | run-mailcap --action=cat application/pdf:-                                 ; copiousoutput ; test=test -n "$DISPLAY" && which unoconv >/dev/null 2>&1
+application/vnd.sun.xml.impress;                                           timeout -15 20 unoconv --doctype=presentation --format=pdf  --stdout %s | run-mailcap --action=cat application/pdf:-                                 ; copiousoutput ; test=test -n "$DISPLAY" && which unoconv >/dev/null 2>&1
+application/vnd.sun.xml.math;                                              XXX
+application/vnd.sun.xml.writer.global;                                     timeout -15 20 unoconv --doctype=document     --format=html --stdout %s | run-mailcap --action=cat text/html:-                                       ; copiousoutput ; test=test -n "$DISPLAY" && which unoconv >/dev/null 2>&1
+application/vnd.sun.xml.writer.template;                                   timeout -15 20 unoconv --doctype=document     --format=html --stdout %s | run-mailcap --action=cat text/html:-                                       ; copiousoutput ; test=test -n "$DISPLAY" && which unoconv >/dev/null 2>&1
+application/vnd.sun.xml.writer;                                            timeout -15 20 unoconv --doctype=document     --format=html --stdout %s | run-mailcap --action=cat text/html:-                                       ; copiousoutput ; test=test -n "$DISPLAY" && which unoconv >/dev/null 2>&1
+application/vnd.wordperfect;                                               timeout -15 20 unoconv --doctype=document     --format=html --stdout %s | run-mailcap --action=cat text/html:-                                       ; copiousoutput ; test=test -n "$DISPLAY" && which unoconv >/dev/null 2>&1
+application/rtf;                                                           timeout -15 20 unoconv --doctype=document     --format=html --stdout %s | run-mailcap --action=cat text/html:-                                       ; copiousoutput ; test=test -n "$DISPLAY" && which unoconv >/dev/null 2>&1
+
+# vim:set nowrap tw=80:

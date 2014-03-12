@@ -1,0 +1,214 @@
+#!/usr/bin/perl -w
+#
+# sortvers -- sort ebuilds in portage order
+# Copyright 2004 Aron Griffis <agriffis@gentoo.org>
+# Released under the GNU GPL v2
+#
+
+use Getopt::Long;
+use strict;
+
+######################################################################
+# Global vars
+######################################################################
+
+(my $zero = $0) =~ s,.*/,,;
+(my $version = '$Revision: 4036 $') =~ s/.*?(\d.*\d).*/$zero version $1\n/;
+my $verbose = 0;
+my %opt = (
+    'F' => '" "',
+    'v' => \$verbose,
+);
+my $usage = <<EOT;
+usage: $zero [ OPTIONS ]
+
+    -Fpattern              Specifies the pattern to split on
+           --components    Break output into components
+           --namelast      Sort by name last instead of first
+           --latest        Only show the latest for each name
+
+    -h     --help          Show this help message
+    -v     --verbose       Verbose output
+    -V     --version       Show version information
+EOT
+
+######################################################################
+# Option parsing
+######################################################################
+
+# Allow bundling of options
+Getopt::Long::Configure("bundling");
+
+# Parse the options on the cmdline.  Put the short versions first in
+# each optionstring so that the hash keys are created using the short
+# versions.  For example, use 'q|qar', not 'qar|q'.
+my ($result) = GetOptions(
+    \%opt,
+    'F:s',              # split pattern
+    'h|help',           # help message
+    'latest',           # show only the latest for each name
+    'namelast',         # sort by name last instead of first
+    'components',       # don't sort, just show components
+    'v|verbose+',       # verbose, more v's for more verbosity
+    'V|version',        # version information
+);
+if ($opt{'h'}) { print STDERR $usage; exit 0 }
+if ($opt{'V'}) { print STDERR $version; exit 0 }
+die "$zero: unrecognized argument: $ARGV[0]\n$usage" if @ARGV;
+
+######################################################################
+# Main
+######################################################################
+
+# Collect list of ebuilds on stdin
+my (@ebuilds);
+if (length $opt{'F'} == 0) {
+    # for our purposes, empty string means no split
+    @ebuilds = grep /\S/, <>;
+} else {
+    # Treat -F the same way as perl does by adding single quotes if necessary
+    $opt{'F'} = "'$opt{'F'}'" unless $opt{'F'} =~ /^(['"\/]).*\1$/;
+    while (<>) {
+        push @ebuilds, grep /\S/, eval "split $opt{'F'}, \$_";
+    }
+}
+chomp @ebuilds;
+
+if ($opt{'components'}) {
+    for (@ebuilds) {
+        print join(' ', namver($_)), "\n";
+    }
+    exit 0;
+}
+
+# Sort and print
+exit 0 unless @ebuilds;
+@ebuilds = sort sortfunc @ebuilds;
+if ($opt{'latest'}) {
+    my @e2;
+    my $prevname = '';
+    for (reverse @ebuilds) {
+        my $thisname = namver($_);
+        next if $thisname eq $prevname;
+        unshift @e2, $opt{'components'} ? join(' ', namver($_)) : $_;
+        $prevname = $thisname;
+    }
+    print join("\n", @e2), "\n";
+} else {
+    print join("\n", $opt{'components'} ?
+        map(join(' ', namver($_)), @ebuilds) : @ebuilds), "\n";
+}
+exit 0;
+
+sub namver {
+    my ($namverext) = @_;
+    my ($firstsep) = '-';
+    $firstsep = '[-_]' if $namverext =~ 
+        /\.(?:deb|diff\.gz|dsc|orig\.tar\.gz)$/;
+    my ($nam, $ver, $ext) = ($namverext =~ m{
+        (.*?)                   # name
+        (?=[^/]*$)              # no slashes allowed in version
+        $firstsep(\d.*?)        # version starts numeric
+        ((?:                    # extensions are part of the name
+            \/ |
+            _\w+\.deb |
+            \.[^.]*\.rpm |
+            \.[^\d\W]\w*
+        )?)$
+    }x);
+    ($nam, $ver, $ext) = ($namverext, '', '') unless defined $ver;
+    print STDERR "$namverext => ($nam, $ver, $ext)\n" if $verbose;
+    return wantarray ? ($nam, $ver, $ext) : $nam.$ext;
+}
+
+sub sortfunc($$) {
+    my ($a, $b) = @_;
+    my ($nama, $va, $exta) = namver($a);
+    my ($namb, $vb, $extb) = namver($b);
+    my ($na, $sa, $sna, $ra) = ($va =~ /^(.*?)(?:_(alpha|beta||pre|rc|p)(\d*))?(?:-r(\d+))?$/);
+    my ($nb, $sb, $snb, $rb) = ($vb =~ /^(.*?)(?:_(alpha|beta||pre|rc|p)(\d*))?(?:-r(\d+))?$/);
+    my (@na) = split /\.|(?<=\d)(?=[^\d.])|(?<![\d.])(?=\d)/, $na;
+    my (@nb) = split /\.|(?<=\d)(?=[^\d.])|(?<![\d.])(?=\d)/, $nb;
+    my $retval;
+
+    if ($verbose) {
+        use Data::Dumper;
+        print STDERR "\@na = " . Dumper(\@na);
+        print STDERR "\@nb = " . Dumper(\@nb);
+    }
+
+    unless ($opt{'namelast'}) {
+        $retval = 7 * ($nama.$exta cmp $namb.$extb);
+        return $retval if $retval;
+    }
+
+    #
+    # compare version numbers first
+    #
+    for (my $i = 0; defined $na[$i] or defined $nb[$i]; $i++) {
+        # def vs. undef
+        return +1 if defined $na[$i] and !defined $nb[$i];
+        return -1 if defined $nb[$i] and !defined $na[$i];
+
+        # num vs. num
+        if ($na[$i] =~ /^\d/ and $nb[$i] =~ /^\d/) {
+            $retval = ($na[$i] <=> $nb[$i]);
+            return $retval if $retval;
+            next;
+        }
+
+        # char vs. char
+        if ($na[$i] =~ /^\D/ and $nb[$i] =~ /^\D/) {
+            $retval = ($na[$i] cmp $nb[$i]);
+            return $retval if $retval;
+            next;
+        }
+
+        # num vs. char
+        $retval = ($na[$i] =~ /\d/ and -1 or +1);
+        return $retval;
+    }
+
+    #
+    # compare suffix second
+    #
+    if (defined $sa and !defined $sb) {
+        return +2 if $sa eq "p";
+        return -2;
+    }
+    if (defined $sb and !defined $sa) {
+        return -3 if $sb eq "p";
+        return +3;
+    }
+
+    if (defined $sa) {  # and defined $sb
+        $retval = ($sa cmp $sb);
+        if ($retval) {
+            return +4 if $sa eq "p";
+            return -4 if $sb eq "p";
+            return $retval; # suffixes happen to be alphabetical order, mostly
+        }
+
+        # compare suffix number
+        return +5 if defined $sna and !defined $snb;
+        return -5 if defined $snb and !defined $sna;
+        if (defined $sna) {  # and defined $snb
+            $retval = ($sna <=> $snb);
+            return $retval if $retval;
+        }
+    }
+
+    #
+    # compare rev third
+    #
+    return +6 if defined $ra and !defined $rb;
+    return -6 if defined $rb and !defined $ra;
+    if (defined $ra) {  # and defined $rb
+        return ($ra <=> $rb);
+    }
+
+    #
+    # compare name last
+    #
+    return 7 * ($nama.$exta cmp $namb.$extb);
+}

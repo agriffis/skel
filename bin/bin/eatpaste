@@ -1,0 +1,166 @@
+#!/usr/bin/ruby -w
+#
+# eatpaste -- examine the x cut buffer and do something clever with it
+#
+# Originally written by Aaron Brooks in bash.
+# Rewritten by Aron Griffis in ruby.
+#
+# Copyright 2005 Aaron Brooks
+# Copyright 2005-2007 Aron Griffis
+#
+# released under the GNU General Public License version 2
+#
+
+require 'date.rb'
+require 'cgi'
+
+zero = $0.sub %r{.*/}, ''
+rcfile = ENV['HOME'] + '/.eatpasterc'
+concat = ' '
+
+# Attempt to retain compatibility with bash .eatpasterc
+ranks = Hash.new
+class <<ranks
+  alias oldbrackets []
+  def [](obj) oldbrackets(obj) or 9999 end
+end
+if File.exists?(rcfile)
+  rc = IO.readlines(rcfile, nil)[0]
+  rc.sub(%r{.*?ranks\s*=\s*\((.*?)\).*}, '\1').split.each_with_index {|x,i|
+    ranks[x] = i.to_i
+  }
+end
+
+# XXX calls to xmessage should be overall exception handling
+def getx
+  s = `xclip -o`
+  return s if $? == 0
+  if not $stderr.tty?
+    fork { system 'xmessage', "#{zero}: error running xclip" }
+  end
+  raise "xclip -o failed"
+end
+
+# XXX calls to xmessage should be overall exception handling
+def putx(s)
+  IO.popen("xclip -i", "r+") {|x| x.print s }
+  return s if $? == 0
+  if not $stderr.tty?
+    fork { exec 'xmessage', "#{zero}: error running xclip" }
+  end
+  raise "xclip -i failed"
+end
+
+def tinyurl(u)
+  tinyurl = `wget -q -O- --post-data "url=#{u}" http://tinyurl.com/create.php`
+  if tinyurl =~ %r{http://tinyurl.com/[^"<]+}
+    return $&
+  else
+    return nil
+  end
+end
+
+buf = getx.strip
+exit unless buf.length > 0
+
+# since buf is stripped, any \n means multi-line string
+if buf =~ /\n/
+
+  # -----------------------------------------
+  # Multi-line input to be handled directly
+  # -----------------------------------------
+  case buf
+
+  when /\As\/key\s+(\d+\s+\S+)/i then
+    sp = `zenity --title 'S/Key passphrase' --entry --hide-text \
+      --text 'Please enter your S/Key passphrase'`
+    skey = IO.popen('-', 'r+') {|f|
+      if f then f.puts sp; break f.read; end
+      Process.setsid  # disconnect the controlling terminal
+      exec "donkey -f md5 #{$1}"
+    }
+    putx skey.sub(/\A.*?([A-Z ]+\n).*\Z/m, '\1')
+    exit
+
+# when %r{\A(\d{2}):(\d{2})\s(?:.*^(\d{2}):(\d{2})\s)?}m
+#   start = $1+$2
+#   finish = "%04d" % [ ($3 ? $3+$4 : start).to_i + 1 ]
+#   now = DateTime.now
+#   now -= 1 if start.to_i > now.strftime('%H%M').to_i
+#   now = now.strftime('%Y%m%d')
+#   buf = "http://n01se.net/log/?start=#{now}#{start}00&end=#{now}#{finish}59"
+#   # falls through to load this URL
+
+  # -----------------------------------------
+  # Multi-line URL or text to be concatenated
+  # -----------------------------------------
+  else
+    url = buf.split(/\s*\n\s*/).join('')
+    if url =~ %r{\A\S+://}
+      putx url
+    else
+      putx buf.split(/\s+/).join(' ')
+    end
+    exit
+  end
+end
+
+buf = case buf
+
+        # -----------------------------------------
+        # Single line convert-to-URL
+        # -----------------------------------------
+
+      when /\A(?:rh)?bz[_#\s]*(\d+)$/i then 
+        "http://bugzilla.redhat.com/bugzilla/show_bug.cgi?id=#{$1}"
+
+      when /\A\d{5,7}$/
+        "http://bugzilla.redhat.com/bugzilla/show_bug.cgi?id=#{buf}"
+
+      when /\A(?:it|issue.?tracker)[_#\s]*([0-9]+)/i then 
+        "https://enterprise.redhat.com" + 
+          "/issue-tracker/?module=issues&action=view&tid=#{$1}"
+
+      when /\Arfc\s*[#-]?([0-9]+)/i then 
+        "http://www.rfc-archive.org/getrfc.php?rfc=#{$1}"
+
+      when /\A(?:qxcr)?(100\d{7})$/i then
+        "http://quix-pct.hp.com/sis/idsearch.jsp?search=ID&searchtext=qxcr#{$1}"
+
+      when /\Amessage-id: <?(.*?@[^>\s]*)/i
+        mid = $1
+        if ranks['gmane'] <= ranks['marc']
+          "http://mid.gmane.org/#{mid}"
+        else
+          domain = mid.sub(/.*@/, '')
+          "http://marc.theaimsgroup.com/?i=#{mid.sub '@.*',''}%20%28%29%20#{domain.sub '.','%20!%20'}"
+        end
+
+      when %r|\A(http://github.com/.*?/blob/[a-f\d]{40})(/.*)|
+        (tinyurl($1) or $1) + $2
+
+        # -----------------------------------------
+        # Single line URL or filename
+        # -----------------------------------------
+
+      when %r{\A\S+://}
+        buf
+
+      when %r{\A/\S+/\S+\z}
+        "file://#{buf}"
+
+        # -----------------------------------------
+        # Single line google search
+        # -----------------------------------------
+
+      else
+        "http://www.google.com/search?q=#{CGI::escape(buf)}"
+      end
+
+if buf =~ %r{\A\S+://}
+  # substitute whitespace before calling firefox.
+  buf = buf.split.join('%20')
+  fork { exec 'browser', buf }
+end
+
+putx buf

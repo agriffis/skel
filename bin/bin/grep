@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# this was just a bad GNU idea
+unset GREP_OPTIONS
+
+grep=$(wrapped "$0")
+
+args=( --color=tty --devices=skip --directories=skip )
+excludes=false
+
+for ((i = 1; i <= $#; i++)); do
+    [[ ${!i} == -- ]] && break
+    [[ ${!i} == --exclude* ]] && excludes=true
+    args+=( "${!i}" )
+done
+
+if ! $excludes && [[ $("$grep" --help 2>&1) == *--exclude-dir=* ]]; then
+    # note that {} is expanded by bash here
+    args+=( --exclude-dir={_darcs,.git,.hg,.svn,.tox,CVS} --exclude=tags )
+fi
+
+for ((; i <= $#; i++)); do
+    args+=( "${!i}" )
+done
+
+exec "$grep" "${args[@]}"

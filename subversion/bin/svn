@@ -1,0 +1,46 @@
+#!/bin/bash
+
+read rows columns <<<"$(stty size 2>/dev/null)"
+: ${columns:=1000}
+
+main() {
+    declare -a args
+    declare x
+
+    case $1 in
+        (commit|ci)
+            if [[ ! -e ${!#} && " $* " != *" --all "* ]]; then
+                echo "Please specify --all or a file to commit"
+                exit 1
+            fi
+
+            for x; do [[ $x != --all ]] && args=( "${args[@]}" "$x" ); done
+            exec "$(wrapped $0)" "${args[@]}"
+            ;;
+
+        (diff|di)
+            if [[ -t 1 ]] && type -P colordiff &>/dev/null; then
+                "$(wrapped $0)" "$@" | colordiff | less -R
+                exit ${PIPESTATUS[0]}
+            fi
+            ;;
+
+        (clog)
+            svn log "${@:2}" | \
+            perl -ne '
+                /^---------------/ or next;
+                ($rev, $foo, $auth, $foo, $date, $time, $tz, $foo) =
+                    split(" ", <>);
+                $rev =~ s/^r//;
+                $blank = <>;
+                $firstline = <>;
+                print "[$rev] $date ($auth) $firstline" if $rev;' | \
+            sed -re "/.{$columns}/s/(.{$columns}).*/\1/"
+            exit ${PIPESTATUS[0]}
+            ;;
+    esac
+
+    exec "$(wrapped $0)" "$@"
+}
+
+main "$@"

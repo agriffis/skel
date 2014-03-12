@@ -1,0 +1,78 @@
+#!/bin/bash
+
+if [[ -n $TOPDIR ]]; then
+    echo "$TOPDIR"
+    exit
+fi
+
+is_bzr_topdir() {
+    [[ -d $1/.bzr ]]
+}
+
+is_git_topdir() {
+    [[ -d $1/.git ]]
+}
+
+is_hg_topdir() {
+    [[ -d $1/.hg ]]
+}
+
+is_svn17_topdir() {
+    [[ -d $1/.svn && -f $1/.svn/wc.db ]]
+}
+
+is_svn16_topdir() {
+    declare d="$1"
+    while [[ $d == */.. ]]; do d=${d%/..}; done
+    [[ -d $d/.svn && -d $1/.svn && ! -d $1/../.svn ]]
+}
+
+is_svn_topdir() {
+    is_svn17_topdir "$1" || is_svn16_topdir "$1"
+}
+
+is_svn_branch() {
+    [[ $1 == */branches/* && $1 != */branches/*/* && -d $1/../../trunk ]] && \
+    ( is_svn_topdir "$1" || is_svn_topdir "$1/.." || is_svn_topdir "$1/../.." )
+}
+
+is_svn_trunk() {
+    [[ $1 == */trunk ]] && \
+    ( is_svn_topdir "$1" || is_svn_topdir "$1/.." || is_svn_topdir "$1/../.." )
+}
+
+is_topdir() {
+    is_bzr_topdir "$1" || \
+    is_git_topdir "$1" || \
+    is_hg_topdir "$1" || \
+    is_svn_topdir "$1" || \
+    is_svn_trunk "$1" || \
+    is_svn_branch "$1"
+}
+
+d=${1:-$PWD}
+
+# Make it absolute
+if [[ $d != /* ]]; then
+  d=$(readlink -f "$d")
+fi
+
+# Check for a PYTHONPATH match
+if [[ -n $PYTHONPATH ]]; then
+    p=${PYTHONPATH%%:*}
+    if [[ $d/ == "$p"/* ]]; then
+        echo "$p"
+        exit
+    fi
+fi
+
+# Climb the tree
+while [[ $d == /*/* ]]; do
+    if is_topdir "$d"; then
+        echo "$d"
+        exit 0
+    fi
+    d=${d%/*}
+done
+
+exit 1

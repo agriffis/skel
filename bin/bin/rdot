@@ -1,0 +1,138 @@
+#!/usr/local/bin/ruby
+# $Id: rdot 2317 2007-03-28 14:48:39Z agriffis $
+#
+# rdot: dot-based calltree generator
+
+require 'getoptlong'
+require 'tempfile'
+
+# Global variables
+$opts    = Hash.new
+$verbose = nil
+
+def die(msg = nil)
+  $stderr.puts "#{$0}: %s" % (msg || "fatal error")
+  exit 1
+end
+
+def verb(msg)
+  $stderr.puts msg if $verbose
+end
+
+def usage(exitcode = 0)
+  s = <<-'END_OF_USAGE'
+    usage: rdot [ -hivVx ] files...
+    
+        -i     --ipatt      Include this PCRE
+        -x     --xpatt      Exclude this PCRE
+        -n     --no-externs Exclude external functions
+
+        -h     --help       Show this help message
+        -v     --verbose    Verbose output
+        -V     --version    Show version information
+    END_OF_USAGE
+  print s.gsub(/^    /m,'')
+  exit exitcode
+end
+
+def version
+  puts "rdot version #{$version}"
+  exit 0
+end
+
+def pattmatch(s)
+  return true unless $opts['patt']
+  # If the first rule is an exclusion, default to include.
+  # If the first rule is an inclusion, default to exclude.
+  state = ($opts['patt'][0][0] == 'x')
+  verb "pattmatch(#{s}), starting #{state}"
+  $opts['patt'].each { |a|
+    if a[0] == 'i'
+      state ||= !!(s =~ a[1])
+      verb "  (#{s} =~ /#{a[1].source}/) #{a[0]} (state is now #{state})"
+    else
+      state &&= !(s =~ a[1])
+      verb "  !(#{s} =~ /#{a[1].source}/) #{a[0]} (state is now #{state})"
+    end
+  }
+  return state
+end
+
+# Parse command-line
+begin
+  gopt = GetoptLong.new(
+    [ '--help',             GetoptLong::NO_ARGUMENT ],
+    [ '--no-externs', '-n', GetoptLong::NO_ARGUMENT ],
+    [ '--ipatt',      '-i', GetoptLong::REQUIRED_ARGUMENT ],
+    [ '--xpatt',      '-x', GetoptLong::REQUIRED_ARGUMENT ],
+    [ '--verbose',    '-v', GetoptLong::NO_ARGUMENT ],
+    [ '--version',    '-V', GetoptLong::NO_ARGUMENT ]
+  )
+  gopt.ordering = GetoptLong::REQUIRE_ORDER
+  gopt.each do |opt,arg|
+    opt = opt.slice(2..-1)  # don't modify in place!
+    case opt
+    when 'help';    usage
+    when 'verbose'; $verbose = 1
+    when 'version'; version
+    when /^([ix])patt$/
+      $opts['patt'] ||= Array.new
+      $opts['patt'] << [ $1, Regexp.new(arg) ]
+    else 
+      $opts[opt] = arg;  # i.e. abstract="", qar=94030
+    end
+  end
+rescue GetoptLong::InvalidOption
+  # GetoptLong has already printed the error message on $stderr
+  exit 1
+end
+
+# GetoptLong returns unparsed options in ARGV, so that's where the input files
+# will be.
+die "argument required" if ARGV.empty?
+
+# Run the fantastic calltree program!
+# ftp://ftp.fokus.gmd.de/pub/unix/calltree/
+ctout = `calltree depth=1 #{ARGV.join ' '} 2>/dev/null`
+
+# Collect external functions if requested
+externs = Hash.new
+if ($opts['no-externs'])
+  ctout.scan(/(\S+):\s+EXTERNAL ROUTINE/).each { |f| externs[f[0]] = 1 }
+end
+
+# Now build the graph; filter according to patt
+kaller = kallee = nil
+graph = Hash.new
+ctout.each { |line|
+  case line
+  when /^\s+(EXTERNAL ROUTINE)/         # skip these lines
+  when /^(\S+):$/                       # match kallers
+    next if externs[$1]                 # skip externs
+    if pattmatch(kaller = $1.dup)       # test for inclusion
+      graph[kaller] ||= Array.new       # pattmatch indicated inclusion
+    else
+      kaller = nil                      # exclude this and kallees
+    end
+  when /^\s+(\S+)/
+    next unless kaller                  # kaller might be excluded
+    next if externs[$1]                 # skip externs
+    if pattmatch(kallee = $1.dup)       # test for inclusion
+      graph[kaller].push kallee         # pattmatch indicated inclusion   
+    end
+  else
+    die "I don't understand #{line}"
+  end
+}
+
+# Generate the dot file
+print <<EOT
+digraph name {
+  size="7.5,10";
+  rankdir=LR;
+EOT
+graph.each { |kaller,kallees| 
+  puts "\n  #{kaller};"
+  puts kallees.collect { |kallee| "  #{kaller} -> #{kallee};" }
+}
+puts '}'

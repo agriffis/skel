@@ -1,0 +1,86 @@
+[user]
+	name = Aron Griffis
+	email = aron@arongriffis.com
+
+[github]
+	user = agriffis
+
+[push]
+	default = simple
+
+[core]
+	pager = less -FXRS
+
+[alias]
+	# Common abbreviations
+	ci = commit -v
+	co = checkout
+	di = diff
+	id = describe
+	st = status
+	sub = submodule
+	up = checkout
+	update = checkout
+
+	# Runs diff using vimdiff to compare versions
+	vimdiff = difftool -t vimdiff
+
+	# Check In All
+	cia = commit -v -a
+
+	# Returns relative path to repo root ("cd up" in absurd git vernacular)
+	root = rev-parse --show-cdup
+
+	# ReBase Upstream
+	rbu = rebase @{upstream}
+
+	# diff Cached
+	diffc = diff --cached
+
+	# log Full (format)
+	logf = log -p --stat
+
+	# fetch and show log of upstream commits
+	inbound = !bash -c "\"git fetch; git log -p --stat HEAD..@{upstream}\""
+
+	# Show list of contributors
+	contrib = !git log "--pretty=format:'%an %ae%n%cn %ce'" |sort |uniq -c |sort
+
+[notes]
+	displayRef = refs/notes/[t]ickets
+	displayRef = refs/notes/[t]esters
+
+[color]
+	ui = auto
+	status = auto
+	branch = auto
+	diff = auto
+	interactive = auto
+	pager = true
+
+[color "diff"]
+	#plain = blue
+	#meta = blue
+	#frag = blue
+	old = red
+	new = blue
+	commit = yellow bold
+	whitespace = "red reverse"
+
+[color "interactive"]
+	header = blue
+	prompt = white reverse
+	help = white bold
+	error = red bold
+
+[color "status"]
+	header = white
+	added = blue bold
+	updated = green bold
+	changed = magenta bold
+	untracked = yellow bold
+	nobranch = red bold
+
+[include]
+	path = ~/.gitconfig-lol
+	path = ~/.gitcofnig-sekrit

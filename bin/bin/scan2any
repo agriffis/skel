@@ -1,0 +1,31 @@
+#!/bin/bash
+# $Id: scan2any 4604 2012-01-13 20:20:22Z aron $
+#
+# Copyright 2007 Aron Griffis <aron griffis1 net>
+# Distributed under the terms of the GNU General Public License v2
+#
+# scan2any: command-line tool to scan images to arbitrary image types
+#
+
+cmd=${0##*/}
+read -d '' usage <<EOT
+usage: $cmd [ scanimage options ] filename.ext
+    Output image type is determined by extension.
+    To see valid options, run scanimage -h
+EOT
+
+if [[ $# == 0 || $1 == -h || $1 == --help ]]; then
+    echo "$usage"
+    exit
+fi
+
+out=${!#}
+pnm="${out%.*}".pnm
+dev=$(scanimage -L | awk -F"[\`']" '/Perfection/{print $2;exit}')
+set -- -d $dev -x 215.9 -y 279.4 --resolution 150 --mode Color "${@:1:$#-1}"
+
+if scanimage "$@" > "$pnm"; then
+    convert -quality 90 "$pnm" "$out.jpg" && rm "$pnm"
+    convert -page Letter "$out.jpg" "$out" && rm "$out.jpg"
+fi
+ls -l -- "$out"

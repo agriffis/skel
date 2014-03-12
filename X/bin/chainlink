@@ -1,0 +1,31 @@
+#!/bin/bash
+
+end_of_command=--
+if [[ $1 == -e || $1 == --end-of-command ]]; then
+    end_of_command=$2
+    shift 2
+elif [[ $1 == '--end-of-command='* ]]; then
+    end_of_command=${1#*=}
+    shift
+fi
+
+command=()
+next_command=()
+for ((i=1; i<=$#; i++)); do
+    if [[ ${!i} == "$end_of_command" ]]; then
+        command=( "${@:1:i-1}" )
+        next_command=( "${@:i+1}" )
+        break
+    fi
+done
+
+if [[ ${#command[@]} == 0 || ${#next_command[@]} == 0 ]]; then
+    echo "syntax: chainlink [-e --] command... -- next_command..." >&2
+    exit 1
+fi
+
+echo "Chainlinking ${command[0]##*/}, waiting for ${next_command[0]##*/}" >&2
+"${command[@]}" &
+pid=$!
+trap "kill $pid; exit" 0 1 2 3 15
+"${next_command[@]}"

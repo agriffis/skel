@@ -1,0 +1,327 @@
+#!/usr/bin/env ruby
+# $Id: userpass 4064 2010-05-22 19:36:11Z agriffis $
+#
+# userpass: Manage encrypted username/password list.  This program's primary
+# feature is its ability to manage u/p tuples sourced from any number of
+# encrypted databases, one per host on which the system is used.  This allows
+# each database to be updated asynchronously without conflicts when the changes
+# are merged.
+#
+# Copyright 2004-2006 Aron Griffis <agriffis@gentoo.org>
+# Released under the terms of the GNU GPL v2
+
+$VERBOSE = 1    # enable warnings
+
+require 'getoptlong'
+
+$tty         = File.open("/dev/tty", "w")
+$version     = '$Revision: 4064 $'.split(' ')[1]
+$opts        = Hash.new
+$opts['gpg'] = '/usr/bin/gpg'
+$opts['dir'] = ENV['USERPASS_DIR'] || ENV['HOME']+'/.userpass'
+begin
+    gpg_options = IO.readlines(ENV['HOME']+'/.gnupg/gpg.conf').grep /^(default-key|encrypt-to)\s/
+    gpg_options.sort!
+    $opts['recipient'] = gpg_options[-1].split[1]
+rescue
+    $opts['recipient'] = ''	# oh well
+end
+
+trap 'INT', 'EXIT'
+
+def die(x)
+    $stderr.puts "userpass: " + x
+    exit 1
+end
+
+def syntax
+    $stderr.puts "syntax: userpass [-ahlnrV] [--all] [--gpg path] [--host name] [patt...]"
+    exit 1
+end
+
+def usage(exitcode = 0)
+  s = <<-END_OF_USAGE
+    usage: userpass [-ahnv] pattern...
+
+        -a     --add           Add a username/password
+               --all           Show all matches instead of most recent pairs
+               --dir           Set userpass database directory (#{$opts['dir']})
+                               (alternatively set USERPASS_DIR in env)
+               --gpg path      Set gpg binary (#{$opts['gpg']})
+        -h     --help          Show this help message
+               --host name     Set alternate hostname (#{%x{uname -n}.slice(/^[^.\n]+/)})
+        -l     --list          List the known accounts
+        -n     --new           Create a new account
+        -r     --recipient     Set alternate encrypt-to recipient (#{$opts['recipient']})
+        -V     --version       Show version information
+
+    END_OF_USAGE
+  print s.gsub(/^    /m,'')
+  exit exitcode
+end
+
+def askfor(prompt, silent=false)
+    if silent
+	oldexit = trap 'EXIT', 'puts; system("stty sane")'
+	system "stty -echo"
+    end
+    $tty.syswrite prompt + " "
+    response = $stdin.gets.chomp
+    if silent
+	$tty.syswrite "\n"
+	system "stty echo"
+	trap 'EXIT', oldexit
+    end
+    return response
+end
+
+class GpgDecoder
+    @@passphrase = nil
+
+    def GpgDecoder::decode(filename)
+      saved_env = ENV.to_hash
+      begin
+	for i in 1..3
+	    # Let gpg run without a passphrase the first time.  
+	    # This allows userpass to work with gpg-agent
+	    if i > 1 or not ENV['GPG_AGENT_INFO']
+		@@passphrase ||= askfor("decryption passphrase?", true)
+	    end
+
+	    # attempt to decode
+	    if @@passphrase
+		ENV.delete('GPG_TTY')
+		ENV.delete('GPG_AGENT_INFO')
+		ENV.delete('DISPLAY')
+		io = IO.popen("#{$opts['gpg']} --passphrase-fd 0 --quiet --batch --no-tty --decrypt -o- #{filename}", "w+")
+		io.print @@passphrase, "\n"
+		io.flush
+	    else
+		ENV['GPG_TTY'] ||= `tty`.strip
+		io = IO.popen("#{$opts['gpg']} --no-tty --quiet --decrypt -o- #{filename}", "w+")
+	    end
+
+	    # try to read a character
+	    unless tmp = io.getc
+		$tty.syswrite "failed to decrypt\n" if @@passphrase
+		@@passphrase = nil
+		next
+	    end
+	    io.ungetc(tmp)
+
+	    # ready to roll!
+	    return io
+	end
+	raise "failed to decrypt #{filename}"
+      ensure
+	ENV.replace saved_env
+      end
+    end
+
+    def GpgDecoder::encode(filename)
+	Dir.mkdir $opts['dir'] unless test ?d, $opts['dir'] 
+	rcpt = $opts['recipient'].length > 0 ? '--recipient '+$opts['recipient'] : '';
+	if block_given?
+	    io = IO.popen("#{$opts['gpg']} --no-encrypt-to #{rcpt} -o #{filename}.new --encrypt", "w+")
+	    yield io
+	    io.close
+	    raise "Error running gpg to encrypt" unless test ?s, filename+'.new'
+	    File.unlink filename if test ?e, filename
+	    File.rename filename+".new", filename
+	    return nil
+	else
+	    io = IO.popen("#{$opts['gpg']} --no-encrypt-to #{rcpt} -o #{filename} --encrypt", "w+")
+	    return io
+	end
+    end
+end
+
+class UserPassList
+    def initialize
+	@data = {}
+	@files = []
+    end
+
+    def load(*files)
+	unless files.length > 0
+	    files = Dir[$opts['dir']+'/userpass.*.gpg']
+	end
+
+	# only handle stuff in our own home at the moment
+	files.map! { |x| 
+	    d = Dir[x.sub(/^~(?=\/|$)/, ENV['HOME'])]
+	    raise "No such file: #{x}" unless d.length > 0
+	    d
+	}
+
+	# decode each file and load into our data structure
+	files.flatten.each { |fn|
+	    GpgDecoder.decode(fn).each { |line|
+		t, k, u, pw = line.chomp.split("\t", 4)
+		next unless t.to_i > 0
+		self.add(k, t.to_i, u, pw)
+	    }
+	}
+
+	# remember what files we've loaded
+	@files += files
+    end
+
+    def save(file = nil)
+	if file.nil?
+	    die "can't save back to multiple files" if @files.length != 1
+	    file = @files[0]
+	end
+
+	# encode and save
+	GpgDecoder.encode(file) { |f|
+	    @data.each { |k,v|
+		# might be multiple entries for this key
+		v.sort! { |a,b| a[0] <=> b[0] }	# sort by date
+		v.each { |e|
+		    f.puts [ e[0], k, e[1], e[2] ].join("\t")
+		}
+	    }
+	}
+    end
+
+    def add(k,t,u,pw)
+	@data[k] ||= Array.new
+	@data[k] << [ t.to_i, u, pw ]
+    end
+
+    def findkeys(re)
+	return @data.keys.grep(re)
+    end
+
+    def find(k)
+	@data[k].sort! { |a,b| a[0] <=> b[0] }	# sort by date
+	@data[k].map { |x| x[1,2] }
+    end
+end
+
+begin
+    GetoptLong.new(
+	[ '--add', '-a',	GetoptLong::NO_ARGUMENT ],
+	[ '--all',              GetoptLong::NO_ARGUMENT ],
+	[ '--dir',      	GetoptLong::REQUIRED_ARGUMENT ],
+	[ '--gpg',		GetoptLong::REQUIRED_ARGUMENT ],
+	[ '--help', '-h',	GetoptLong::NO_ARGUMENT ],
+	[ '--host',		GetoptLong::REQUIRED_ARGUMENT ],
+	[ '--list', '-l',       GetoptLong::NO_ARGUMENT ],
+	[ '--new', '-n',	GetoptLong::NO_ARGUMENT ],
+	[ '--recipient', '-r',	GetoptLong::REQUIRED_ARGUMENT ],
+	[ '--version', '-V',	GetoptLong::NO_ARGUMENT ]
+    ).each do |opt,arg|
+	case opt
+	when '--help';		usage
+	when '--version';	puts "userpass version #{$version}"; exit 0
+	when '--add';		die "please specify only --new or --add" if $opts['new']
+	when '--new';		die "please specify only --new or --add" if $opts['add']
+	end
+	$opts[opt.slice(2..-1)] = arg;  # i.e. abstract="", qar=94030
+    end
+rescue GetoptLong::InvalidOption
+    # GetoptLong has already printed the error message on $stderr
+    exit 1
+end
+
+# Branch depending on operation
+if $opts['new']
+    syntax unless ARGV[0] && ARGV[0].length > 0
+    die "only one account allowed for --new" if ARGV[1]
+    k = ARGV[0]
+
+    # Load the UserPassList to check for an existing account
+    upl = UserPassList.new
+    upl.load			# use default files
+    matchkeys = upl.findkeys(k)	# not an RE in this case
+    die "matching account found: #{matchkeys[0]}" if matchkeys.length != 0
+
+    u = askfor("username?")
+
+elsif $opts['add']
+    syntax unless ARGV[0] && ARGV[0].length > 0
+    die "only one account allowed for --add" if ARGV[1]
+
+    # Load the UserPassList to check for an existing account
+    upl = UserPassList.new
+    upl.load			# use default files
+    matchkeys = upl.findkeys(ARGV[0])
+    matchkeys = upl.findkeys(Regexp.new(ARGV[0])) if matchkeys.length == 0
+    if matchkeys.length == 0
+	die "no matching account found\n"
+    elsif matchkeys.length > 1
+	die "multiple matches found:\n\t" + matchkeys.sort.join("\n\t") + "\n"
+    elsif ARGV[0] != matchkeys[0]
+	puts "matched " + matchkeys[0]
+    end
+    k = matchkeys[0]
+
+    # use existing username as default
+    oldu = upl.find(k).last[0]
+    u = askfor("username [#{oldu}]?")
+    u = oldu if u == ''
+end
+
+# Common section for --new and --add
+if $opts['new'] || $opts['add']
+    # password has no default
+    pw = askfor("password?", false)
+    die "cancelled" if pw == ''
+
+    # load the old file, if it exists
+    host = $opts['host'] || %x{uname -n}.slice(/^[^.\n]+/)
+    datafile = $opts['dir']+'/userpass.'+host+'.gpg'
+    nupl = UserPassList.new
+    nupl.load(datafile) if test ?e, datafile
+
+    # add entry to nupl and save
+    nupl.add(k, Time.now.to_i, u, pw)
+    nupl.save(datafile)
+
+    exit 0
+end
+
+upl = UserPassList.new
+upl.load
+matchkeys = []
+ARGV[0] = '' unless ARGV[0]
+ARGV.each { |x| matchkeys |= upl.findkeys(Regexp.new(x)) }
+die "sorry, no matches found" if matchkeys.length == 0
+
+if $opts['list']
+    puts matchkeys.sort
+    exit 0
+end
+
+# Collect records to display
+matchrecs = []
+matchkeys.each { |k|
+    recs = upl.find(k)
+    unless $opts['all']
+	newrecs = []
+        while r = recs.shift
+            # skip any where there's a later entry with the same user
+            next if recs.find {|q| r[0] == q[0]}
+            newrecs << r
+        end
+	recs = newrecs
+    end
+    matchrecs += recs.map {|r| [k, *r]}
+}
+
+# Find max lengths
+lens = [
+    matchrecs.map {|r| r[0].length}.max,
+    matchrecs.map {|r| r[1].length}.max
+]
+
+# Now display
+begin
+    formatstring = sprintf("%%-%ds %%-%ds %%s\n", *lens)
+    matchrecs.each {|r| printf(formatstring, *r) }
+rescue Errno::EPIPE
+end
+
+# vim:sw=4

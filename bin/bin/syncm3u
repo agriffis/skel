@@ -1,0 +1,252 @@
+#!/bin/bash
+# $Id: syncm3u 4362 2011-06-11 23:57:49Z agriffis $
+#
+# Copyright 2006 Aron Griffis <aron griffis1 net>
+# Distributed under the terms of the GNU General Public License v2
+#
+# syncm3u: copy a playlist to a music player
+#
+
+######################################################################
+# Global vars
+######################################################################
+
+read dum1 version dum2 <<<'$Revision: 4362 $'
+cmd=${0##*/}
+unset mounted tmpdir
+
+opt_album=false
+opt_artist=false
+opt_dryrun=false
+opt_ls=false
+opt_list=false
+opt_remove=false
+opt_target=/mnt/u3/music
+opt_verbose=false
+unset opt_m3u opt_musicdir opt_listdir opt_tr
+read -d '' usage <<EOT
+usage: syncm3u [-hlnrV] [-d dir] [-m dir] [-t target] foo.m3u...
+
+           --artist        Divide into subdirs by artist
+           --album         Divide into subdirs by album
+                            (default on U3)
+    -d     --listdir       Specify alternate playlist directory
+    -l     --ls            Show what's presently on the player
+                            (default is to read /etc/mpd.conf)
+           --musicdir      Specify alternate music dir
+                            (default is to read /etc/mpd.conf)
+    -n     --dry-run       Show what would happen, don't do it
+    -p     --playlists     List available playlists
+    -r     --remove        Remove non-playlist files from target
+    -t     --target DIR    Specify alternate target dir
+                            (default is /mnt/u3/music)
+           --tr A B        Transliterate, e.g. --tr A-Z a-z
+                            (default on U3 is --tr : '')
+    -h     --help          Show this help message
+    -v     --verbose       Be noisy
+    -V     --version       Show version information
+EOT
+
+######################################################################
+# Functions
+######################################################################
+
+cleanup() {
+    rm -rf "$tmpdir"
+    [[ -n $mounted ]] && umount "$mounted" &>/dev/null
+}
+trap 'cleanup; exit' 0 1 2 3 11
+
+info() {
+    if $opt_verbose; then printf '%s\n' "$@"; fi
+}
+
+warn() {
+    echo "${0##*/}: Warning: $*" >&2
+}
+
+die() {
+    echo "${0##*/}: Error: ${*:-unknown failure at $(caller 0)}" >&2
+    exit 1
+}
+
+read_mpd_conf() {
+    declare var=$1 key=$2 val
+    if [[ -r /etc/mpd.conf ]]; then
+        val=$(sed -n 's/^[[:space:]]*'"$key"'[[:space:]]*["'\'']*\([^"'\'']*\).*/\1/p' /etc/mpd.conf | head -n1)
+    else
+        warn "can't fetch $key from /etc/mpd.conf"
+    fi
+    eval "$var=\$val"
+}
+
+artist() {
+    declare f=$(basename "$1")
+    declare artist
+    case $f in
+        *\ -\ *:\ [0-9]*\ *.*) artist=${f%% - *} ;;
+        *.flac) artist=$(metaflac --show-tag=artist "$f" | sed 's/^artist=//') ;;
+        *.ogg) artist=$(ogginfo "$f" | sed -n 's/^[[:space:]]*artist=//p') ;;
+        *.mp3) artist=$(id3info "$f" | awk '$2=="TPE1"{print}' | sed 's/^[^:]*: //') ;;
+    esac
+    echo "$artist"
+}
+
+album() {
+    declare f=$(basename "$1")
+    declare album
+    case $f in
+        *\ -\ *:\ [0-9]*\ *.*) album=${f#* - }; album=${album%%:*} ;;
+        *.flac) album=$(metaflac --show-tag=album "$f" | sed 's/^album=//') ;;
+        *.ogg) album=$(ogginfo "$f" | sed -n 's/^[[:space:]]*album=//p') ;;
+        *.mp3) album=$(id3info "$f" | awk '$2=="TALB"{print}' | sed 's/^[^:]*: //') ;;
+    esac
+    echo "$album"
+}
+
+######################################################################
+# Main
+######################################################################
+
+# Use /usr/bin/getopt which supports GNU-style long options
+args=$(getopt -o hlm:nprt:vV --long album,artist,dry-run,help,listdir:,ls,musicdir:,playlists,remove,target:,tr:,verbose,version -n "$0" -- "$@") || exit
+eval set -- "$args"
+while true; do
+    case $1 in
+        --album) opt_album=true; shift ;;
+        --artist) opt_artist=true; shift ;;
+        -h|--help) echo "$usage"; exit ;;
+        -l|--ls) opt_ls=true; shift ;;
+        --listdir) opt_listdir=$2; shift 2 ;;
+        -m|--musicdir) opt_musicdir=$2; shift 2 ;;
+        -n|--dry-run) opt_dryrun=true; shift ;;
+        -p|--playlists) opt_list=true; shift ;;
+        -r|--remove) opt_remove=true; shift ;;
+        -t|--target) opt_target=$2; shift 2 ;;
+        --tr) opt_tr=( "$2" ); shift 2 ;; # see hack below
+        -v|--verbose) opt_verbose=true; shift ;;
+        -V|--version) echo "$version"; exit ;;
+        --) shift; break ;;
+        *) die "failed to process cmdline args" ;;
+    esac
+done
+
+# Fill missing --tr option from file list (hack)
+if [[ -n $opt_tr ]]; then
+    opt_tr=( "$opt_tr" "$1" )
+    shift
+    [[ -z ${opt_tr[1]} ]] && opt_tr=( -d "$opt_tr" )
+fi
+
+# Get missing options from mpd.conf
+[[ -n $opt_musicdir ]] || read_mpd_conf opt_musicdir music_directory
+[[ -n $opt_listdir ]] || read_mpd_conf opt_listdir playlist_directory
+
+if $opt_list; then
+    ls -1 "$opt_listdir"/*.m3u
+    exit
+fi
+
+# U3 specials
+if [[ $opt_target == /mnt/u3/music ]]; then
+    if [[ ! -d $opt_target ]]; then
+        mount /mnt/u3 &>/dev/null && mounted=/mnt/u3
+        [[ -d $opt_target ]] || die "can't find $opt_target"
+    fi
+    [[ ${#opt_tr[@]} == 0 ]] && opt_tr=( ':"'\' '' )
+    opt_artist=true
+fi
+
+if $opt_ls; then
+    find $opt_target -type f
+    exit
+fi
+
+# Read the playlists
+info "Reading playlists..."
+unset music
+for x in "$@"; do
+    for y in "$x" "$x.m3u" "$opt_listdir/$x" "$opt_listdir/$x.m3u"; do
+        if [[ -r $y ]]; then
+            x=$y; break
+        fi
+    done
+    if [[ ! -r $x ]]; then
+        die "can't find m3u file: $x"
+    fi
+
+    info "  $x"
+    if [[ $x == *.m3u ]]; then
+        oIFS=$IFS; IFS=$'\n'
+        music=( "${music[@]}" $(<"$x") )
+        IFS=$oIFS
+    else
+        [[ $x == /* ]] || x=$PWD/$x
+        music[${#music[@]}]=$x
+    fi
+done
+
+# Prepend musicdir
+if [[ -d $opt_musicdir ]]; then
+    newmusic=()
+    for x in "${music[@]}"; do
+        if [[ -r "$opt_musicdir/$x" ]]; then
+            newmusic+=( "$opt_musicdir/$x" )
+        elif [[ -r $x ]]; then
+            if [[ $x == /* ]]; then
+                newmusic+=( "$x" )
+            else
+                newmusic+=( "./$x" )
+            fi
+        else
+            warn "missing $x"
+        fi
+    done
+    music=( "${newmusic[@]}" )
+fi
+
+# Create tmpdir w/ symlinks to make rsync easier
+info "Populating tmpdir..."
+tmpdir=$(mktemp -d) || die
+echo -ne '\e7'   # save cursor position
+for m in "${music[@]}"; do
+    tmpm=${m##*/}
+    $opt_artist && artist_=$(artist "$tmpm")
+    $opt_album && album_=$(album "$tmpm")
+    if $opt_artist && $opt_album; then
+        tmpm=${tmpm#$artist_}
+        tmpm=${tmpm# - }
+        tmpm=${tmpm#$album_: }
+        tmpm="$artist_/$album_/$tmpm"
+    elif $opt_artist; then
+        tmpm=${tmpm#$artist_}
+        tmpm=${tmpm# - }
+        tmpm="$(artist "$m")/$tmpm"
+    elif $opt_album; then
+        tmpm=${tmpm#$artist_}
+        tmpm=${tmpm# - }
+        tmpm=${tmpm#$album_: }
+        tmpm="$artist_ - $album_/$tmpm"
+    fi
+    if [[ -n $opt_tr ]]; then
+        tmpm=$(tr "${opt_tr[@]}" <<<"$tmpm")
+    fi
+    mkdir -p "$(dirname "$tmpdir/$tmpm")"
+    echo -ne '\e8'   # restore cursor position
+    echo -ne '\e[K'  # erase to end of line
+    printf '%0.79s' "$tmpm"
+    ln -s "$m" "$tmpdir/$tmpm"
+done
+echo
+
+if [[ ${#music[@]} == 0 ]]; then
+    die "No music to load"
+else
+    info "Loading ${#music[@]} tracks to player..."
+fi
+
+# Rsync the music
+rsync --recursive --size-only --inplace --copy-links --verbose \
+    $($opt_remove && echo --delete) $($opt_dryrun && echo --dry-run) \
+    "$tmpdir/" "$opt_target" || die
+info "done!"

@@ -1,0 +1,39 @@
+#!/bin/bash
+# $Id: ldlaliases 3855 2010-01-26 15:32:17Z agriffis $
+#
+# Build mutt aliases from /etc/passwd
+# This needs to be run on ldl
+#
+
+tmp=$(mktemp) || exit 1
+trap 'rm -f $tmp' 0 1 2 3 15
+
+awk -F'[:,]' \
+    '/@/ && !/disabled/ && $1 !~ /[@!]/ \
+        {printf "alias %s %c%s%c <%s>\n",$1,34,$5,34,$8}' \
+    /etc/passwd > $tmp
+[[ ${PIPESTATUS[*]} == *[^0\ ]* ]] && exit 1
+
+# Try to remove problem lines
+while true; do
+    echo -n "Testing output... "
+    error=$(mutt -F $tmp -f /dev/null -e 'set folder=/tmp' -z 2>&1 </dev/null \
+        | grep -m1 Error)
+    if [[ -n $error ]]; then
+        echo "$error"
+        line=$(grep -Eo '[0-9]+' <<<"$error" | grep -Fxvm1 0)
+        if [[ -z $line ]]; then
+            echo "couldn't extract line number"
+            exit 1
+        fi
+        if ! sed -i "${line}d" $tmp; then
+            echo "sed failed"
+            exit 1
+        fi
+    else
+        echo "pass"
+        break
+    fi
+done >&2
+
+sort $tmp

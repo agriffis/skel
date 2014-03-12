@@ -1,0 +1,67 @@
+# $Id: bashrc.cd 4744 2012-08-12 14:49:17Z aron $
+#
+# bashrc.cd
+#       Overload cd to keep a pushd stack
+#
+# Copyright 2003-2007 Aron Griffis <agriffis n01se.net>
+# Released under the GNU GPL v2
+####################################################################### 
+
+[[ -n $_BASHRC_CD ]] && return
+_BASHRC_CD=1
+
+unset -f pushd
+pushd() {
+  builtin pushd "$@" || return $?
+  # don't keep consecutive dups
+  if [[ ${#DIRSTACK[@]} -gt 1 && ( ${DIRSTACK[0]} == ${DIRSTACK[1]} ) ]]; then
+    popd -n
+  fi
+  # keep list at 20 or less
+  while [[ ${#DIRSTACK[@]} -gt 20 ]]; do
+    popd -n -0 >/dev/null
+  done
+}
+
+unset -f cd
+cd() {
+  case "$*" in
+    "")
+      # pushd with no args doesn't add ~ to the stack
+      pushd ~ >/dev/null ;;
+    -)
+      # The reason for needing this eval echo is difficult to explain at best
+      if [[ ${#DIRSTACK[@]} -gt 1 && $OLDPWD/. -ef $(eval echo ${DIRSTACK[1]}/.) ]]; then
+	popd >/dev/null
+      else
+	pushd "${OLDPWD}" >/dev/null
+      fi ;;
+    *)
+      # if a file is specified, then cd to the dir containing the file
+      if [[ -f "${!#}" ]]; then
+        # This works too, but it's too scary: ${!#%/*}
+        declare newcwd=${!#}
+	set -- "${@:1:$#-1}" "${newcwd%/*}"
+      fi
+      pushd "$@" >/dev/null ;;
+  esac
+}
+
+unset -f td
+td() {
+  declare lhs=$PWD rhs try
+  while [[ -n $lhs ]]; do
+    try=${lhs%/*}/$1$rhs
+    if [[ -e $try ]]; then
+      cd "$try"
+      return 0
+    else
+      rhs=/${lhs##*/}$rhs
+      lhs=${lhs%/*}
+    fi
+  done
+}
+
+# The following line enforces a consistent indentation for this file
+# (in Vim at least).  Keep this at the end of file.
+# vim:shiftwidth=2 expandtab smarttab

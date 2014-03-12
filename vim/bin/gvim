@@ -1,0 +1,23 @@
+#!/bin/bash
+
+cmd=${0##*/}
+
+if [[ -n $ROXTERM_ID && \
+      "$(xdotool getactivewindow getwindowpid)" == "$ROXTERM_PID" ]]
+then
+    exec roxterm --tab -e env "TERM=$TERM" "${cmd#g}" "$@"
+elif [[ $DISPLAY == :* && -x /usr/bin/$cmd ]]; then
+    exec "/usr/bin/$cmd" "$@"
+else
+    if [[ $cmd == *diff ]]; then
+        geom="-g 175x24"
+    else
+        geom=""
+    fi
+    shopt -s extglob
+    if [[ " $* " == *' '+(-f|--nofork)' '* ]]; then
+        exec run_term $geom -e "${0##*/g}" "$@"
+    else
+        setsid run_term $geom -e "${0##*/g}" "$@" &
+    fi
+fi

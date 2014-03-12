@@ -1,0 +1,5 @@
+#!/bin/bash
+#
+# opposite of xmlindent
+
+exec perl -pe 's/^\s*//; chomp'

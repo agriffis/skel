@@ -1,0 +1,300 @@
+# bash completion library
+# Copyright 2008 Aron Griffis <agriffis@n01se.net>
+# Distributed under the terms of the GNU General Public License v2
+
+shopt -s extglob progcomp
+
+function _determine_quoting {
+    declare brace='}'
+    set -- "${1//$brace/_}"	# prevent code execution
+    { 
+	if eval "function __determine_quoting { $1 true; }"; then
+	    true
+	elif eval "function __determine_quoting { $1 ' true; }"; then
+	    echo \'
+	elif eval "function __determine_quoting { $1 \" true; }"; then
+	    echo \"
+	else
+	    true  # punt
+	fi
+    } 2>/dev/null
+    unset -f __determine_quoting
+}
+
+# compset arrayvar [compgen args] cur
+# 	replacement for compgen to store results in arrayvar,
+# 	quoted appropriately by compset2
+function compset {
+    declare compset_x compset_var=$1
+    shift
+
+    # this function requires cur, which compgen makes optional.
+    # since it's optional for compgen, using -- normally separates prior options
+    # from cur.  insert it now.
+    set -- "${@:1:$#-1}" -- "${!#}"
+
+    # the only reason to use a custom IFS when calling compset is for the -W
+    # argument to compgen.  So reset IFS to default for the remainder of the
+    # function after calling compgen
+    declare IFS=$IFS
+    compset_x=$(compgen "$@")
+    IFS=$' \t\n'
+
+    compset2 "$compset_var" "$compset_x" "$@"
+}
+
+# compset2 arrayvar list sample
+# 	convert a newline-separated list such as returned by compgen to an
+# 	array, quoted the same way as sample
+function compset2 {
+    declare compset2_q compset2_list compset2_var=$1 compset2_x=$2
+    compset2_q=$(_determine_quoting "${!#}")
+    
+    declare IFS=$IFS
+    case $compset2_q in
+    ('')
+	IFS=$'\n'
+	compset2_list=( $(printf '%q\n' $compset2_x) )
+	;;
+
+    ("'") 
+	IFS=$'\n'
+	compset2_list=( $compset2_x )
+	;;
+
+    ('"')
+	IFS=$'\n'
+	compset2_list=( $compset2_x )
+	declare compset2_q
+	for compset2_q in '"' \$; do 
+	    compset2_list=( "${compset2_list[@]//$compset2_q/\\$compset2_q}" )
+	done ;;
+    esac
+    IFS=$' \t\n'
+
+    # -o filenames is meaningful to "complete" but not to "compgen" because
+    # spaces/slashes are added by readline after the function returns.  Calling
+    # this function with -o filenames indicates we should handle it here.
+    if [[ " ${*%% -- *} " == \
+	*' '+('-o filenames'|'-A file'|'-A directory'|-G)' '* || \
+	${FUNCNAME[@]: -1}- == *-filenames-* ]]
+    then
+	for ((compset2_x=0; compset2_x<${#compset2_list[@]}; compset2_x++)); do
+	    [[ -d ${compset2_list[compset2_x]} ]] || continue
+	    compset2_list[compset2_x]="${compset2_list[compset2_x]}/"
+	done
+    fi
+
+    # -o nospace is meaningful to "complete" but not to "compgen" because spaces
+    # are added by readline after the function returns.  Calling this function
+    # with -o nospace is an indicator that "complete" was also called with
+    # -o nospace, so we should add spaces here.
+    if [[ " ${*%% -- *} " == *' -o nospace '* ||
+	${FUNCNAME[@]: -1}- == *-nospace-* ]]
+    then
+	# if it's quoted, don't add a space because bash will add a trailing
+	# quote after the space, even if we close the quote here!  If bash
+	# worked right, this code could simply execute unconditionally.
+	if [[ bash_sucks && -z $compset2_q ]]; then
+	    # add quote and space to all
+	    compset2_list=( "${compset2_list[@]/%/$compset2_q }" )
+
+	    # remove from dirs
+	    compset2_x=/
+	    compset2_list=( "${compset2_list[@]/%$compset2_x$compset2_q /$compset2_x}" )
+	fi
+    fi
+
+    eval "$compset2_var=( \"\${compset2_list[@]}\" )"
+}
+
+function compreply+ {
+    declare x
+    compset x "$@"
+    COMPREPLY=( "${COMPREPLY[@]}" "${x[@]}" )
+}
+
+function compreply {
+    COMPREPLY=()
+    compreply+ "$@"
+}
+
+function complete_genkernel {
+    declare cmd=$1 cur=$2 prev=$3 genkernel_help actions params
+
+    # extract initial list of params/actions from genkernel --help
+    genkernel_help=$(command "$cmd" --help)
+    actions=( $(<<<"$genkernel_help" sed -n \
+	'/^Available Actions:/,/^$/s/^[[:space:]]\+\([^[:space:]]\+\).*/\1/p') )
+    params=( $(<<<"$genkernel_help" egrep -oe '--[^[:space:]]{2,}') )
+
+    # attempt to complete the current parameter based on the list
+    compreply -W "${params[*]/=*/=} ${actions[*]}" "$cur"
+
+    # if we don't have a rhs to complete
+    if [[ ${#COMPREPLY[@]} -gt 1 ]]; then
+	return
+    elif [[ ${#COMPREPLY[@]} -eq 0 && $cur != --*=* ]]; then
+	return
+    elif [[ ${#COMPREPLY[@]} -eq 1 && $COMPREPLY != --*= ]]; then
+	# using nospace completion, add an explicit space
+	COMPREPLY="${COMPREPLY} "
+	return
+    fi
+
+    # we have a unique lhs and need to complete the rhs
+    declare args lhs rhs
+    if [[ ${#COMPREPLY[@]} -eq 1 ]]; then
+	lhs=$COMPREPLY
+	[[ $cur == *=* ]] && rhs=${cur#*=}
+    else
+	lhs=${cur%%=*}=
+	rhs=${cur#*=}
+    fi
+
+    # genkernel's help gives clues as to what belongs on the rhs.
+    # extract the clue for the current parameter
+    args=" ${params[*]} "
+    args="${args##* $lhs}"
+    args="${args%% *}"
+
+    # generate a list of completions for the argument; this replaces args with
+    # an array of results
+    case $args in
+	('<0-5>') compset args -W "$(echo {1..5})" "$rhs" ;;
+	('<outfile>'|'<file>') compset args -A file -o nospace "$rhs" ;;
+	('<dir>') compset args -A directory -S / "$rhs" ;;
+	('<tbz2>') compset args -G '*.tbz2' -G '*.tar.bz2' \
+	    -o nospace -o plusdirs "$rhs" ;;
+	(*) compset args -o bashdefault "$rhs" ;; # punt
+    esac
+
+    # recreate COMPREPLY
+    if [[ $cur == "$lhs"* ]]; then
+	COMPREPLY=( "${args[@]}" )
+    elif [[ ${#args[@]} -gt 0 ]]; then
+	COMPREPLY=( "${args[@]/#/$lhs}" )
+    fi
+}
+complete -F complete_genkernel -o nospace genkernel
+
+function complete_svn {
+    declare cmd=$1 cur=$2 prev=$3 sub=${COMP_WORDS[1]}
+
+    if [[ $COMP_CWORD -eq 1 || $sub == help ]]; then
+	declare cmds=( $(command "$cmd" help | \
+	    sed -n '/^Available subcommands:/,/^$/s/^ //p' | \
+	    egrep -oe '[[:alpha:]]+' | sort) )
+	for ((x=0; x<${#cmds[@]}-1; x++)); do
+	    if [[ ${cmds[x+1]} == "${cmds[x]}"* ]]; then
+		unset cmds[x]		# e.g. remove ann in favor of annotate
+		cmds=( "${cmds[@]}" )	# collapse the array
+		(( x-- ))
+	    fi
+	done
+	if [[ $COMP_CWORD -eq 1 ]]; then
+	    compreply -W "${cmds[*]}" "$cur"
+	    return
+	fi
+    fi
+
+    declare svn_help=$(command "$cmd" help "$sub" 2>/dev/null)
+    declare csub=${svn_help%%[: ]*}
+    declare opts=( $(<<<"$svn_help" sed \
+	'/^Valid options:/,$!d; /^  -/!d; s/[[:space:]]*: .*//' | \
+	egrep -oe '--[-[:alnum:]]+') )
+
+    if [[ $prev == --* && $(<<<"$svn_help" fgrep -m1we "$prev") == *' arg '* ]]; then
+	case $prev in
+	    (-r|--revision|--old|--new) 
+		compreply -W "HEAD BASE COMMITTED PREV" "$cur"
+		[[ -z $cur ]] && COMPREPLY=( 'NUMBER' '{ DATE }' "${COMPREPLY[@]}" )
+		;;
+
+	    (--targets|-F|--file)
+		compreply -A file "$cur"
+		;;
+
+	    (--*-sub) 
+		compreply -A command "$cur"
+		;;
+
+	    (--*-dir)
+		compreply -A directory "$cur"
+		;;
+
+	    (*)
+		compreply -o bashdefault "$cur"
+		;;
+	esac
+	return
+    fi
+
+    if [[ $csub == propget && $COMP_CWORD -gt 2 ]]; then
+	csub=foo	# don't do property completion
+    fi
+
+    # lookup by canonical subcommand so we can ignore aliases.
+    case $csub in
+	(add)
+	    IFS=$'\n' compreply -W "$(command "$cmd" status -N | \
+		sed -n 's/^[?X]......//p')" "$cur"
+	    compreply+ -A directory -X '.svn' "$cur"
+	    ;;
+
+	(help)
+	    compreply -W "${cmds[*]}" "$cur"
+	    ;;
+
+	(mkdir)
+	    compreply -A directory -X '.svn' "$cur"
+	    ;;
+
+	(propget)
+	    compreply -W "$(command "$cmd" proplist . * 2>/dev/null | \
+		sed -n 's/^  //p' | sort -u)" "$cur"
+	    if [[ $cur == *:* && $FUNCNAME- == *-filenames-* ]]; then
+		# trim the leading part if we're doing our own filename
+		# completion, otherwise we get svn:svn:executable
+		COMPREPLY=( "${COMPREPLY[@]#*:}" )
+	    fi
+	    ;;
+
+	(resolved)
+	    IFS=$'\n' compreply -W "$(command "$cmd" status -N \
+		${cur:+"$cur"*} | sed -n 's/^C......//p')" "$cur"
+	    ;;
+
+	(revert)
+	    IFS=$'\n' compreply -W "$(command "$cmd" status -N \
+		${cur:+"$cur"*} | sed -n 's/^[DM!]......//p')" "$cur"
+	    ;;
+
+	(*)
+	    IFS=$'\n' compreply -W "$(command "$cmd" status -Nv \
+		${cur:+"$cur"*} | sed -n 's/^[^?].\{39\}//p')" "$cur"
+	    ;;
+    esac
+
+    compreply+ -W "${opts[*]}" "$cur"
+}
+#complete -F complete_svn svn
+
+function complete_keychain {
+    declare cmd=$1 cur=$2 prev=$3
+    declare help opts keys
+    
+    help=$(command "$cmd" --help 2>&1)
+    IFS=$'\n' compset opts -W "$(<<<"$help" sed '/^OPTIONS/,$!d; /^    -/!d' | \
+	egrep -oe '-[-[:alnum:]]*')" "$cur"
+    IFS=$'\n' compset keys -W "$(cd ~/.ssh &>/dev/null && grep -l PRIVATE *)" \
+	-- "$cur"
+
+    COMPREPLY=( "${opts[@]}" "${keys[@]}" )
+    if [[ ${#COMPREPLY[@]} -eq 0 ]]; then
+	compreply -A file -o filenames "$cur"
+    fi
+}
+complete -F complete_keychain keychain
+
+complete -A directory cd

@@ -1,0 +1,3 @@
+#!/bin/bash
+
+exec mutt -DDEFAULT_HOST=$(tr a-z A-Z <<<${0##*-})_HOST "$@"

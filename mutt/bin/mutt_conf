@@ -1,0 +1,5 @@
+#!/bin/bash
+
+declare -a defs
+eval "$_MUTT_DEFS" # set by mutt wrapper
+m4 "${defs[@]}" ~/.muttrc.in

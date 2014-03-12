@@ -1,0 +1,21 @@
+#!/bin/bash
+
+die() { [[ -n $1 ]] && echo "$*" >&2; exit 1; }
+
+[[ -n $1 ]] || die "usage: sizeof type"
+
+unset oname cname
+trap 'rm -f "$oname" "$cname"; exit' 0 1 2 15
+oname=$(mktemp -t sizeof.XXXXXX) || die
+cname=$oname.c  # unsafe
+
+cat >$cname <<EOF
+#include <stdio.h>
+int main() {
+    printf("%lu\n", sizeof($*));
+    return 0;
+}
+EOF
+
+gcc -o $oname $cname || die
+$oname

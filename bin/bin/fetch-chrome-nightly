@@ -1,0 +1,15 @@
+#!/bin/bash
+
+nightly=/usr/local/chrome-nightly
+sandbox=$nightly/chrome_sandbox
+
+set -e
+
+cd ~/Downloads
+rm -rf Linux_x64 chrome-linux
+wget -q https://download-chromium.appspot.com/dl/Linux_x64
+unzip -q Linux_x64
+sudo rm -rf $nightly
+sudo mv chrome-linux $nightly
+sudo chown root:root $sandbox
+sudo chmod 4755 $sandbox

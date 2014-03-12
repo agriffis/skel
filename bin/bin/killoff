@@ -1,0 +1,83 @@
+#!/usr/bin/ruby -w
+# $Header: /usr/local/home/agriffis/tmpcvs/skel/do_offlineimap,v 1.11 2004/10/18 22:47:04 agriffis Exp $
+# 
+# killoff: remove an offlineimap mailbox so it will be refreshed the
+#          next time offlineimap runs
+#
+
+$mail = ENV['HOME'] + '/mail'
+$offl = ENV['HOME'] + '/.offlineimap'
+
+accts = {}
+repos = {}
+current = nil
+
+IO.readlines("#{ENV['HOME']}/.offlineimaprc").each { |x|
+  x.chomp!
+  if x =~ /\[Repository (\w+)/ then repos[$1] = current = {}
+  elsif x =~ /\[Account (\w+)/ then accts[$1] = current = {}
+  elsif x =~ /^\s*$/           then current = nil
+  elsif x =~ /^#/              then next
+  elsif current
+    k, v = x.split(/\s*=\s*/, 2)
+    current[k] = v
+  end
+}
+
+if false
+  # disable the cron jobs
+  puts "disabling offlineimap cron jobs:"
+  ctab = %x(env EDITOR=cat crontab -e).strip
+  ENV['ctab'] = ctab.gsub(/^.*do_offlineimap/, '#killoff# \&')
+  system %q(echo "$ctab" | crontab -)
+  puts ENV['ctab'].split("\n").grep(/offlineimap/)
+  disabled_cron = true
+end
+
+begin
+
+  # check for running offlineimap
+  raise "offlineimap is running" if system %q(pkill -0 offlineimap)
+
+  ARGV.each { |box|
+    localrepo, shortbox = box.split(/\//, 2)
+    raise "no such repo: #{localrepo}" unless repos[localrepo]
+    #raise "no such box: #{box}" unless test ?e, "#{$mail}/#{box}/cur"
+
+    # Find what account contains this repo:
+    # Search for a remoterepository with a matching FolderValidity otherwise it's possible to get the
+    # wrong account, such as Dream2Send vs. Dream2Recv since both use mail/dream
+    # as the local repo
+    found = false
+    accts.each { |n,a| 
+      next unless a['localrepository'] == localrepo
+      remoterepo = a['remoterepository']
+      [ shortbox, "INBOX.#{shortbox}" ].each { |fn|
+        if File.exists? "#{$offl}/Repository-#{remoterepo}/FolderValidity/#{fn}"
+          # Remove the mailbox
+          system %Q(echo rm -rvf '#{$mail}/#{box}')
+          # Remove the state files
+          system %Q(echo rm -vf '#{$offl}/Account-#{n}/LocalStatus/#{shortbox}')
+          system %Q(echo rm -vf '#{$offl}/Repository-#{localrepo}/FolderValidity/#{shortbox}')
+          system %Q(echo rm -vf '#{$offl}/Repository-#{remoterepo}/FolderValidity/#{fn}')
+          # Flag that we're done
+          found = true
+          break
+        end
+      }
+      break if found
+    }
+    raise "no matching acct for repo: #{localrepo}" unless found
+  }
+
+ensure
+
+if disabled_cron
+  # enable the cron jobs
+  puts "enabling offlineimap cron jobs:"
+  ENV['ctab'] = ctab
+  system %q(echo "$ctab" | crontab -)
+  puts ENV['ctab'].split("\n").grep(/offlineimap/)
+end
+
+end

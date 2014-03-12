@@ -1,0 +1,61 @@
+#!/bin/bash
+#
+# xmutt
+#
+# Copyright 2007 Aron Griffis <agriffis@n01se.net>
+# Released under the GNU GPL v2
+#
+# For your .muttrc:
+#
+# macro index,pager <Esc>m '<enter-command> set my_editor=$editor<enter><enter-command> set my_fast_reply=$fast_reply<enter><enter-command> set my_postponed=$postponed<enter><enter-command> set my_reply_to=$reply_to<enter><enter-command> set my_shell=$shell<enter><enter-command> set my_wait_key=$wait_key<enter><enter-command> set editor=touch<enter><enter-command> set wait_key=no<enter><enter-command> set fast_reply=yes<enter><shell-escape>xmutt ""<enter><enter-command> set editor=$my_editor<enter><enter-command> set fast_reply=$my_fast_reply<enter><enter-command> set postponed=$my_postponed<enter><enter-command> set reply_to=$my_reply_to<enter><enter-command> set shell=$my_shell<enter><enter-command> set wait_key=$my_wait_key<enter>'
+# macro index,pager <Esc>g '<enter-command> set my_editor=$editor<enter><enter-command> set my_fast_reply=$fast_reply<enter><enter-command> set my_postponed=$postponed<enter><enter-command> set my_reply_to=$reply_to<enter><enter-command> set my_shell=$shell<enter><enter-command> set my_wait_key=$wait_key<enter><enter-command> set editor=touch<enter><enter-command> set wait_key=no<enter><enter-command> set fast_reply=yes<enter><enter-command> set reply_to=no<enter><group-reply><enter-command> set postponed=`mktemp /tmp/xmutt_reply.XXXXXX`<enter><enter-command> set shell="xmutt $postponed"<enter><postpone-message><shell-escape><enter><enter-command> set editor=$my_editor<enter><enter-command> set fast_reply=$my_fast_reply<enter><enter-command> set postponed=$my_postponed<enter><enter-command> set reply_to=$my_reply_to<enter><enter-command> set shell=$my_shell<enter><enter-command> set wait_key=$my_wait_key<enter>'
+# macro index,pager <Esc>r '<enter-command> set my_editor=$editor<enter><enter-command> set my_fast_reply=$fast_reply<enter><enter-command> set my_postponed=$postponed<enter><enter-command> set my_reply_to=$reply_to<enter><enter-command> set my_shell=$shell<enter><enter-command> set my_wait_key=$wait_key<enter><enter-command> set editor=touch<enter><enter-command> set wait_key=no<enter><enter-command> set fast_reply=yes<enter><enter-command> set reply_to=yes<enter><reply><enter-command> set postponed=`mktemp /tmp/xmutt_reply.XXXXXX`<enter><enter-command> set shell="xmutt $postponed"<enter><postpone-message><shell-escape><enter><enter-command> set editor=$my_editor<enter><enter-command> set fast_reply=$my_fast_reply<enter><enter-command> set postponed=$my_postponed<enter><enter-command> set reply_to=$my_reply_to<enter><enter-command> set shell=$my_shell<enter><enter-command> set wait_key=$my_wait_key<enter>'
+# macro index,pager <Esc>L '<enter-command> set my_editor=$editor<enter><enter-command> set my_fast_reply=$fast_reply<enter><enter-command> set my_postponed=$postponed<enter><enter-command> set my_reply_to=$reply_to<enter><enter-command> set my_shell=$shell<enter><enter-command> set my_wait_key=$wait_key<enter><enter-command> set editor=touch<enter><enter-command> set wait_key=no<enter><enter-command> set fast_reply=yes<enter><list-reply><enter-command> set postponed=`mktemp /tmp/xmutt_reply.XXXXXX`<enter><enter-command> set shell="xmutt $postponed"<enter><postpone-message><shell-escape><enter><enter-command> set editor=$my_editor<enter><enter-command> set fast_reply=$my_fast_reply<enter><enter-command> set postponed=$my_postponed<enter><enter-command> set reply_to=$my_reply_to<enter><enter-command> set shell=$my_shell<enter><enter-command> set wait_key=$my_wait_key<enter>'
+
+if [[ -n $ROXTERM_ID && -t 0 ]]; then
+    run_term() {
+        declare quoted=$(printf '%q ' "$@")
+        exec roxterm --tab -e bash -c "$quoted"
+    }
+else
+    run_term() {
+        exec run_term -e "$@"
+    }
+fi
+
+# Daemonize this process...
+(
+    # Load ssh-agent environment variables just in case we need them
+    source $HOME/.keychain/$HOSTNAME-sh 2>/dev/null
+
+    # Debug output to .xsession-errors
+    set -x
+
+    # Non-empty filename means reply
+    if [[ ${!#} == /* && -s ${!#} ]]; then
+
+        # Remove it from the end
+        P=${!#}
+        set -- "${@:1:$#-1}"
+
+        # Most users need the full mutt invocation which restores the postponed
+        # folder properly.  I don't need it because my send2-hooks set postponed
+        # every time I return to the compose menu...
+        #run_term "${0##*/x}" -e 'set my_postponed=$postponed;set postponed="'"$1"'";macro compose P "<enter-command> set postponed=$my_postponed<enter><postpone-message>"' -p
+        run_term "${0##*/x}" -e "set postponed='$P'" -p "$@"
+
+        # sleep here because gnome-terminal backgrounds itself immediately if
+        # stdin/stdout are not to a terminal.  So we're racing with mutt to open
+        # the postponed folder.  By sleeping here we give mutt a chance to open
+        # the folder and resume the message before we remove the folder.
+        # 1 second is probably enough, 30 should be plenty.
+        sleep 30
+        rm -f "$P"
+        exit
+    fi
+
+    # Normal...
+    run_term "${0##*/x}" "$@"
+) </dev/null >>~/.xsession-errors 2>&1 &
+
+# vim:nowrap

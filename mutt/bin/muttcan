@@ -1,0 +1,28 @@
+#!/usr/bin/env python3
+
+import os
+import sys
+
+props = """
+#status solved
+#assignee aron@pagepart.com
+"""
+
+try:
+    assert '/tmp/' in sys.argv[-1]
+
+    with open(sys.argv[-1]) as tmpf:
+        hb = tmpf.read().split('\n\n', 1)
+        header = hb[0]
+        body = hb[1] if len(hb) > 1 else ''
+
+    with open(sys.argv[-1], mode='w') as tmpf:
+        tmpf.write(header)
+        tmpf.write('\n')
+        tmpf.write(props)
+        tmpf.write('\n')
+        #tmpf.write(body)
+
+    os.execlp('vim', 'vim', '-f', '+silent! normal Go', sys.argv[-1])
+except Exception as e:
+    import pdb; pdb.set_trace()

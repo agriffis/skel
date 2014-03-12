@@ -1,0 +1,30 @@
+#!/bin/bash
+
+hg=$(wrapped "$0")
+
+args=()
+for x; do
+    if [[ $x =~ ^r[0-9]+$ ]]; then
+        args+=( "svnrev(${x#r})" )
+    else
+        args+=( "$x" )
+    fi
+done
+set -- "${args[@]}"
+
+case $1 in
+    diff|di|log|history|export|qdiff|qdi)
+        if [[ -t 1 ]] && type -P colordiff &>/dev/null; then
+            "$hg" "$@" | colordiff | ${COLORPAGER:-less -R}
+            exit ${PIPESTATUS[0]}
+        fi
+        ;;
+    slog)
+        "$hg" "$@" | perl -pe '
+            s/\[svn r\d*\] //;
+            s/\[[^\]]*?(svn.\d*)[^\]]*\]/[$1]/' | fitwidth
+        exit ${PIPESTATUS[0]}
+        ;;
+esac
+
+exec "$hg" "$@"

@@ -1,0 +1,20 @@
+#!/bin/bash
+#
+# Use the gvim binary automatically to gain +clientserver capability
+# https://bugzilla.redhat.com/show_bug.cgi?id=471487
+
+vim=$(wrapped "$0")
+
+# Look for a gvim binary alongside
+gvim=${vim%/*}/gvim
+if [[ -x $gvim ]]; then
+    vim=$gvim
+fi
+
+if [[ $* != *--servername* && $* != *--serverlist* ]] &&
+    "$vim" --version | grep -q +clientserver
+then
+    set -- --servername VIM-$$ "$@"
+fi
+
+exec -a "${0##*/}" "$vim" "$@"

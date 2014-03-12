@@ -1,0 +1,33 @@
+#!/bin/bash -e
+
+if [[ -z $* ]]; then
+    echo "syntax: sortphotos topdir [images]"
+    echo "Directories will be created such as topdir/2006/1014"
+    exit 0
+fi
+
+topdir=$1
+shift
+
+if [[ -z $* ]]; then
+    shopt -s nullglob
+    set -- *.{JPG,jpg,CR2,cr2}
+fi
+
+for x; do
+    date=$(strings "$x" | grep -o -m1 '^20[0-9][0-9]:..:..') ||:
+    if [[ -z $date ]]; then
+        echo "Error processing $x"
+        continue
+    fi
+    year=${date%%:*}; monthday=${date#*:}; monthday=${monthday/:/}
+    dir=$year/$monthday
+    mkdir -p $topdir/$dir
+    if [[ ! $x -ef $topdir/$dir/${x##*/} ]]; then
+        if [[ -w $(dirname "$x")/. ]]; then
+            mv -v "${x%.*}".* $topdir/$dir
+        else
+            cp -v "${x%.*}".* $topdir/$dir
+        fi
+    fi
+done

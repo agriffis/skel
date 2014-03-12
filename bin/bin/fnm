@@ -1,0 +1,37 @@
+#!/bin/bash
+
+fnm() {
+    declare check
+    [[ "$1" == "${HOSTNAME%%.*}" ]] && return
+    check=$(set -x; ssh -O check "$1" 2>&1) && ssh "$1" true && return
+    echo "$check"
+    if [[ $check =~ Control\ socket\ connect\((/[^\)]*) ]]; then
+        ( set -x; rm -f "${BASH_REMATCH[1]}" )
+    fi
+    ( set -x; ssh -fNMX -o 'ConnectTimeout 20' "$1" )
+}
+
+at() {
+    : ${_where=$(where-am-i)}
+    echo "$_where" | grep -q "^$1"
+}
+
+if [[ -n $1 ]]; then
+    for x; do fnm "$x"; done
+    exit
+fi
+
+if at jupiter; then
+    if [[ $USER == aron ]]; then
+        fnm web249
+        fnm web343
+        fnm web344
+    fi
+else
+    if [[ $USER == aron ]]; then
+        fnm gg
+    fi
+    if [[ $USER == amg ]]; then
+        fnm oliva
+    fi
+fi

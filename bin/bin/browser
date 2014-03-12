@@ -1,0 +1,22 @@
+#!/bin/bash
+
+browsers=(
+    firefox
+    chromium-browser
+    'chrome google-chrome'
+    )
+
+running() { pgrep -f "$1" &>/dev/null; }
+
+for b in "${browsers[@]}"; do
+    read b e <<<"$b"
+    if [[ -z $e ]]; then
+        e=$b
+    fi
+
+    if running $b; then
+        exec $e "$@"
+    fi
+done
+
+exec ${browsers[0]#* } "$@"

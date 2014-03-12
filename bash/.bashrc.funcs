@@ -1,0 +1,211 @@
+# $Id: bashrc.funcs 4412 2011-08-14 13:06:10Z agriffis $
+#
+# bashrc.funcs
+#       Generally useful bash functions
+#
+# Copyright 2003-2007 Aron Griffis <agriffis n01se.net>
+# Released under the GNU GPL v2
+####################################################################### 
+
+[[ -n $_BASHRC_FUNCS ]] && return
+_BASHRC_FUNCS=1
+
+# isnfs -- Test if a filesystem is NFS-mounted
+isnfs() {
+  declare dfout 
+
+  # Try to figure out what we're inspecting so we can safely call df.
+  # Start by cleaning up $1 to look like a file and not a potential df
+  # option.
+  case "$1" in
+    /*) set -- "$1" ;;
+    *)  set -- "./$1" ;;
+  esac
+
+  # Check for existence of $1 prior to calling df.
+  if [[ ! -e $1 ]]; then
+    set -- "${1%/*}"            # remove trailing element
+    [[ ! -e $1 ]] && set -- .   # doesn't exist, use cwd instead
+  fi
+
+  # Branch depending on OS where df has different options.
+  case $OSTYPE in
+    linux*|*bsd*|*BSD*)
+      dfout=`/bin/df -l "$1" 2>/dev/null`
+      case "$dfout" in
+        */*) return 1 ;;  # looks like local
+        *)   return 0 ;;  # looks like NFS
+      esac
+      ;;
+
+    *)
+      # pretend everything is NFS if we can't tell
+      return 0
+      ;;
+  esac
+}
+
+# islocal -- Test if a filesystem is local (i.e. not NFS)
+islocal() {
+  isnfs "$1" && return 1
+  return 0
+}
+
+# designed to be overridden
+isslow() {
+  isnfs "$1"
+}
+
+# readlink -- Emulate Linux's readlink binary.
+if ! type -p readlink >/dev/null && type -p perl >/dev/null; then
+  readlink() { perl -e 'print readlink($ARGV[0]), "\n"' "$1"; }
+fi
+
+prepend_sep() {
+  declare var=$1 prev=${!1} sep=$2
+  shift 2
+  set -- "$@" ${prev:+"$prev"}
+  declare IFS=$sep
+  eval "$var=\$*"
+}
+append_sep() {
+  declare var=$1 prev=${!1} sep=$2
+  shift 2
+  set -- ${prev:+"$prev"} "$@"
+  declare IFS=$sep
+  eval "$var=\$*"
+}
+prepend_sp() { prepend_sep "$1" ' ' "${@:2}"; }
+append_sp() { append_sep "$1" ' ' "${@:2}"; }
+prepend_cmd() { prepend_sep "$1" \; "${@:2}"; }
+append_cmd() { append_sep "$1" \; "${@:2}"; }
+prepend_line() { prepend_sep "$1" $'\n' "${@:2}"; }
+append_line() { append_sep "$1" $'\n' "${@:2}"; }
+
+# find_parent_with -- search for $1 in parent directories
+find_parent_with() {
+  declare far=false
+  if [[ $1 == --far ]]; then
+    far=true
+    shift
+  fi
+
+  declare check=$PWD what=$1 stop=$2 found
+  if [[ -z $stop || ! -d $stop ]]; then
+    stop=$HOME
+  fi
+
+  while true; do
+    if [[ -e $check/$what ]]; then
+      found=$check
+      $far || break
+    fi
+    if [[ -z $check || $check/. -ef $stop/. ]]; then
+      break
+    fi
+    check=${check%/*}
+  done
+
+  if [[ -n $found ]]; then
+    echo "$found"
+    return 0
+  else
+    return 1
+  fi
+}
+
+# color -- emit ansi color codes
+color() {
+  declare bg=0
+  echo -ne "\033[0m"
+  while [[ $# -gt 0 ]]; do
+    declare code
+    case $1 in
+      black) code=30 ;;
+      red) code=31 ;;
+      green) code=32 ;;
+      yellow) code=33 ;;
+      blue) code=34 ;;
+      magenta) code=35 ;;
+      cyan) code=36 ;;
+      white) code=37 ;;
+      background|bg) bg=10 ;;
+      foreground|fg) bg=0 ;;
+      reset|off|default) code=0 ;;
+      bold|bright) code=1 ;;
+    esac
+    [[ $code == 0 ]] || echo -ne "\033[$(printf "%02d" $((code+bg)))m"
+    shift
+  done
+}
+
+# funcdup -- Duplicate a function
+funcdup() {
+  declare x="#$(type $1)"
+  if [[ $x != "#$1 is a function"* ]]; then
+    echo "$FUNCNAME called for non-function $1" >&2
+    return 1
+  fi
+  x=${x/$1 ()/$2 ()}
+  [[ -n $3 ]] && eval "$3"
+  eval "$x"
+}
+
+# echo1 -- echo the first positional parameter,
+# for getting the first element from a globbed list
+echo1() {
+  echo "$1"
+}
+
+# setarray -- use temporary IFS $3 to parse $2 to an array $1
+setarray() {
+  declare IFS=$3
+  eval "$1=( \$2 )"
+}
+
+# arrayhas -- look for $2 in array $1
+arrayhas() {
+  declare x
+  eval "for x in \"\${$1[@]}\"; do
+    [[ \$x == \$2 ]] && return 0
+  done"
+  return 1
+}
+
+# This is a function rather than a script in skel/bin because we use it in
+# bashrc.prompt, which should only depend on bashrc.funcs
+distro() {
+  declare distro
+  if [[ -e /etc/lsb-release ]]; then
+    distro=$(
+      source /etc/lsb-release
+      echo -n "$DISTRIB_ID"
+      [[ -n $DISTRIB_RELEASE ]] && echo -n " $DISTRIB_RELEASE"
+      [[ -n $DISTRIB_CODENAME ]] && echo -n " ($DISTRIB_CODENAME)"
+    )
+  fi
+  if [[ -z $distro ]]; then
+    if [[ -e /etc/debian_version ]]; then
+      distro=$(</etc/debian_version)
+    elif [[ -e /etc/redhat-release ]]; then
+      distro=$(</etc/redhat-release)
+      distro=${distro/#Red Hat Enterprise Linux*release/RHEL}
+    elif [[ -e /etc/SuSE-release ]]; then
+      distro=$(grep '^Welcome' /etc/issue)
+      : ${distro:=$(head -n1 /etc/SuSE-release)}
+      distro=${distro#Welcome to }
+      distro=${distro/#SUSE Linux Enterprise Server/SLES}
+    elif [[ -e /etc/gentoo-release ]]; then
+      distro=$(</etc/gentoo-release)
+    else
+      distro=unknown
+    fi
+    distro=${distro%% (*)*}
+  fi
+  distro="$distro $(uname -r)"
+  echo "$distro"
+}
+
+# The following line enforces a consistent indentation for this file
+# (in Vim at least).  Keep this at the end of file.
+# vim:shiftwidth=2 expandtab smarttab

@@ -1,0 +1,77 @@
+#!/bin/bash
+# 
+# Build an rpm for the sources in the current directory
+# Copyright 2005, Aron Griffis <agriffis@n01se.net>
+# Released under the GNU GPL v2
+
+die() {
+    [[ -n $* ]] && echo "$*" >&2
+    exit 1
+}
+
+#
+# Parse the command-line
+#
+
+if [[ -n $1 ]]; then
+    specfile=${1%.specfile}.specfile
+else
+    countspecs=$(ls *.spec | wc -l) 
+    if [[ $countspecs -eq 0 ]]; then
+        die "No specfile found.  Are you in the right directory?"
+    elif [[ $countspecs -gt 1 ]]; then
+        echo "Multiple specfiles found.  Please specify one:" >&2
+        ls -1 *.spec | sed 's/^/    /' >&2
+        die
+    fi
+    specfile=$(ls *.spec)
+fi
+
+if [[ ! -f $specfile ]]; then
+    die "Specfile not found: $specfile"
+fi
+
+spec=$(<"$specfile")
+
+# 
+# Read the parts of the spec that matter
+#
+
+eval "$(perl -lne '
+    /^%/ and exit;              # stop at %description
+    s/\s*$//;                   # trim trailing spaces
+    s/^(\w+):\s+(.*)/\L$1\E=$2/ or next; # variable=value
+    $lookup{lc $1}=$2;          # store in our temporary hash
+    s/%\{(\w+)\}/$lookup{$1} || "%{$1}"/ge; # do %{name} substitutions
+    s/'\''/'\''\'\'\''/g;       # escape inner quotes
+    s/=/='\''/;                 # open quote
+    s/$/'\''/;                  # close quote
+    print' <<<"$spec" | tee /dev/stderr)"
+
+srcdir="$name-$version"
+myspecfile="$name-$version.spec"
+
+# 
+# Build the tarball
+#
+
+tmpdir=$(mktemp -d) || die
+trap 'rm -rf "$tmpdir"' 0 1 2 3 15
+rsync -a --exclude .git --exclude .hg --exclude CVS --exclude .svn \
+    "$PWD/." "$tmpdir/$srcdir" || die
+pushd "$tmpdir"
+
+case $source0 in
+    *.gz) tar czf ~/redhat/SOURCES/"$source0" "$srcdir" ;;
+    *.bz2) tar cjf ~/redhat/SOURCES/"$source0" "$srcdir" ;;
+    *) die "I don't know how to handle $source0" ;;
+esac
+
+popd
+
+# 
+# Write the specfile and build the rpm
+# 
+
+echo "$spec" > ~/redhat/SPECS/"$myspecfile"
+rpmbuild -ba ~/redhat/SPECS/"$myspecfile"

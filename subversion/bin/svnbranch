@@ -1,0 +1,13 @@
+#!/bin/bash
+
+set -e -x
+
+[[ $PWD == */branches && -d ../trunk ]]
+[[ -n $1 && ! -d $1 ]]
+branch=$1
+shift
+[[ -n $* ]]
+message="$*"
+url=$(svn info | awk '/^URL:/{print $NF}')
+trunk=${url%/branches}/trunk
+svn cp -m "$message" $trunk $url/$branch

@@ -1,0 +1,55 @@
+#!/bin/bash
+
+savefile=${2:-~/.xmodmap.${DISPLAY//:/_}}
+
+case $1 in
+--save)
+# save the keycode map
+xmodmap -pke > "$savefile"
+
+# save the modifiers too
+declare m keys k
+xmodmap -pm | sed '1d' | while read m keys; do
+    [[ -n $m ]] || continue
+    echo "clear $m"
+    for k in $keys; do
+        [[ $k == *\(* ]] && continue
+        echo "add $m = $k"
+    done
+done >> "$savefile"
+exit 0
+;;
+
+--restore)
+exec xmodmap "$savefile"
+;;
+
+k|kinesis)
+xmodmap - <<EOT
+    keysym Delete = Escape
+    keysym Escape = Delete
+    keysym Up = Down
+    keysym Down = Up
+EOT
+;;
+
+hhk)
+xmodmap - <<EOT
+    keycode 37 = Super_L
+    keycode 133 = Control_L
+    keycode 134 = Control_R
+    keycode 64 = Alt_L Meta_L
+    keycode 108 = Alt_R Meta_R
+EOT
+xmodmap - <<EOT
+    clear control
+    clear mod1
+    clear mod4
+    add control = Control_L Control_R
+    add mod1 = Alt_L Alt_R
+    add mod4 = Super_L
+EOT
+;;
+
+?*) echo "I don't understand $1"; exit 1 ;;
+esac

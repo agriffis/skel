@@ -1,0 +1,26 @@
+#!/bin/bash -e
+# $Id: xf 4036 2010-04-13 23:16:41Z agriffis $
+#
+# xf - Call as xf (extract), xvf (extract verbose), tf (list), tvf (list verbose).
+#      Works for tarballs, rpm or zips.
+#
+# Copyright 2007 Aron Griffis <agriffis@n01se.net>
+# Released under the GNU GPL v2
+
+cmd=${0##*/}
+t=${cmd//[!t]/}
+v=${cmd//[!v]/}
+
+shopt -s nocasematch
+
+qargs=$(printf '%q ' "$@")
+case $1 in
+    '') echo "filename required" >&2; exit 1 ;;
+    *.zip|*.exe) cmd="unzip ${t:+-l} ${v:+-v} $qargs" ;;
+    *.src.rpm)   cmd="unrpm ${t:+-l} ${v:+-v} $qargs" ;;
+    *.rpm)       cmd="rpm2cpio $qargs | cpio -i${t:-md}${v}" ;;
+    *)           cmd="tar ${t:-x}${v}f $qargs" ;;
+esac
+
+#echo "$cmd"
+eval "$cmd"

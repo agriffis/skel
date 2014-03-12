@@ -1,0 +1,25 @@
+#!/bin/bash
+# $Id: yumify 3193 2008-07-16 20:00:01Z agriffis $
+#
+# yumify - create yum area from installation area
+
+die() {
+    for x; do echo "$x"; done >&2
+    exit 1
+}
+
+[[ $# -lt 2 ]] && die "syntax: yumify instdir(s) yumdir"
+
+yumdir=${!#}; set -- "${@:1:$#-1}"
+mkdir -pv "$yumdir" || die
+
+for instdir; do
+    find "$(readlink -f "$instdir")" -name \*.rpm -print0 \
+    | xargs -r0 ln -sft "$yumdir"
+done
+if find "$yumdir" -name \*.rpm | grep -q .; then
+    createrepo "$yumdir"
+else
+    # nevermind...
+    rmdir "$yumdir"
+fi

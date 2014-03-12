@@ -1,0 +1,12 @@
+#!/bin/bash
+
+degrees=${0##*/}
+if [[ ! $degrees -gt 0 ]]; then
+    echo "Filename is not degrees!" 1>&2
+    exit 1
+fi
+
+for x; do
+    jpegtran -rotate $degrees "$x" > "$x".rot && mv "$x".rot "$x" || \
+    convert -rotate $degrees "$x" "$x"
+done

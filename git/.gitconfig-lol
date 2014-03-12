@@ -1,0 +1,27 @@
+[alias]
+	# Log, One Line, All (refs) - shows the relationship of all refs in the repository
+	lola = log --graph --decorate --pretty=lol --all
+
+	# Log, One Line, outbound - shows the commits on HEAD not on upstream
+	lolo = log --graph --decorate --pretty=lol @{upstream}..HEAD
+
+	# Log, One Line, Upstream - shows the relationship of HEAD and upstream
+	lolu = log --graph --decorate --pretty=lol HEAD..@{upstream}
+
+	# Log, One Line "Y" format - compares HEAD vs upstream back to the merge point
+	loly = !git lol ^$(git merge-base HEAD @{upstream})^@ HEAD @{upstream}
+
+	# (Log, One Line) "Y" format - compares HEAD vs upstream back to the merge point
+	y = !git loly
+
+	## From Nathan Ehresman
+	lolol = log --graph --pretty=lolol --all
+
+	## From Scott Chacon
+	# Log, One Line
+	lol = log --oneline --graph --decorate
+	olo = log "--pretty=format:%s" --decorate
+
+[pretty]
+	lol = "%C(yellow bold)%h%C(reset) %C(red)(%an)%C(reset)%C(blue bold)%d%C(reset) %s %C(cyan)(%ar)%C(reset)"
+	lolol = "%C(yellow bold)%h%Creset by %C(red)%an%Creset (%ar)%C(cyan bold)%d%Creset%n%s%n%n%b"

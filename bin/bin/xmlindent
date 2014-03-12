@@ -1,0 +1,3 @@
+#!/bin/bash
+
+exec tidy -q -xml -utf8 -indent -wrap 0 "$@"

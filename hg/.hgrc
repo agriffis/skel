@@ -1,0 +1,60 @@
+[extensions]
+convert =
+extdiff =
+fetch =
+graphlog =
+mq =
+patchbomb =
+progress =
+purge =
+rebase =
+record =
+shelve =
+hgsubversion = ~/Dropbox/stow/hg/extensions/hgsubversion
+transplant =
+
+[ui]
+merge = vimmerge -b
+user = aron@arongriffis.com
+username = Aron Griffis <aron@arongriffis.com>
+
+[defaults]
+revert = --no-backup
+
+# on ubuntu, enable aliases by editing
+# /etc/mercurial/hgrc.d/hgext.rc and uncommenting the alias extension
+[alias]
+clog = log --template '{rev} {node|short} {date|localdate|shortdate} {desc|firstline|strip}\n'
+cglog = glog --template '{rev} {node|short} {date|localdate|shortdate} {desc|firstline|strip}\n'
+slog = log --template '{rev} {date|localdate|shortdate} {branch|basename} r{svnrev} ({author|user}) {desc|firstline|strip}\n'
+alog = log --template '* [[r:{svnrev}|{svnrev} {date|localdate|shortdate} ({author|user}) {desc|firstline|strip}]]\n'
+branchdiff = diff -r "max(ancestors('$1') and branch(default)):'$1'"
+
+[email]
+from = Aron Griffis <aron@arongriffis.com>
+method = /usr/sbin/sendmail
+
+[smtp]
+host = localhost
+
+[diff]
+#git = True
+
+[extdiff]
+# Avoid getting the "wrong" python in a virtualenv /usr/bin/meld
+cmd.meld = /usr/bin/python
+opts.meld = /usr/bin/meld
+
+# Requires http://www.vim.org/scripts/script.php?script_id=102
+# Non english user, be sure to put "let g:DirDiffDynamicDiffText = 1" in
+# your .vimrc
+cmd.vimdiff = vim
+opts.vimdiff = -f '+next' '+execute "DirDiff" argv(0) argv(1)'
+
+
+[tortoisehg]
+fontcomment = Inconsolata,9,-1,5,50,0,0,0,0,0
+fontdiff = Inconsolata,9,-1,5,50,0,0,0,0,0
+fontlist = Tahoma,9,-1,5,50,0,0,0,0,0
+fontlog = Inconsolata,9,-1,5,50,0,0,0,0,0
+fontoutputlog = Tahoma,9,-1,5,50,0,0,0,0,0

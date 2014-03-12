@@ -1,0 +1,5 @@
+import os, sys, re
+for f in ('pythonrc', '.pythonrc'):
+    if os.path.isfile(f):
+        execfile(f)
+        break

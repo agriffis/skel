@@ -1,0 +1,13 @@
+#!/bin/bash
+# 
+# Use exuberant-ctags when available; otherwise fall back on system ctags (which
+# might be exuberant, might be emacs, etc)
+#
+
+if type -P exuberant-ctags &>/dev/null; then
+    unset dash_e
+    [[ ${0##*/} == etags ]] && dash_e=-e
+    exec exuberant-ctags $dash_e "$@"
+fi
+
+exec "$(wrapped $0)" "$@"

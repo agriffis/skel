@@ -1,0 +1,403 @@
+# $Id: bashrc.prompt 4833 2012-12-13 17:11:04Z aron $
+#
+# bashrc.prompt
+#       Multi-line modular prompt
+#
+# Copyright 2003-2008 Aron Griffis <agriffis n01se.net>
+# Released under the GNU GPL v2
+####################################################################### 
+
+[[ -n $_BASHRC_PROMPT ]] && return
+_BASHRC_PROMPT=1
+
+[[ -n $_BASHRC_FUNCS ]] || source ~/.bashrc.funcs
+
+# Default colors, overrideable in user .bashrc
+: ${PS1_COLOR_USER:='magenta'}
+: ${PS1_COLOR_ROOT:='bright red'}
+: ${PS1_COLOR_ALT:='blue'}
+: ${PS1_COLOR_LEADER:=''}     # use PS1_COLOR_USER
+: ${PS1_COLOR_TRAILER:=''}    # use PS1_COLOR_USER
+: ${PS1_COLOR_PROMPT:=''}     # use PS1_COLOR_USER
+: ${PS1_COLOR_MOD:='red'}
+: ${PS1_COLOR_ERROR_GOOD:='bright green'}
+: ${PS1_COLOR_ERROR_BAD:='bright red'}
+
+# How often to refresh if it's not apparent a refresh is needed.
+# 0 for never
+PS1_REFRESH_SECONDS=5  # just enough for multiple strikes to the enter key
+
+# Utility functions to be called by modules:
+# ps1 ............... color but wrap in \[ \] for bash's PS1 parsing
+# ps1_quote ......... escape backslashes and dollar signs
+# ps1_status ........ add to the main prompt line
+# ps1_post_status ... add a line to the prompt
+ps1() { echo -n '\['; color "$@"; echo -n '\]'; }
+ps1_quote() {
+  # this requires quoting specifically backquotes, backslashes and dollars,
+  # not the full printf %q treatment
+  declare q=$1
+  q=${q//\\/\\\\}
+  q=${q//\$/\\\$}
+  q=${q//\`/\\\`}
+  # don't take chances with echo...
+  printf "%s" "$q"
+}
+ps1_status() {
+  # don't use append_sp because it will omit the first space which is needed
+  PS1_STATUS_MODL="$PS1_STATUS_MODL $1"
+  declare q=$(ps1_quote "$1")
+  PS1_STATUS_MODC="$PS1_STATUS_MODC $(ps1 ${PS1_COLOR_MOD:-$PS1_COLOR_USER})$q"
+}
+ps1_post_status() {
+  declare q=$(ps1_quote "$1")
+  append_line PS1_POST_STATUS \
+  "$(ps1 ${PS1_COLOR_LEADER:-$PS1_COLOR_USER})$leader $(ps1 ${PS1_COLOR_MOD:-$PS1_COLOR_USER})$q"
+}
+
+# The module system defines an array of modules which will be called in order by
+# the function ps1_update (defined near the end of this file).  Each module
+# defines a function and the registers itself, for example:
+#    ps1_mod_foo() {
+#      ps1_status "foo to you!"
+#    }
+#    ps1_register_module foo
+#
+# It's also possible for the user to unregister default modules they dislike,
+# after sourcing .bashrc.prompt, for example:
+#    source ~/.bashrc.prompt
+#    ps1_unregister_module svk
+PS1_MODULES=()
+ps1_register_module() {
+  declare x
+  for x; do
+    [[ " ${PS1_MODULES[*]} " == *" $x "* ]] || \
+    PS1_MODULES=( "${PS1_MODULES[@]}" "$@" )
+  done
+}
+ps1_unregister_module() {
+  declare m n
+  declare -a mods
+  for m in "${PS1_MODULES[@]}"; do
+    for n; do
+      [[ $m == "$n" ]] && continue 2
+    done
+    mods=( "${mods[@]}" "$m" )
+  done
+  PS1_MODULES=( "${mods[@]}" )
+}
+
+# Modules that want to cache information between calls can use PS1_CACHE_FOO,
+# for example see PS1_CACHE_HG_* and PS1_CACHE_SVK below.
+unset ${!PS1_CACHE_*}
+
+# MODULE: chroot -- show the current chroot
+ps1_mod_chroot() {
+  if [[ ${PS1_CACHE_CHROOT-unset} == unset ]]; then
+    if [[ -n $CHROOTED ]]; then
+      PS1_CACHE_CHROOT=$CHROOTED
+    elif [[ -s /etc/chrootname ]]; then
+      PS1_CACHE_CHROOT=$(</etc/chrootname)
+    elif [[ -s /etc/hostname ]]; then
+      declare h=$(</etc/hostname)
+      if [[ ${h%%.*} != "${HOSTNAME%%.*}" ]]; then
+        PS1_CACHE_CHROOT=$h
+      else
+        PS1_CACHE_CHROOT=  # different from unset
+        return 1
+      fi
+    fi
+  fi
+  [[ -n $PS1_CACHE_CHROOT ]] && ps1_status "($PS1_CACHE_CHROOT)"
+}
+ps1_register_module chroot
+
+# MODULE: virtualenv -- show the current python virtualenv
+ps1_mod_virtualenv() {
+  [[ -n $VIRTUAL_ENV ]] && \
+    ps1_status "<${VIRTUAL_ENV##*/}${VIRTUAL_ENV_BRANCH:+/}$VIRTUAL_ENV_BRANCH>"
+}
+ps1_register_module virtualenv
+
+# MODULE: rvm -- show the current ruby environment
+ps1_mod_rvm() {
+  if [[ -n $GEM_HOME ]]; then
+    if [[ -n $VIRTUAL_ENV && $GEM_HOME == "$VIRTUAL_ENV"/* ]]; then
+      declare venv_home=${VIRTUAL_ENV%/*}
+      ps1_status "<${GEM_HOME:${#venv_home}+1}>"
+    else
+      ps1_status "<${GEM_HOME##*/}>"
+    fi
+  fi
+}
+ps1_register_module rvm
+
+# MODULE: hg -- show some mercurial information
+ps1_mod_hg() {
+  $PS1_CACHE_ISSLOW_CWD && return 1
+  if [[ $PS1_CACHE_HG_CWD != "$PWD" ]]; then
+    PS1_CACHE_HG_TOP=$(find_parent_with .hg)
+    PS1_CACHE_HG_CWD=$PWD
+  fi
+  declare top=$PS1_CACHE_HG_TOP
+  [[ -z $top ]] && return 1
+
+  declare topless cachevar cached newcached
+  declare default default_push template info me
+
+  # consult our cache for hg info
+  topless=${top//[![A-Za-z0-9]/_}
+  cachevar=PS1_CACHE_HG_${topless}
+  cachetime=${!cachevar}
+  hgtime=$(TZ=UTC stat --format=%y "$top"/.hg/*)
+  if [[ $cachetime == "$hgtime" ]]; then
+    cachevar=PS1_CACHE_HG_${topless}_INFO
+    info=${!cachevar}
+  else
+    eval "$cachevar=\$hgtime"
+    template='{branch|basename} ({author|user}) {desc|firstline|strip}\n'
+    if [[ -d $top/.hg/svn ]]; then
+      template="r{svnrev|nonempty} $template"
+    else
+      template="{rev} $template"
+    fi
+    info=$(hg -R $top parents --template "$template")
+
+    # Drop author-is-me
+    me=$(hg -R $top showconfig ui.user)
+    read rev branch author rest <<<"$info"
+    [[ $author == "(${me%%@*})" ]] && info="$rev $branch $rest"
+
+    # Drop branch default
+    read rev branch rest <<<"$info"
+    [[ $branch == default ]] && info="$rev $rest"
+
+    cachevar=PS1_CACHE_HG_${topless}_INFO
+    eval "$cachevar=\$info"
+  fi
+
+  # line 1 ... TMI
+  #top=${top##*/}
+  #default=$(sed -ne 's/^default = //p' $top/.hg/hgrc 2>/dev/null)
+  #: ${default:=none}
+  #default=${default/%$top/...}
+  #default_push=$(sed -ne 's/^default-push = //p' $top/.hg/hgrc 2>/dev/null)
+  #: ${default_push:=none}
+  #default_push=${default_push/%$top/...}
+  #ps1_post_status "$top${default:+ < $default}${default_push:+ > $default_push}"
+
+  # line 2
+  [[ -n $info ]] && ps1_post_status "${info:0:COLUMNS - ${#leader} - 1}"
+}
+#ps1_register_module hg
+
+# MODULE: git -- show the current git branch
+ps1_mod_git() {
+  $PS1_CACHE_ISSLOW_CWD && return 1
+  if [[ $PS1_CACHE_GIT_CWD != "$PWD" ]]; then
+    PS1_CACHE_GIT_TOP=$(find_parent_with .git/HEAD)
+    PS1_CACHE_GIT_CWD=$PWD
+  fi
+  declare top=$PS1_CACHE_GIT_TOP
+  [[ -z $top ]] && return 1
+  declare head=$(<$top/.git/HEAD)
+  [[ -n $head ]] && ps1_status "[$head]"
+}
+#ps1_register_module git
+
+# MODULE: svn -- show the subversion source and revision
+ps1_mod_svn() {
+  $PS1_CACHE_ISSLOW_CWD && return 1
+  if [[ $PS1_CACHE_SVN_CWD != "$PWD" ]]; then
+    PS1_CACHE_SVN_TOP=$(find_parent_with --far .svn)
+    PS1_CACHE_SVN_CWD=$PWD
+  fi
+  declare top=$PS1_CACHE_SVN_TOP
+  [[ -z $top ]] && return 1
+  declare info=$(svn info $top 2>/dev/null | while read data; do
+      case $data in
+        (URL:*) echo -n "${data#*: } " ;;
+        (Revision:*) echo -n "${data#*: }" ;;
+      esac
+    done
+  )
+  [[ -n $info ]] && ps1_post_status "${info:0:COLUMNS - ${#leader} - 1}"
+}
+#ps1_register_module svn
+
+# MODULE: svk -- show the svk source and revision
+declare -a PS1_CACHE_SVK
+PS1_CACHE_SVK_DONE=false
+ps1_mod_svk() {
+  declare svkroot=${SVKROOT:-$HOME/.svk} x info
+  [[ -e $svkroot/local ]] && islocal "$svkroot" || return 1
+
+  # The pwd/home check here prevents PS1_CACHE_SVK from being filled prior to
+  # the first prompt.  Only after the user has changed directories will it
+  # bother to try.  That shaves maybe a quarter-second from the appearance of
+  # the first prompt.
+  if ! $PS1_CACHE_SVK_DONE && [[ ! $PWD/. -ef $HOME/. ]]; then
+    setarray PS1_CACHE_SVK "$(svk co -l </dev/null 2>/dev/null | sed '1,2d;s/.*\t//')" $"\n"
+    PS1_CACHE_SVK_DONE=true
+  fi
+  for x in "${PS1_CACHE_SVK[@]}"; do
+    if [[ $PWD/ == "$x"/* ]]; then
+      # svk info is an order of magnitude slower than svn info.
+      # This needs to be cached like hg (which perhaps calls for
+      # some shared code).
+      info=$(svk info "$x"/ | while read data; do
+          case $data in
+              (Depot\ Path:*) echo -n "${data#*: } " ;;
+              (Revision:*) echo -n "${data#*: } " ;;
+              (Mirrored\ From:*) data="${data#*: }"; echo -n "(${data/, Rev.})" ;;
+          esac
+        done
+      )
+      ps1_post_status "${info:0:COLUMNS-${#leader}-1}"
+      break
+    fi
+  done
+}
+#ps1_register_module svk
+
+# MODULE: cvs -- show the cvs root and repository (revision is too expensive)
+ps1_mod_cvs() {
+  $PS1_CACHE_ISSLOW_CWD && return 1
+  if [[ $PS1_CACHE_CVS_CWD != "$PWD" ]]; then
+    PS1_CACHE_CVS_TOP=$(find_parent_with --far CVS)
+    PS1_CACHE_CVS_CWD=$PWD
+  fi
+  declare top=$PS1_CACHE_CVS_TOP
+  [[ -z $top ]] && return 1
+  declare info="$(<$top/CVS/Root)/$(<$top/CVS/Repository)"
+  ps1_post_status "${info:0:COLUMNS-${#leader}-1}"
+}
+#ps1_register_module cvs
+
+# MODULE: distro -- show the current distro
+ps1_mod_distro() {
+  if [[ -z $PS1_CACHE_DISTRO ]]; then
+    PS1_CACHE_DISTRO=$(distro)
+  fi
+  ps1_status "[$PS1_CACHE_DISTRO]"
+}
+[[ $EUID == 0 ]] && ps1_register_module distro
+
+# The ps1_update function calls the modules defined above and in the user's
+# bashrc to construct the full prompt.
+unset PS1_PROMPT
+PS1_FORCE_REFRESH=true
+ps1_update() {
+  declare cwd=${PWD/#$HOME/\~} user=$USER host=${HOSTNAME%%.*}
+  declare leader=${PS1_LEADER:-'---'} trailer=${PS1_TRAILER:-'---'}
+  declare line width x pad
+
+  # Short-circuit if possible, for really loaded systems
+  if ! $PS1_FORCE_REFRESH; then
+    (( PS1_REFRESH_SECONDS != 1 && \
+       COLUMNS == PS1_CACHE_COLUMNS && \
+       PS1_ERROR == PS1_CACHE_ERROR )) && \
+    [[ $PWD == "$PS1_CACHE_CWD" ]] && \
+    (( PS1_REFRESH_SECONDS == 0 || \
+       SECONDS - PS1_CACHE_LAST_REFRESH < PS1_REFRESH_SECONDS )) && \
+    [[ $PS1 == "$PS1_PREV" ]] && \
+    return 0
+  fi
+  PS1_FORCE_REFRESH=false
+  PS1_CACHE_COLUMNS=$COLUMNS
+  PS1_CACHE_ERROR=$PS1_ERROR
+  PS1_CACHE_LAST_REFRESH=$SECONDS
+
+  # Set the base prompt. This default can be overridden by setting PS1_PROMPT.
+  # To force runtime re-evaluation (for example changing a color choice) just
+  # unset PS1_PROMPT
+  if [[ ${PS1_PROMPT-unset} == unset ]]; then
+    if [[ $EUID == 0 ]]; then
+      PS1_PROMPT="\\[$(color $PS1_COLOR_ROOT)\\]\\\$\\[$(color off)\\] "
+    else
+      PS1_PROMPT="\\[$(color ${PS1_COLOR_PROMPT:-$PS1_COLOR_USER})\\]\\\$\\[$(color off)\\] "
+    fi
+  fi
+
+  # help out the modules by caching isslow for cwd
+  if [[ -z $PS1_CACHE_ISSLOW_CWD || $PWD != "$PS1_CACHE_CWD" ]]; then
+    if [[ $PWD == "$HOME" ]]; then
+      : ${PS1_CACHE_ISSLOW_HOME:=$(isslow . && echo true || echo false)}
+      PS1_CACHE_ISSLOW_CWD=$PS1_CACHE_ISSLOW_HOME
+    else
+      PS1_CACHE_ISSLOW_CWD=$(isslow . && echo true || echo false)
+    fi
+    PS1_CACHE_CWD=$PWD
+  fi
+
+  # load the status line modules first since PS1_STATUS_MODL affects the width
+  unset PS1_STATUS_MODL PS1_STATUS_MODC PS1_PRE_STATUS PS1_STATUS_POST
+  unset PS1_PRE_STATUS PS1_POST_STATUS
+  PS1_CACHE_MODS_RAN=()
+  for x in "${PS1_MODULES[@]}"; do
+    ps1_mod_"$x" && PS1_CACHE_MODS_RAN=( "${PS1_CACHE_MODS_RAN[@]}" "$x" )
+  done
+
+  # shrink cwd until the status line fits
+  while true; do
+    line="$leader $PS1_ERROR $user@$host$PS1_STATUS_MODL $cwd $trailer"
+    width=${#line}
+    if [[ ${#line} -le $COLUMNS ]]; then
+      break
+    elif [[ $cwd == */*/* ]]; then
+      cwd=.../${cwd#*/*/}
+    else
+      break
+    fi
+  done
+
+  # now generate the colorized status line
+  line=$(
+    ps1 ${PS1_COLOR_LEADER:-$PS1_COLOR_USER}
+    echo -n "$leader "
+    [[ $PS1_ERROR == 0 ]] && ps1 $PS1_COLOR_ERROR_GOOD || ps1 $PS1_COLOR_ERROR_BAD
+    echo -n "$PS1_ERROR "
+    [[ $EUID == 0 ]] && ps1 $PS1_COLOR_ROOT || ps1 $PS1_COLOR_USER
+    echo -n "$user@$host$PS1_STATUS_MODC $(ps1 $PS1_COLOR_ALT)$cwd "
+    ps1 ${PS1_COLOR_TRAILER:-$PS1_COLOR_USER}
+    pad=$(printf "%$(( COLUMNS - width ))s" '')
+    echo -n "${pad//?/${trailer:0:1}}$trailer"
+    ps1 off
+  )
+
+  PS1="$PS1_PRE_STATUS"
+  append_line PS1 "$line" ${PS1_POST_STATUS:+"$PS1_POST_STATUS"}
+  append_line PS1 "$PS1_PROMPT"
+  PS1_PREV="$PS1"
+}
+
+# Okay, all functions are defined, now setup PROMPT_COMMAND to make sure things
+# are called.  First capture the error status, second save and unset -x, third
+# call our ps1_update function, fourth set the xterm title, fifth reset -x.
+
+PROMPT_COMMAND='PS1_ERROR=$?'
+append_cmd PROMPT_COMMAND 'PS1_SAVE_SET_X=${-//[^x]/}; [[ -n $PS1_DEBUG ]] || set +x'
+append_cmd PROMPT_COMMAND ps1_update
+case "$TERM" in
+  xterm*|gnome|rxvt*|vte*)
+    ps1_update_xterm_title() {
+      declare title=${1:-$XTERMTITLE}
+      if [[ -z $title ]]; then
+        if [[ -n $CHROOTED ]]; then
+          title="($CHROOTED):${PWD/#$HOME/~}"
+        else
+          title="${HOSTNAME%%.*}:${PWD/#$HOME/~}"
+        fi
+      fi
+      echo -ne '\033]0;'
+      echo -n "$title"
+      echo -ne '\007'
+    }
+    append_cmd PROMPT_COMMAND ps1_update_xterm_title
+    ;;
+esac
+append_cmd PROMPT_COMMAND '[[ -n $PS1_SAVE_SET_X ]] && set -x'
+
+# The following line enforces a consistent indentation for this file
+# (in Vim at least).  Keep this at the end of file.
+# vim:shiftwidth=2 expandtab smarttab

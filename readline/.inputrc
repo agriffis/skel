@@ -1,0 +1,24 @@
+set editing-mode vi
+set show-all-if-unmodified on
+set page-completions off
+set match-hidden-files off
+set bell-style none
+
+set keymap vi-insert
+control-e: end-of-line
+control-a: beginning-of-line
+control-l: clear-screen
+"\e[A": history-search-backward
+"\e[B": history-search-forward
+"\M-s": menu-complete
+
+# doesn't seem to work
+#$if java
+#    set keymap vi-move
+#    "v": rlwrap_call_editor
+#$endif
+
+#$if Bash
+#Space: magic-space
+#$endif
+

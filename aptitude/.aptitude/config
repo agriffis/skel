@@ -1,0 +1,3 @@
+Aptitude "";
+Aptitude::CmdLine "";
+Aptitude::CmdLine::Package-Display-Format "%c%a%M %p %v# %V# :: %d";

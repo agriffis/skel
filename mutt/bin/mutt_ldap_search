@@ -1,0 +1,91 @@
+#!/usr/bin/env ruby
+$VERBOSE = 1    # enable warnings
+
+class String
+  def singlequote
+    "'" + self.gsub("'", "'\\''") + "'"
+  end
+end
+
+# Disallow empty ARGV[0]
+exit unless ARGV[0] && ARGV[0].length > 0
+
+# Results
+found = []
+
+# LDAP query attrs
+ldapAttrs = ""
+firstName = ""
+lastName  = ""
+
+# Determine the input style
+if ARGV[0] =~ /,/ then                      # lastname,firstname
+  lastName, firstName = ARGV[0].split(/,/)
+elsif ARGV[1] && ARGV[1].length > 0 then    # firstname lastname
+  firstName = ARGV[0]
+  lastName  = ARGV[1]
+else                                        # single name (cf Madonna ;)
+  lastName = ARGV[0]
+end
+
+# Construct the LDAP search attrs
+# Search on common name if both firstName and lastName are supplied
+ldapAttrs += "(cn=#{firstName}* #{lastName}*)" unless firstName.empty?
+
+# Only glob for surname if we are given a single search token
+ldapAttrs += "(sn=#{lastName}*)" unless (firstName.empty? == false)
+
+# Glob for email address
+ldapAttrs += "(mail=#{firstName + '*' unless firstName.empty?}#{lastName}*)"
+
+# Construct and run the LDAP query
+query = "(|#{ldapAttrs})"
+ldapsearch = IO.popen("ldapsearch  -x -LLL -l 4" +
+                      " #{ENV['MUTT_LDAPSEARCH_OPTS']} #{query.singlequote}" +
+                      " uid mail sn givenName telephoneNumber otherMailbox")
+ldapsearch.each("\n\n") { |para|
+
+  # Parse out the search result in case we timed out.
+  # This could be more elegant, but it suffices for now.
+  if para =~ /^result:\s*\d+\s*(.*?)\s*$/ && $1 != "Success" then
+    $stderr.print "mutt_ldap_search: #{$1}\n"
+    exit 1
+  end
+
+  # Parse out the entries
+  next unless sn  = para =~ /^sn[:=]\s*(.*?)\s*$/ ? $1 : nil;
+  givenName       = para =~ /^givenName[:=]\s*(.*?)\s*$/ ? $1 : "";
+  telephoneNumber = para =~ /^telephoneNumber[:=]\s*(.*?)\s*$/ ? $1 : "";
+  mail            = para.scan(/^uid[:=]\s*(.*?)\s*$/).flatten;
+  mail           += para.scan(/^mail[:=]\s*(.*?)\s*$/).flatten;
+  mail           += para.scan(/^otherMailbox[:=]\s*smtp\$(.*@.*?)\s*$/).flatten;
+  next if mail.empty?
+
+  # At this point nothing should be nil (although some elements might be
+  # blank), and the mail array should have at least one element.  
+  # Sort the mail array to get the best email option.
+  mail.sort! { |a,b|
+    if    a =~ /hp.com/ then -1      # prefer hp.com
+    elsif b =~ /hp.com/ then 1
+    elsif a =~ /compaq.com/ then -1  # then compaq.com
+    elsif b =~ /compaq.com/ then 1
+    else 0                           # no preference on the remainder
+    end
+  }
+
+  # Parens required to keep from interpreting {...} as a block
+  found.push({ 
+    'mail'            => mail, 
+    'givenName'       => givenName,
+    'sn'              => sn,
+    'telephoneNumber' => telephoneNumber 
+  });
+}
+
+# Output in mutt-consumable format, status line first
+puts "Found #{found.length} matching entries..."
+found.sort! { |a,b| a['sn']+a['givenName'] <=> b['sn']+b['givenName'] }
+found.each { |r|
+  printf "%s\t%s %s\t%s\n", 
+      r['mail'][0], r['givenName'], r['sn'], r['telephoneNumber']
+}

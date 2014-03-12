@@ -1,0 +1,37 @@
+#!/bin/bash
+
+mail=$HOME/mail
+unset msgs
+
+check() {
+    msgs=( $(find $mail/*/Outbox/* ! -name \*,FMD5\* -path '*/Outbox/*/*') )
+    if [[ -z $msgs ]]; then
+        echo "outq: Outbox queue is empty"
+        exit 0
+    fi
+}
+
+show() {
+    for f; do
+        echo "${f##$mail/}"
+        perl -00 -ne '
+            print "\t", join("\n\t", /^(Message-ID:.*)/mi, 
+                /^(Date:.*)/mi, /^(From:.*)/mi, /^(To:.*)/mi, 
+                /^(Resent-To:.*)/mi, /^(Subject:.*)/mi), "\n\n"; exit' "$f"
+    done
+}
+
+flush() {
+    for f; do
+        show "$f"
+        msmtp --read-recipients < "$f" && rm -fv "$f"
+        echo
+    done
+}
+
+check   # sets msgs array
+if [[ $1 == -f ]]; then
+    flush "${msgs[@]}"
+else
+    show "${msgs[@]}"
+fi

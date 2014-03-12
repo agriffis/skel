@@ -1,0 +1,78 @@
+#!/bin/bash
+
+shopt -s extglob nullglob
+
+main() {
+    if [[ $(type -t "yum-$1") == function ]]; then
+        "yum-$1" "${@:2}"
+    else
+        yum "$@"
+    fi
+    exit $?
+}
+
+yum=$(wrapped "$0")
+yum() {
+    if [[ $EUID == 0 || $1 == +(help|*list*|provides|search|version) ]]; then
+        "$yum" "$@"
+    else
+        sudo "$yum" "$@"
+    fi
+}
+
+yum-search() {
+    declare -A desc inst avail
+    declare -a pkgs
+
+    # packages and descriptions
+    exec 3< <(yum search "$@")
+    while read -u 3 p colon d; do
+        [[ -n $d && $colon == : ]] || continue
+        desc[$p]=$d
+    done
+    [[ ${#desc[@]} -gt 0 ]] || return
+
+    # sort the package list
+    exec 3< <(printf "%s\n" "${!desc[@]}" | sort)
+    while read -u 3 p; do
+        pkgs+=( "$p" )
+    done
+
+    # available; this isn't comprehensive because "installed"
+    # packages are excluded.
+    exec 3< <(yum list "${pkgs[@]}")
+    while read -u 3 p vers repo; do
+        [[ -n $repo && $vers == [0-9]* ]] || continue
+        if [[ $repo != installed ]]; then
+            avail[$p]=$vers
+        fi
+    done
+
+    # installed
+    rpm --querytags | grep -qw EVR && EVR='%{EVR}' || EVR='%{E}:%{V}-%{R}'
+    exec 3< <(rpm -q --qf "%{NAME}.%{ARCH} $EVR\n" "${pkgs[@]}" | grep -v 'is not installed')
+    while read -u 3 p vers; do
+        inst[$p]=$vers
+    done
+
+    {
+        echo Package Available Installed
+        echo ------- --------- ---------
+        for k in "${pkgs[@]}"; do
+            printf "%s %s %s ::\n" \
+                "$k" "${avail[$k]:-<notavail>}" "${inst[$k]:-<notinst>}"
+        done
+    } \
+        | column -t | \
+    {
+        read aligned; echo "$aligned"
+        read aligned; echo "$aligned"
+        for k in "${pkgs[@]}"; do
+            read aligned
+            printf "%s %s\n" "$aligned" "${desc[$k]}"
+        done
+    } \
+        | fitwidth
+}
+
+main "$@"

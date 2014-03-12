@@ -1,0 +1,19 @@
+#!/bin/bash
+
+cleanup() {
+    sed -i '/servicePort/d' ~/.crashplan/conf/ui.properties
+}
+trap 'cleanup; exit' 0 1 2 3 15
+
+cleanup
+
+if [[ -n $1 ]]; then
+    echo 'servicePort=4200' >> ~/.crashplan/conf/ui.properties
+fi
+
+~/.crashplan/bin/CrashPlanDesktop
+
+if [[ -n $1 ]]; then
+    echo "Press ctrl-c when done..."
+    ssh -L 4200:localhost:4243 $1 sleep 99999
+fi
