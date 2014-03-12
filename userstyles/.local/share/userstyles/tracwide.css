@@ -1,8 +1,0 @@
-/* tracwide.css -- Make Trac content fit the browser.
- */
-
-@namespace url(http://www.w3.org/1999/xhtml);
-
-@-moz-document domain("wiki.mro.cpqcorp.net") {
-  #content { width: 100% !important; }
-}
