@@ -95,6 +95,7 @@ if 1
 
 " Enable pathogen bundles, must be before filetype etc.
 call pathogen#infect()
+call pathogen#helptags()
 
 " When using the taglist plugin, don't attempt to resize the terminal
 let Tlist_Inc_Winwidth=0
@@ -340,25 +341,58 @@ augroup ag_c
 augroup END
 
 "================================== Python =================================
+" If this option is set to 1, pymode will enable the following options
+" for python buffers:
+"
+"     setlocal complete+=t
+"     setlocal formatoptions-=t
+"     if v:version > 702 && !&relativenumber
+"         setlocal number
+"     endif
+"     setlocal nowrap
+"     setlocal textwidth=79
+"     setlocal commentstring=#%s
+"     setlocal define=^\s*\\(def\\\\|class\\)
+"
+let g:pymode_options = 1
+
+" Additional pymode settings
+let g:pymode_trim_whitespaces = 0
+let g:pymode_folding = 1
+let g:pymode_indent = 1  " PEP8
+let g:pymode_lint_on_fly = 0
+let g:pymode_lint_unmodified = 1
+let g:pymode_lint_ignore = "E301,E302,E261,E501"
+let g:pymode_rope_complete_on_dot = 0
+let g:pymode_rope_completion_bind = ''
+let g:pymode_rope_autoimport = 1
+let g:pymode_rope_goto_definition_cmd = 'e'
+
+" The g:pyindent settings only take effect if g:pymode_indent == 0
+" http://stackoverflow.com/questions/3538785/how-to-turn-off-double-indentation-in-vim
+let g:pyindent_open_paren = '&sw'
+let g:pyindent_nested_paren = '&sw'
+let g:pyindent_continue = '&sw'
+
 function! LoadTypePython()
-  if ! exists("b:loaded_type_python")
-    " When working in a virtualenv, this relies on the virtualenv.vim
-    " plugin to set sys.path properly.  Vim links to the system libpython
-    " and doesn't know about the virtualenv path otherwise.
-    if has('python')
-      python import os, sys, vim
-      python vim.command("setl path+=" + ",".join(sys.path[1:]))
-    endif
-
-    if has("python")
-      " Load ropevim
-      let g:ropevim_vim_completion = 1
-      let g:ropevim_extended_complete = 1
-      source /home/aron/src/ropevim/ropevim.vim
-    endif
-
-    let b:loaded_type_python = 1
+  " When working in a virtualenv, this relies on the virtualenv.vim
+  " plugin to set sys.path properly.  Vim links to the system libpython
+  " and doesn't know about the virtualenv path otherwise.
+  if has('python')
+    python import os, sys, vim
+    python vim.command("setlocal path+=" + ",".join(sys.path[1:]))
   endif
+
+  " Override g:pymode_options
+  setlocal nonumber
+  setlocal tabstop=8
+
+  " Additional default settings for Python
+  setlocal shiftwidth=4
+  setlocal noshiftround
+
+  " Unfold by default
+  normal zR
 endfunction
 
 augroup ag_python
@@ -400,11 +434,6 @@ augroup ag_markdown
 augroup END
 
 "================================= GENERAL =================================
-" Language-specific global settings
-" http://stackoverflow.com/questions/3538785/how-to-turn-off-double-indentation-in-vim
-let g:pyindent_open_paren = '&sw'
-let g:pyindent_nested_paren = '&sw'
-let g:pyindent_continue = '&sw'
 
 " Detect settings of file being edited and change ours to match
 function! DetectSettings()
@@ -447,19 +476,18 @@ augroup ag_general
   " other programming settings
   "autocmd FileType sh,perl,python,ruby set hlsearch
   autocmd FileType vim,ruby set shiftwidth=2 formatoptions-=tc
-  autocmd FileType python set shiftwidth=4 formatoptions-=tc noshiftround " completeopt-=preview
   autocmd FileType perl set formatoptions-=tc
-  autocmd FileType clojure setl lisp
-  autocmd FileType coffee setl shiftwidth=2
+  autocmd FileType clojure setlocal lisp
+  autocmd FileType coffee setlocal shiftwidth=2
   autocmd BufReadPost bookmarks*.html set nowrap
 augroup END
 
 augroup filetypedetect
   " don't use :setfiletype because we need to override previous detection
-  autocmd BufReadPost,BufNewFile *.md setl ft=ghmarkdown
-  autocmd BufReadPost,BufNewFile *.wsgi setl ft=python
-  autocmd BufNewFile,BufReadPost *.coffee setl ft=coffee
-  autocmd BufNewFile,BufReadPost Vagrantfile* setl ft=ruby
+  autocmd BufReadPost,BufNewFile *.md setlocal ft=ghmarkdown
+  autocmd BufReadPost,BufNewFile *.wsgi setlocal ft=python
+  autocmd BufNewFile,BufReadPost *.coffee setlocal ft=coffee
+  autocmd BufNewFile,BufReadPost Vagrantfile* setlocal ft=ruby
 augroup END
 
 " Don't load VCSCommand plugin if it is not supported
