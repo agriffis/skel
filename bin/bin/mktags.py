@@ -13,7 +13,7 @@ for p in reversed(sys.path):
     match = re.search(r'^(.*/\.virtualenvs/[^/]*)/.*/site-packages$', p)
     if match:
         paths.append(p)
-        paths.append(match.group(1) + '/src')
+        #paths.append(match.group(1) + '/src')
         break
 
 # Generate tags for vim and TAGS for emacs
