@@ -64,7 +64,7 @@
 	#frag = blue
 	old = red
 	new = blue
-	commit = yellow bold
+	#commit = yellow bold
 	whitespace = "red reverse"
 
 [color "interactive"]
@@ -74,11 +74,11 @@
 	error = red bold
 
 [color "status"]
-	header = white
+	#header = white
 	added = blue bold
 	updated = green bold
 	changed = magenta bold
-	untracked = yellow bold
+	#untracked = yellow bold
 	nobranch = red bold
 
 [include]
