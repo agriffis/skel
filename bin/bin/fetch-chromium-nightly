@@ -1,6 +1,6 @@
 #!/bin/bash
 
-nightly=/usr/local/chrome-nightly
+nightly=/usr/local/chromium-nightly
 sandbox=$nightly/chrome_sandbox
 
 set -e
