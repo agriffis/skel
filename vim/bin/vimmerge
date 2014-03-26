@@ -164,7 +164,7 @@ else
     if [[ -f "$write" ]] && $backup; then
         mv -f "$write" "$write.orig" || exit 1
     fi
-    $cmd -f +diffthis +"vert new $write" +"normal dG" +"r $mine" +"normal kdd" +diffthis "$yours"
+    $cmd -f +diffthis +"vert new $write" +"normal ggdG" +"r $mine" +"normal kdd" +diffthis "$yours"
     status=$?
     if [[ ! -f "$write" ]] && $backup; then
         mv -f "$write.orig" "$write" || exit 1
