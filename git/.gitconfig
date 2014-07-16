@@ -69,8 +69,8 @@
 
 [color "interactive"]
 	header = blue
-	prompt = white reverse
-	help = white bold
+        prompt = reverse
+        help = bold
 	error = red bold
 
 [color "status"]
@@ -83,4 +83,4 @@
 
 [include]
 	path = ~/.gitconfig-lol
-	path = ~/.gitcofnig-sekrit
+	path = ~/.gitconfig-sekrit
