@@ -1,6 +1,6 @@
 #!/bin/bash
 
-gateway=rejupiter.no-ip.org
+gateway=jupiter.arongriffis.com
 
 ssh -fA $gateway 'ln -sfn $SSH_AUTH_SOCK foo; sleep 30'
 mosh $gateway -- env SSH_AUTH_SOCK=foo ssh -t "$@"
