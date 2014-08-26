@@ -1,19 +1,45 @@
 #!/usr/bin/env python
 
-from __future__ import print_function
-
 import csv
 import sys
 
-selector = sys.argv[1]
-if selector.isdigit():
-    i = int(selector)
-    reader = csv.reader(sys.stdin)
-    for row in reader:
-        if len(row) >= i:
-            print(row[i])
-else:
-    reader = csv.DictReader(sys.stdin)
-    for row in reader:
-        if selector in row:
-            print(row[selector])
+reader = csv.reader(sys.stdin)
+writer = csv.writer(sys.stdout, quoting=csv.QUOTE_MINIMAL)
+selectors = sys.argv[1:]
+headers = None
+slices = None
+
+def make_slice(selector, headers):
+    assert 0 <= selector.count('-') <= 1
+
+    start = None
+    if not selector.startswith('-'):
+        start = selector.split('-')[0]
+        if start.isdigit():
+            start = int(start)
+        else:
+            start = headers[start]
+
+    stop = None
+    if not selector.endswith('-'):
+        stop = selector.split('-')[-1]
+        if stop.isdigit():
+            stop = int(stop) + 1
+        else:
+            stop = headers[stop] + 1
+
+    return slice(start, stop)
+
+for i, row in enumerate(reader):
+    if i == 0:
+        headers = {k:i for i, k in enumerate(row)}
+        slices = [make_slice(s, headers) for s in selectors]
+        slice_max = max(ss for s in slices
+                        for ss in [s.start or 0, s.stop or 0])
+
+    row.extend([''] * (slice_max - len(row)))
+
+    new_row = []
+    for s in slices:
+        new_row.extend(row[s])
+    writer.writerow(new_row)
