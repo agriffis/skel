@@ -1,0 +1,24 @@
+#!/bin/bash
+
+darg=()
+if [[ $1 == *:* ]]; then
+    darg=( -d "$1" )
+elif [[ -n $1 && $1 != *[!0-9]* ]]; then
+    darg=( -d "$1 minutes ago" )
+elif [[ $1 == e ]]; then
+    exec "$EDITOR" ~/Drive/tt.txt
+elif [[ $1 == l ]]; then
+    exec tail -n1 ~/Drive/tt.txt
+elif [[ -n $1 ]]; then
+    echo "I don't understand: $*" >&2
+    exit 1
+fi
+
+last=$(tail -n1 ~/Drive/tt.txt)
+
+action=START
+if [[ $last == START* ]]; then
+    action=STOP
+fi
+
+printf '%s %s\n' "$action" "$(date "${darg[@]}" +%Y%m%d-%H%M%S)" | tee -a ~/Drive/tt.txt
