@@ -85,7 +85,14 @@ setup_TERM() {
     *:roxterm|xterm:)
       if [[ $ROXTERM_PID == "$PPID" ]]; then
         TERM=$vte
-      fi ;;
+      fi
+
+      # gnome-terminal stopped setting COLORTERM=gnome-terminal
+      # https://github.com/GNOME/gnome-terminal/commit/1d5c1b6ca6373c1301494edbc9e43c3e6a9c9aaf
+      if [[ $(cat /proc/$PPID/cmdline) == *gnome-terminal* ]]; then
+        TERM=$vte
+      fi
+      ;;
 
     *:Terminal|*:gnome-terminal)
       TERM=$vte ;;
