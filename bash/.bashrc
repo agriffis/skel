@@ -89,7 +89,7 @@ setup_TERM() {
 
       # gnome-terminal stopped setting COLORTERM=gnome-terminal
       # https://github.com/GNOME/gnome-terminal/commit/1d5c1b6ca6373c1301494edbc9e43c3e6a9c9aaf
-      if [[ $(cat /proc/$PPID/cmdline) == *gnome-terminal* ]]; then
+      if [[ $(cat /proc/$PPID/cmdline 2>/dev/null) == *gnome-terminal* ]]; then
         TERM=$vte
       fi
       ;;
