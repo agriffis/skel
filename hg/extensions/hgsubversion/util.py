@@ -1,13 +1,22 @@
+import compathacks
 import errno
 import re
 import os
 import urllib
+import json
+import gc
 
 from mercurial import cmdutil
 from mercurial import error
 from mercurial import hg
 from mercurial import node
+from mercurial import repair
 from mercurial import util as hgutil
+
+try:
+    from collections import deque
+except:
+    from mercurial.util import deque
 
 try:
     from mercurial import revset
@@ -31,6 +40,9 @@ def formatrev(rev):
         return '\t(working copy)'
     return '\t(revision %d)' % rev
 
+def configpath(ui, name):
+    path = ui.config('hgsubversion', name)
+    return path and hgutil.expandpath(path)
 
 def filterdiff(diff, oldrev, newrev):
     diff = newfile_devnull_re.sub(r'--- \1\t(revision 0)' '\n'
@@ -44,6 +56,18 @@ def filterdiff(diff, oldrev, newrev):
     diff = header_re.sub(r'Index: \1' + '\n' + ('=' * 67), diff)
     return diff
 
+def gcdisable(orig):
+    """decorator to disable GC for a function or method"""
+    def wrapper(*args, **kwargs):
+        enabled = gc.isenabled()
+        if enabled:
+            gc.disable()
+        try:
+            orig(*args, **kwargs)
+        finally:
+            if enabled:
+                gc.enable()
+    return wrapper
 
 def parentrev(ui, repo, meta, hashes):
     """Find the svn parent revision of the repo's dirstate.
@@ -75,6 +99,14 @@ def islocalrepo(url):
         path = path.rsplit('/', 1)[0]
     return False
 
+def strip(ui, repo, changesets, *args , **opts):
+    try:
+        repair.strip(ui, repo, changesets, *args, **opts)
+    except TypeError:
+        # only 2.1.2 and later allow strip to take a list of nodes
+        for changeset in changesets:
+            repair.strip(ui, repo, changeset, *args, **opts)
+
 
 def version(ui):
     """Return version information if available."""
@@ -102,53 +134,74 @@ def normalize_url(url):
         url = '%s#%s' % (url, checkout)
     return url
 
+def _scrub(data):
+    if not data and not isinstance(data, list):
+        return ''
+    return data
 
-def load_string(file_path, default=None, limit=1024):
-    if not os.path.exists(file_path):
-        return default
-    try:
-        f = open(file_path, 'r')
-        ret = f.read(limit)
-        f.close()
-    except:
-        return default
-    if ret == '':
-        return default
-    return ret
+def _descrub(data):
+    if isinstance(data, list):
+        return tuple(data)
+    if data == '':
+        return None
+    return data
 
+def _convert(input, visitor):
+    if isinstance(input, dict):
+        scrubbed = {}
+        d = dict([(_convert(key, visitor), _convert(value, visitor))
+                  for key, value in input.iteritems()])
+        for key, val in d.iteritems():
+            scrubbed[visitor(key)] = visitor(val)
+        return scrubbed
+    elif isinstance(input, list):
+        return [_convert(element, visitor) for element in input]
+    elif isinstance(input, unicode):
+        return input.encode('utf-8')
+    return input
 
-def save_string(file_path, string):
-    if string is None:
-        string = ""
-    f = open(file_path, 'wb')
-    f.write(str(string))
+def dump(data, file_path):
+    """Serialize some data to a path atomically.
+
+    This is present because I kept corrupting my revmap by managing to hit ^C
+    during the serialization of that file.
+    """
+    f = hgutil.atomictempfile(file_path, 'w+b', 0644)
+    json.dump(_convert(data, _scrub), f)
     f.close()
 
+def load(file_path, default=None, resave=True):
+    """Deserialize some data from a path.
+    """
+    data = default
+    if not os.path.exists(file_path):
+        return data
 
-# TODO remove when we drop 1.3 support
-def progress(ui, *args, **kwargs):
-    if getattr(ui, 'progress', False):
-        return ui.progress(*args, **kwargs)
+    f = open(file_path)
+    try:
+        data = _convert(json.load(f), _descrub)
+        f.close()
+    except ValueError:
+        try:
+            # Ok, JSON couldn't be loaded, so we'll try the old way of using pickle
+            data = compathacks.pickle_load(f)
+        except:
+            # well, pickle didn't work either, so we reset the file pointer and
+            # read the string
+            f.seek(0)
+            data = f.read()
 
-# TODO remove when we drop 1.5 support
-remoteui = getattr(cmdutil, 'remoteui', getattr(hg, 'remoteui', False))
-if not remoteui:
-    raise ImportError('Failed to import remoteui')
+        # convert the file to json immediately
+        f.close()
+        if resave:
+            dump(data, file_path)
+    return data
 
 def parseurl(url, heads=[]):
-    parsed = hg.parseurl(url, heads)
-    if len(parsed) == 3:
-        # old hg, remove when we can be 1.5-only
-        svn_url, heads, checkout = parsed
-    else:
-        svn_url, heads = parsed
-        if isinstance(heads, tuple) and len(heads) == 2:
-            # hg 1.6 or later
-            _junk, heads = heads
-        if heads:
-            checkout = heads[0]
-        else:
-            checkout = None
+    checkout = None
+    svn_url, (_junk, heads) = hg.parseurl(url, heads)
+    if heads:
+        checkout = heads[0]
     return svn_url, heads, checkout
 
 
@@ -198,8 +251,19 @@ def outgoing_common_and_heads(repo, reverse_map, sourcerev):
         return ([sourcecx.node()], [sourcerev])
     return ([sourcerev], [sourcerev]) # nothing outgoing
 
-def default_commit_msg(ui):
-    return ui.config('hgsubversion', 'defaultmessage', '')
+def getmessage(ui, rev):
+    msg = rev.message
+
+    if msg:
+        try:
+            msg.decode('utf-8')
+            return msg
+
+        except UnicodeDecodeError:
+            # ancient svn failed to enforce utf8 encoding
+            return msg.decode('iso-8859-1').encode('utf-8')
+    else:
+        return ui.config('hgsubversion', 'defaultmessage', '')
 
 def describe_commit(ui, h, b):
     ui.note(' committed to "%s" as %s\n' % ((b or 'default'), node.short(h)))
@@ -211,6 +275,14 @@ def swap_out_encoding(new_encoding="UTF-8"):
     encoding.encoding = new_encoding
     return old
 
+def isancestor(ctx, ancestorctx):
+    """Return True if ancestorctx is equal or an ancestor of ctx."""
+    if ctx == ancestorctx:
+        return True
+    for actx in ctx.ancestors():
+        if actx == ancestorctx:
+            return True
+    return False
 
 def issamefile(parentctx, childctx, f):
     """Return True if f exists and is the same in childctx and parentctx"""
@@ -284,9 +356,11 @@ def revset_fromsvn(repo, subset, x):
 
     rev = repo.changelog.rev
     bin = node.bin
+    meta = repo.svnmeta(skiperrorcheck=True)
     try:
         svnrevs = set(rev(bin(l.split(' ', 2)[1]))
-                      for l in maps.RevMap.readmapfile(repo, missingok=False))
+                      for l in maps.RevMap.readmapfile(meta.revmap_file,
+                                                       missingok=False))
         return filter(svnrevs.__contains__, subset)
     except IOError, err:
         if err.errno != errno.ENOENT:
@@ -309,8 +383,9 @@ def revset_svnrev(repo, subset, x):
 
     rev = rev + ' '
     revs = []
+    meta = repo.svnmeta(skiperrorcheck=True)
     try:
-        for l in maps.RevMap.readmapfile(repo, missingok=False):
+        for l in maps.RevMap.readmapfile(meta.revmap_file, missingok=False):
             if l.startswith(rev):
                 n = l.split(' ', 2)[1]
                 r = repo[node.bin(n)].rev()
@@ -327,3 +402,26 @@ revsets = {
     'fromsvn': revset_fromsvn,
     'svnrev': revset_svnrev,
 }
+
+def revset_stringset(orig, repo, subset, x):
+    if x.startswith('r') and x[1:].isdigit():
+        return revset_svnrev(repo, subset, ('string', x[1:]))
+    return orig(repo, subset, x)
+
+def getfilestoresize(ui):
+    """Return the replay or stupid file memory store size in megabytes or -1"""
+    size = ui.configint('hgsubversion', 'filestoresize', 200)
+    if size >= 0:
+        size = size*(2**20)
+    else:
+        size = -1
+    return size
+
+def parse_revnum(svnrepo, r):
+    try:
+        return int(r or 0)
+    except ValueError:
+        if isinstance(r, str) and r.lower() in ('head', 'tip'):
+            return svnrepo.last_changed_rev
+        else:
+            raise error.RepoLookupError("unknown Subversion revision %r" % r)

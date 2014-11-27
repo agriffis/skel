@@ -1,5 +1,4 @@
 import cStringIO
-import getpass
 import errno
 import os
 import shutil
@@ -38,11 +37,18 @@ def version():
     return '%d.%d.%d' % current_bindings, 'SWIG'
 
 # exported values
+ERR_FS_ALREADY_EXISTS = core.SVN_ERR_FS_ALREADY_EXISTS
 ERR_FS_CONFLICT = core.SVN_ERR_FS_CONFLICT
 ERR_FS_NOT_FOUND = core.SVN_ERR_FS_NOT_FOUND
 ERR_FS_TXN_OUT_OF_DATE = core.SVN_ERR_FS_TXN_OUT_OF_DATE
 ERR_INCOMPLETE_DATA = core.SVN_ERR_INCOMPLETE_DATA
 ERR_RA_DAV_REQUEST_FAILED = core.SVN_ERR_RA_DAV_REQUEST_FAILED
+ERR_REPOS_HOOK_FAILURE = core.SVN_ERR_REPOS_HOOK_FAILURE
+SSL_CNMISMATCH = core.SVN_AUTH_SSL_CNMISMATCH
+SSL_EXPIRED = core.SVN_AUTH_SSL_EXPIRED
+SSL_NOTYETVALID = core.SVN_AUTH_SSL_NOTYETVALID
+SSL_OTHER = core.SVN_AUTH_SSL_OTHER
+SSL_UNKNOWNCA = core.SVN_AUTH_SSL_UNKNOWNCA
 SubversionException = core.SubversionException
 Editor = delta.Editor
 
@@ -57,6 +63,7 @@ def optrev(revnum):
     optrev.value.number = revnum
     return optrev
 
+core.svn_config_ensure(None)
 svn_config = core.svn_config_get_config(None)
 class RaCallbacks(ra.Callbacks):
     @staticmethod
@@ -88,19 +95,49 @@ def ieditor(fn):
             raise
     return fun
 
-def user_pass_prompt(realm, default_username, ms, pool): # pragma: no cover
-    # FIXME: should use getpass() and username() from mercurial.ui
+_prompt = None
+def prompt_callback(callback):
+    global _prompt
+    _prompt = callback
+
+def _simple(realm, default_username, ms, pool):
+    ret = _prompt.simple(realm, default_username, ms, pool)
     creds = core.svn_auth_cred_simple_t()
-    creds.may_save = ms
-    if default_username:
-        sys.stderr.write('Auth realm: %s\n' % (realm,))
-        creds.username = default_username
+    (creds.username, creds.password, creds.may_save) = ret
+    return creds
+
+def _username(realm, ms, pool):
+    ret = _prompt.username(realm, ms, pool)
+    creds = core.svn_auth_cred_username_t()
+    (creds.username, creds.may_save) = ret
+    return creds
+
+def _ssl_client_cert(realm, may_save, pool):
+    ret = _prompt.ssl_client_cert(realm, may_save, pool)
+    creds = core.svn_auth_cred_ssl_client_cert_t()
+    (creds.cert_file, creds.may_save) = ret
+    return creds
+
+def _ssl_client_cert_pw(realm, may_save, pool):
+    ret = _prompt.ssl_client_cert_pw(realm, may_save, pool)
+    creds = core.svn_auth_cred_ssl_client_cert_pw_t()
+    (creds.password, creds.may_save) = ret
+    return creds
+
+def _ssl_server_trust(realm, failures, cert_info, may_save, pool):
+    cert = [
+            cert_info.hostname,
+            cert_info.fingerprint,
+            cert_info.valid_from,
+            cert_info.valid_until,
+            cert_info.issuer_dname,
+            ]
+    ret = _prompt.ssl_server_trust(realm, failures, cert, may_save, pool)
+    if ret:
+        creds = core.svn_auth_cred_ssl_server_trust_t()
+        (creds.accepted_failures, creds.may_save) = ret
     else:
-        sys.stderr.write('Auth realm: %s\n' % (realm,))
-        sys.stderr.write('Username: ')
-        sys.stderr.flush()
-        creds.username = sys.stdin.readline().strip()
-    creds.password = getpass.getpass('Password for %s: ' % creds.username)
+        creds = None
     return creds
 
 def _create_auth_baton(pool, password_stores):
@@ -145,8 +182,16 @@ def _create_auth_baton(pool, password_stores):
         client.get_ssl_client_cert_file_provider(),
         client.get_ssl_client_cert_pw_file_provider(),
         client.get_ssl_server_trust_file_provider(),
-        client.get_simple_prompt_provider(user_pass_prompt, 2),
         ]
+
+    if _prompt:
+        providers += [
+            client.get_simple_prompt_provider(_simple, 2),
+            client.get_username_prompt_provider(_username, 2),
+            client.get_ssl_client_cert_prompt_provider(_ssl_client_cert, 2),
+            client.get_ssl_client_cert_pw_prompt_provider(_ssl_client_cert_pw, 2),
+            client.get_ssl_server_trust_prompt_provider(_ssl_server_trust),
+            ]
 
     return core.svn_auth_open(providers, pool)
 
@@ -211,19 +256,14 @@ class SubversionRepo(object):
             self.ra = ra.open2(self.svn_url, callbacks,
                                svn_config, self.pool)
         except SubversionException, e:
-            if e.apr_err == core.SVN_ERR_RA_SERF_SSL_CERT_UNTRUSTED:
-                msg = ('Subversion does not trust the SSL certificate for this '
-                       'site; please try running \'svn ls %s\' first.'
-                       % self.svn_url)
-            elif e.apr_err == core.SVN_ERR_RA_DAV_REQUEST_FAILED:
-                msg = ('Failed to open Subversion repository; please try '
-                       'running \'svn ls %s\' for details.' % self.svn_url)
-            else:
-                msg = e.args[0]
-                for k, v in vars(core).iteritems():
-                    if k.startswith('SVN_ERR_') and v == e.apr_err:
-                        msg = '%s (%s)' % (msg, k)
-                        break
+            # e.child contains a detailed error messages
+            msglist = []
+            svn_exc = e
+            while svn_exc:
+                if svn_exc.args[0]:
+                    msglist.append(svn_exc.args[0])
+                svn_exc = svn_exc.child
+            msg = '\n'.join(msglist)
             raise common.SubversionConnectionException(msg)
 
     @property
@@ -328,11 +368,20 @@ class SubversionRepo(object):
     def commit(self, paths, message, file_data, base_revision, addeddirs,
                deleteddirs, properties, copies):
         """Commits the appropriate targets from revision in editor's store.
+
+        Return the committed revision as a common.Revision instance.
         """
         self.init_ra_and_client()
-        commit_info = []
-        def commit_cb(_commit_info, pool):
-            commit_info.append(_commit_info)
+
+        def commit_cb(commit_info, pool):
+            # disregard commit_info.post_commit_err for now
+            r = common.Revision(commit_info.revision, commit_info.author,
+                                message, commit_info.date)
+
+            committedrev.append(r)
+
+        committedrev = []
+
         editor, edit_baton = ra.get_commit_editor2(self.ra,
                                                    message,
                                                    commit_cb,
@@ -398,12 +447,15 @@ class SubversionRepo(object):
         try:
             delta.path_driver(editor, edit_baton, base_revision, paths, driver_cb,
                               self.pool)
-            editor.close_edit(edit_baton, self.pool)
         except:
             # If anything went wrong on the preceding lines, we should
             # abort the in-progress transaction.
             editor.abort_edit(edit_baton, self.pool)
             raise
+
+        editor.close_edit(edit_baton, self.pool)
+
+        return committedrev.pop()
 
     def get_replay(self, revision, editor, oldest_rev_i_have=0):
         # this method has a tendency to chew through RAM if you don't re-init
@@ -431,9 +483,14 @@ class SubversionRepo(object):
                 sf = f[l:]
                 if links[f] or execs[f]:
                     continue
-                props = self.list_props(sf, revision)
-                links[f] = props.get('svn:special') == '*'
-                execs[f] = props.get('svn:executable') == '*'
+                # The list_props API creates a new connection and then
+                # calls get_file for the remote file case.  It also
+                # creates a new connection to the subversion server
+                # every time it's called.  As a result, it's actually
+                # *cheaper* to call get_file than list_props here
+                data, mode = self.get_file(sf, revision)
+                links[f] = mode == 'l'
+                execs[f] = mode == 'x'
 
     def get_revision(self, revision, editor):
         ''' feed the contents of the given revision to the given editor '''

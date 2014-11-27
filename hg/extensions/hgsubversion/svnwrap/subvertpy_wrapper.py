@@ -1,5 +1,4 @@
 import cStringIO
-import getpass
 import errno
 import os
 import shutil
@@ -53,12 +52,19 @@ def version():
     return (svnvers, 'Subvertpy ' + _versionstr(subvertpy.__version__))
 
 # exported values
+ERR_FS_ALREADY_EXISTS = subvertpy.ERR_FS_ALREADY_EXISTS
 ERR_FS_CONFLICT = subvertpy.ERR_FS_CONFLICT
 ERR_FS_NOT_FOUND = subvertpy.ERR_FS_NOT_FOUND
 ERR_FS_TXN_OUT_OF_DATE = subvertpy.ERR_FS_TXN_OUT_OF_DATE
 ERR_INCOMPLETE_DATA = subvertpy.ERR_INCOMPLETE_DATA
 ERR_RA_DAV_PATH_NOT_FOUND = subvertpy.ERR_RA_DAV_PATH_NOT_FOUND
 ERR_RA_DAV_REQUEST_FAILED = subvertpy.ERR_RA_DAV_REQUEST_FAILED
+ERR_REPOS_HOOK_FAILURE = subvertpy.ERR_REPOS_HOOK_FAILURE
+SSL_CNMISMATCH = subvertpy.SSL_CNMISMATCH
+SSL_EXPIRED = subvertpy.SSL_EXPIRED
+SSL_NOTYETVALID = subvertpy.SSL_NOTYETVALID
+SSL_OTHER = subvertpy.SSL_OTHER
+SSL_UNKNOWNCA = subvertpy.SSL_UNKNOWNCA
 SubversionException = subvertpy.SubversionException
 apply_txdelta = delta.apply_txdelta_handler
 # superclass for editor.HgEditor
@@ -73,6 +79,11 @@ def ieditor(fn):
 
     return fn
 
+_prompt = None
+def prompt_callback(callback):
+    global _prompt
+    _prompt = callback
+
 _svntypes = {
     subvertpy.NODE_DIR: 'd',
     subvertpy.NODE_FILE: 'f',
@@ -81,12 +92,20 @@ _svntypes = {
 class PathAdapter(object):
     __slots__ = ('action', 'copyfrom_path', 'copyfrom_rev')
 
-    def __init__(self, path):
-        self.action, self.copyfrom_path, self.copyfrom_rev = path
+    def __init__(self, action, copyfrom_path, copyfrom_rev):
+        self.action = action
+        self.copyfrom_path = copyfrom_path
+        self.copyfrom_rev = copyfrom_rev
+
         if self.copyfrom_path:
             self.copyfrom_path = intern(self.copyfrom_path)
 
-class AbstractEditor(object):
+    def __repr__(self):
+        return '%s(%r, %r, %r)' % (type(self).__name__, self.action,
+                                     self.copyfrom_path, self.copyfrom_rev)
+
+
+class BaseEditor(object):
     __slots__ = ('editor', 'baton')
 
     def __init__(self, editor, baton=None):
@@ -107,7 +126,9 @@ class AbstractEditor(object):
     def close(self):
         del self.editor
 
-class FileEditor(AbstractEditor):
+class FileEditor(BaseEditor):
+    __slots__ = ()
+
     def __init__(self, editor, baton):
         super(FileEditor, self).__init__(editor, baton)
 
@@ -118,9 +139,12 @@ class FileEditor(AbstractEditor):
         return self.editor.apply_textdelta(self.baton, base_checksum)
 
     def close(self, checksum=None):
+        self.editor.close_file(self.baton, checksum)
         super(FileEditor, self).close()
 
-class DirectoryEditor(AbstractEditor):
+class DirectoryEditor(BaseEditor):
+    __slots__ = ()
+
     def __init__(self, editor, baton):
         super(DirectoryEditor, self).__init__(editor, baton)
 
@@ -196,11 +220,28 @@ class SubversionRepo(object):
         """
         def getclientstring():
             return 'hgsubversion'
-        # TODO: handle certificate authentication, Mercurial style
-        def getpass(realm, username, may_save):
-            return self.username or username, self.password or '', False
-        def getuser(realm, may_save):
-            return self.username or '', False
+
+        def simple(realm, username, may_save):
+            return _prompt.simple(realm, username, may_save)
+
+        def username(realm, may_save):
+            return _prompt.username(realm, may_save)
+
+        def ssl_client_cert(realm, may_save):
+            return _prompt.ssl_client_cert(realm, may_save)
+
+        def ssl_client_cert_pw(realm, may_save):
+            return _prompt.ssl_client_cert_pw(realm, may_save)
+
+        def ssl_server_trust(realm, failures, cert_info, may_save):
+            creds = _prompt.ssl_server_trust(realm, failures, cert_info, may_save)
+            if creds is None:
+                # We need to reject the certificate, but subvertpy doesn't
+                # handle None as a return value here, and requires
+                # we instead return a tuple of (int, bool). Because of that,
+                # we return (0, False) instead.
+                creds = (0, False)
+            return creds
 
         providers = ra.get_platform_specific_client_providers()
         providers += [
@@ -209,9 +250,15 @@ class SubversionRepo(object):
             ra.get_ssl_client_cert_file_provider(),
             ra.get_ssl_client_cert_pw_file_provider(),
             ra.get_ssl_server_trust_file_provider(),
-            ra.get_username_prompt_provider(getuser, 0),
-            ra.get_simple_prompt_provider(getpass, 0),
         ]
+        if _prompt:
+            providers += [
+                ra.get_simple_prompt_provider(simple, 2),
+                ra.get_username_prompt_provider(username, 2),
+                ra.get_ssl_client_cert_prompt_provider(ssl_client_cert, 2),
+                ra.get_ssl_client_cert_pw_prompt_provider(ssl_client_cert_pw, 2),
+                ra.get_ssl_server_trust_prompt_provider(ssl_server_trust),
+            ]
 
         auth = ra.Auth(providers)
         if self.username:
@@ -219,9 +266,20 @@ class SubversionRepo(object):
         if self.password:
             auth.set_parameter(subvertpy.AUTH_PARAM_DEFAULT_PASSWORD, self.password)
 
-        self.remote = ra.RemoteAccess(url=self.svn_url,
-                                      client_string_func=getclientstring,
-                                      auth=auth)
+        try:
+            self.remote = ra.RemoteAccess(url=self.svn_url,
+                                          client_string_func=getclientstring,
+                                          auth=auth)
+        except SubversionException, e:
+            # e.child contains a detailed error messages
+            msglist = []
+            svn_exc = e
+            while svn_exc:
+                if svn_exc.args[0]:
+                    msglist.append(svn_exc.args[0])
+                svn_exc = svn_exc.child
+            msg = '\n'.join(msglist)
+            raise common.SubversionConnectionException(msg)
 
         self.client = client.Client()
         self.client.auth = auth
@@ -288,7 +346,7 @@ class SubversionRepo(object):
                              props.get(properties.PROP_REVISION_AUTHOR),
                              props.get(properties.PROP_REVISION_LOG),
                              props.get(properties.PROP_REVISION_DATE),
-                             dict([(k, PathAdapter(v))
+                             dict([(k, PathAdapter(*v))
                                    for k, v in paths.iteritems()]),
                              strip_path=self.subdir)
                 revisions.append(r)
@@ -330,10 +388,14 @@ class SubversionRepo(object):
     def commit(self, paths, message, file_data, base_revision, addeddirs,
                deleteddirs, props, copies):
         """Commits the appropriate targets from revision in editor's store.
+
+        Return the committed revision as a common.Revision instance.
         """
-        def commitcb(*args):
-            commit_info.append(args)
-        commit_info = []
+        def commitcb(rev, date, author):
+            r = common.Revision(rev, author, message, date)
+            committedrev.append(r)
+
+        committedrev = []
         revprops = { properties.PROP_REVISION_LOG: message }
         # revprops.update(props)
         commiteditor = self.remote.get_commit_editor(revprops, commitcb)
@@ -373,7 +435,7 @@ class SubversionRepo(object):
                         editor.delete_entry(path, base_revision)
                         continue
                     else:
-                        assert False, 'invalid action \'%s\'' % action
+                        assert False, "invalid action '%s'" % action
 
                     if path in props:
                         if props[path].get('svn:special', None):
@@ -409,15 +471,17 @@ class SubversionRepo(object):
             rooteditor = commiteditor.open_root()
             visitdir(rooteditor, '', paths, 0)
             rooteditor.close()
-            commiteditor.close()
         except:
             commiteditor.abort()
             raise
+        commiteditor.close()
+
+        return committedrev.pop()
 
     def get_replay(self, revision, editor, oldestrev=0):
 
         try:
-            self.remote.replay(revision, oldestrev, AbstractEditor(editor))
+            self.remote.replay(revision, oldestrev, BaseEditor(editor))
         except (SubversionException, NotImplementedError), e: # pragma: no cover
             # can I depend on this number being constant?
             if (isinstance(e, NotImplementedError) or
@@ -432,7 +496,7 @@ class SubversionRepo(object):
     def get_revision(self, revision, editor):
         ''' feed the contents of the given revision to the given editor '''
         reporter = self.remote.do_update(revision, '', True,
-                                         AbstractEditor(editor))
+                                         BaseEditor(editor))
         reporter.set_path('', revision, True)
         reporter.finish()
 

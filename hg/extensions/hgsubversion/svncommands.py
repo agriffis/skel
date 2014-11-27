@@ -1,9 +1,9 @@
 import os
 import posixpath
-import cPickle as pickle
 import sys
 import traceback
 import urlparse
+import errno
 
 from mercurial import commands
 from mercurial import hg
@@ -11,12 +11,14 @@ from mercurial import node
 from mercurial import util as hgutil
 from mercurial import error
 
+import layouts
 import maps
 import svnwrap
 import svnrepo
 import util
 import svnexternals
 import verify
+import svnmeta
 
 
 def updatemeta(ui, repo, args, **opts):
@@ -44,18 +46,21 @@ def _buildmeta(ui, repo, args, partial=False, skipuuid=False):
                               " here (.hg not found)")
 
     dest = None
+    validateuuid = False
     if len(args) == 1:
         dest = args[0]
+        validateuuid = True
     elif len(args) > 1:
         raise hgutil.Abort('rebuildmeta takes 1 or no arguments')
-    uuid = None
     url = repo.ui.expandpath(dest or repo.ui.config('paths', 'default-push') or
                              repo.ui.config('paths', 'default') or '')
-    svn = svnrepo.svnremoterepo(ui, url).svn
-    subdir = svn.subdir
-    svnmetadir = os.path.join(repo.path, 'svn')
-    if not os.path.exists(svnmetadir):
-        os.makedirs(svnmetadir)
+
+    meta = svnmeta.SVNMeta(repo, skiperrorcheck=True)
+
+    svn = None
+    if meta.subdir is None:
+        svn = svnrepo.svnremoterepo(ui, url).svn
+        meta.subdir = svn.subdir
 
     youngest = 0
     startrev = 0
@@ -63,16 +68,18 @@ def _buildmeta(ui, repo, args, partial=False, skipuuid=False):
     branchinfo = {}
     if partial:
         try:
-            youngestpath = os.path.join(svnmetadir, 'lastpulled')
+            # we can't use meta.lastpulled here because we are bootstraping the
+            # lastpulled and want to keep the cached value on disk during a
+            # partial rebuild
             foundpartialinfo = False
+            youngestpath = os.path.join(meta.metapath, 'lastpulled')
             if os.path.exists(youngestpath):
-                youngest = int(util.load_string(youngestpath).strip())
-                sofar = list(maps.RevMap.readmapfile(repo))
+                youngest = util.load(youngestpath)
+                sofar = list(maps.RevMap.readmapfile(meta.revmap_file))
                 if sofar and len(sofar[-1].split(' ', 2)) > 1:
                     lasthash = sofar[-1].split(' ', 2)[1]
                     startrev = repo[lasthash].rev() + 1
-                    branchinfo = pickle.load(open(os.path.join(svnmetadir,
-                                                           'branch_info')))
+                    branchinfo = util.load(meta.branch_info_file)
                     foundpartialinfo = True
             if not foundpartialinfo:
                 ui.status('missing some metadata -- doing a full rebuild\n')
@@ -80,39 +87,37 @@ def _buildmeta(ui, repo, args, partial=False, skipuuid=False):
         except IOError, err:
             if err.errno != errno.ENOENT:
                 raise
-            ui.status('missing some metadata -- doing a full rebuild')
+            ui.status('missing some metadata -- doing a full rebuild\n')
         except AttributeError:
-            ui.status('no metadata available -- doing a full rebuild')
+            ui.status('no metadata available -- doing a full rebuild\n')
 
-
-    lastpulled = open(os.path.join(svnmetadir, 'lastpulled'), 'wb')
-    revmap = open(os.path.join(svnmetadir, 'rev_map'), 'w')
-    revmap.write('1\n')
+    revmap = open(meta.revmap_file, 'w')
+    revmap.write('%d\n' % maps.RevMap.VERSION)
     revmap.writelines(sofar)
     last_rev = -1
-    tagfile = os.path.join(svnmetadir, 'tagmap')
-    if not partial and os.path.exists(maps.Tags.filepath(repo)) :
-        os.unlink(maps.Tags.filepath(repo))
-    tags = maps.Tags(repo)
+    if not partial and os.path.exists(meta.tagfile):
+        os.unlink(meta.tagfile)
 
     layout = None
+    layoutobj = None
 
     skipped = set()
     closed = set()
 
     numrevs = len(repo) - startrev
 
-    subdirfile = open(os.path.join(svnmetadir, 'subdir'), 'w')
-    subdirfile.write(subdir.strip('/'))
-    subdirfile.close()
-
     # ctx.children() visits all revisions in the repository after ctx. Calling
     # it would make us use O(revisions^2) time, so we perform an extra traversal
     # of the repository instead. During this traversal, we find all converted
     # changesets that close a branch, and store their first parent
     for rev in xrange(startrev, len(repo)):
-        util.progress(ui, 'prepare', rev - startrev, total=numrevs)
-        ctx = repo[rev]
+        ui.progress('prepare', rev - startrev, total=numrevs)
+        try:
+            ctx = repo[rev]
+        except error.RepoError:
+            # this revision is hidden
+            continue
+
         convinfo = util.getsvnrev(ctx, None)
         if not convinfo:
             continue
@@ -135,12 +140,17 @@ def _buildmeta(ui, repo, args, partial=False, skipuuid=False):
             else:
                 closed.add(parentctx.rev())
 
-    lastpulled.write(str(youngest) + '\n')
-    util.progress(ui, 'prepare', None, total=numrevs)
+    meta.lastpulled = youngest
+    ui.progress('prepare', None, total=numrevs)
 
     for rev in xrange(startrev, len(repo)):
-        util.progress(ui, 'rebuild', rev-startrev, total=numrevs)
-        ctx = repo[rev]
+        ui.progress('rebuild', rev-startrev, total=numrevs)
+        try:
+            ctx = repo[rev]
+        except error.RepoError:
+            # this revision is hidden
+            continue
+
         convinfo = util.getsvnrev(ctx, None)
         if not convinfo:
             continue
@@ -163,11 +173,13 @@ def _buildmeta(ui, repo, args, partial=False, skipuuid=False):
                 # number.
                 tagging = int(convinfo[40:].split('@')[1])
                 tagrev = max(tagged, tagging)
-                tags[tag] = node.bin(ha), tagrev
+                meta.tags[tag] = node.bin(ha), tagrev
 
         # check that the conversion metadata matches expectations
         assert convinfo.startswith('svn:')
         revpath, revision = convinfo[40:].split('@')
+        # use tmp variable for testing
+        subdir = meta.subdir
         if subdir and subdir[0] != '/':
             subdir = '/' + subdir
         if subdir and subdir[-1] == '/':
@@ -176,27 +188,27 @@ def _buildmeta(ui, repo, args, partial=False, skipuuid=False):
                                             'right location in the repo.')
 
         if layout is None:
-            if (subdir or '/') == revpath:
-                layout = 'single'
-            else:
-                layout = 'standard'
-            f = open(os.path.join(svnmetadir, 'layout'), 'w')
-            f.write(layout)
-            f.close()
+            layout = layouts.detect.layout_from_commit(subdir, revpath,
+                                                       ctx.branch(), meta)
+            existing_layout = layouts.detect.layout_from_file(meta)
+            if layout != existing_layout:
+                util.dump(layout, meta.layout_file)
+            layoutobj = layouts.layout_from_name(layout, meta)
         elif layout == 'single':
             assert (subdir or '/') == revpath, ('Possible layout detection'
                                                 ' defect in replay')
 
         # write repository uuid if required
-        if uuid is None:
+        if meta.uuid is None or validateuuid:
+            validateuuid = False
             uuid = convinfo[4:40]
             if not skipuuid:
+                if svn is None:
+                    svn = svnrepo.svnremoterepo(ui, url).svn
                 if uuid != svn.uuid:
                     raise hgutil.Abort('remote svn repository identifier '
                                        'does not match')
-            uuidfile = open(os.path.join(svnmetadir, 'uuid'), 'w')
-            uuidfile.write(svn.uuid)
-            uuidfile.close()
+            meta.uuid = uuid
 
         # don't reflect closed branches
         if (ctx.extra().get('close') and not ctx.files() or
@@ -206,29 +218,25 @@ def _buildmeta(ui, repo, args, partial=False, skipuuid=False):
 
         # find commitpath, write to revmap
         commitpath = revpath[len(subdir)+1:]
-        if layout == 'standard':
-            if commitpath.startswith('branches/'):
-                commitpath = commitpath[len('branches/'):]
-            elif commitpath == 'trunk':
-                commitpath = ''
-            else:
-                if commitpath.startswith('tags/') and ctx.extra().get('close'):
-                    continue
-                commitpath = '../' + commitpath
-        else:
-            commitpath = ''
-        revmap.write('%s %s %s\n' % (revision, ctx.hex(), commitpath))
+
+        tag_locations = layoutobj.taglocations(meta.metapath)
+        found_tag = False
+        for location in tag_locations:
+            if commitpath.startswith(location + '/'):
+                found_tag = True
+                break
+        if found_tag and ctx.extra().get('close'):
+            continue
+
+        branch = layoutobj.localname(commitpath)
+        revmap.write('%s %s %s\n' % (revision, ctx.hex(), branch or ''))
 
         revision = int(revision)
         if revision > last_rev:
             last_rev = revision
 
         # deal with branches
-        if not commitpath:
-            branch = None
-        elif not commitpath.startswith('../'):
-            branch = commitpath
-        elif ctx.parents()[0].node() != node.nullid:
+        if branch and branch.startswith('../'):
             parent = ctx
             while parent.node() != node.nullid:
                 parentextra = parent.extra()
@@ -238,17 +246,16 @@ def _buildmeta(ui, repo, args, partial=False, skipuuid=False):
 
                 parentpath = parentinfo[40:].split('@')[0][len(subdir) + 1:]
 
-                if parentpath.startswith('tags/') and parentextra.get('close'):
+                found_tag = False
+                for location in tag_locations:
+                    if parentpath.startswith(location + '/'):
+                        found_tag = True
+                        break
+                if found_tag and parentextra.get('close'):
                     continue
-                elif parentpath.startswith('branches/'):
-                    branch = parentpath[len('branches/'):]
-                elif parentpath == 'trunk':
-                    branch = None
-                else:
-                    branch = '../' + parentpath
+
+                branch = layoutobj.localname(parentpath)
                 break
-        else:
-            branch = commitpath
 
         if rev in closed:
             # a direct child of this changeset closes the branch; drop it
@@ -272,12 +279,10 @@ def _buildmeta(ui, repo, args, partial=False, skipuuid=False):
                                   int(parentrev),
                                   revision)
 
-    util.progress(ui, 'rebuild', None, total=numrevs)
+    ui.progress('rebuild', None, total=numrevs)
 
     # save off branch info
-    branchinfofile = open(os.path.join(svnmetadir, 'branch_info'), 'w')
-    pickle.dump(branchinfo, branchinfofile)
-    branchinfofile.close()
+    util.dump(branchinfo, meta.branch_info_file)
 
 
 def help_(ui, args=None, **opts):
@@ -353,10 +358,9 @@ def genignore(ui, repo, force=False, **opts):
     hashes = meta.revmap.hashes()
     parent = util.parentrev(ui, repo, meta, hashes)
     r, br = hashes[parent.node()]
-    if meta.layout == 'single':
-        branchpath = ''
-    else:
-        branchpath = br and ('branches/%s/' % br) or 'trunk/'
+    branchpath = meta.layoutobj.remotename(br)
+    if branchpath:
+        branchpath += '/'
     ignorelines = ['.hgignore', 'syntax:glob']
     dirs = [''] + [d[0] for d in svn.list_files(branchpath, r)
                    if d[1] == 'd']
@@ -366,7 +370,7 @@ def genignore(ui, repo, force=False, **opts):
         if 'svn:ignore' not in props:
             continue
         lines = props['svn:ignore'].strip().split('\n')
-        ignorelines += [dir and (dir + '/' + prop) or prop for prop in lines]
+        ignorelines += [dir and (dir + '/' + prop) or prop for prop in lines if prop.strip()]
 
     repo.wopener('.hgignore', 'w').write('\n'.join(ignorelines) + '\n')
 
@@ -393,17 +397,8 @@ def info(ui, repo, **opts):
         return 0
     r, br = hashes[pn]
     subdir = util.getsvnrev(parent)[40:].split('@')[0]
-    if meta.layout == 'single':
-        branchpath = ''
-    elif br == None:
-        branchpath = '/trunk'
-    elif br.startswith('../'):
-        branchpath = '/%s' % br[3:]
-        subdir = subdir.replace('branches/../', '')
-    else:
-        branchpath = '/branches/%s' % br
     remoterepo = svnrepo.svnremoterepo(repo.ui)
-    url = '%s%s' % (remoterepo.svnurl, branchpath)
+    url = meta.layoutobj.remotepath(br, remoterepo.svnurl)
     author = meta.authors.reverselookup(parent.user())
     # cleverly figure out repo root w/o actually contacting the server
     reporoot = url[:len(url)-len(subdir)]

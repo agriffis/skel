@@ -51,7 +51,7 @@ class Revision(tuple):
 
     Derives from tuple in an attempt to minimise the memory footprint.
     """
-    def __new__(self, revnum, author, message, date, paths, strip_path=''):
+    def __new__(self, revnum, author, message, date, paths=None, strip_path=''):
         _paths = {}
         if paths:
             for p in paths:
@@ -155,8 +155,9 @@ class SimpleStringIO(object):
     write in 16kB blocks (svn 1.7.5) which should be friendly to memory
     allocators.
     """
-    def __init__(self):
+    def __init__(self, closing=True):
         self._blocks = []
+        self._closing = closing
 
     def write(self, s):
         self._blocks.append(s)
@@ -165,5 +166,6 @@ class SimpleStringIO(object):
         return ''.join(self._blocks)
 
     def close(self):
-        del self._blocks
+        if self._closing:
+            del self._blocks
 

@@ -20,9 +20,16 @@ import sys
 import traceback
 
 from mercurial import commands
+try:
+    from mercurial import exchange
+    exchange.push  # existed in first iteration of this file
+except ImportError:
+    # We only *use* the exchange module in hg 3.2+, so this is safe
+    pass
 from mercurial import extensions
 from mercurial import help
 from mercurial import hg
+from mercurial import localrepo
 from mercurial import util as hgutil
 from mercurial import demandimport
 demandimport.ignore.extend([
@@ -33,27 +40,9 @@ demandimport.ignore.extend([
     'svn.ra',
     ])
 
-try:
-    from mercurial import templatekw
-    # force demandimport to load templatekw
-    templatekw.keywords
-except ImportError:
-    templatekw = None
-
-try:
-    from mercurial import revset
-    # force demandimport to load revset
-    revset.methods
-except ImportError:
-    revset = None
-
-try:
-    from mercurial import subrepo
-    # require svnsubrepo and hg >= 1.7.1
-    subrepo.svnsubrepo
-    hgutil.checknlink
-except (ImportError, AttributeError), e:
-    subrepo = None
+from mercurial import templatekw
+from mercurial import revset
+from mercurial import subrepo
 
 import svncommands
 import util
@@ -84,6 +73,10 @@ wrapcmds = { # cmd: generic, target, fixdoc, ppopts, opts
     'clone': (False, 'sources', True, True, [
         ('T', 'tagpaths', '',
          'list of paths to search for tags in Subversion repositories'),
+        ('', 'branchdir', '',
+         'path to search for branches in subversion repositories'),
+        ('', 'infix', '',
+         'path relative to trunk, branch an tag dirs to import'),
         ('A', 'authors', '',
          'file mapping Subversion usernames to Mercurial authors'),
         ('', 'filemap', '',
@@ -120,9 +113,8 @@ except AttributeError:
 except ImportError:
     pass
 
-def extsetup():
+def extsetup(ui):
     """insert command wrappers for a bunch of commands"""
-    # add the ui argument to this function once we drop support for 1.3
 
     docvals = {'extension': 'hgsubversion'}
     for cmd, (generic, target, fixdoc, ppopts, opts) in wrapcmds.iteritems():
@@ -151,6 +143,13 @@ def extsetup():
     except:
         pass
 
+    if not hgutil.safehasattr(localrepo.localrepository, 'push'):
+        # Mercurial >= 3.2
+        extensions.wrapfunction(exchange, 'push', wrappers.exchangepush)
+    if not hgutil.safehasattr(localrepo.localrepository, 'pull'):
+        # Mercurial >= 3.2
+        extensions.wrapfunction(exchange, 'pull', wrappers.exchangepull)
+
     helpdir = os.path.join(os.path.dirname(__file__), 'help')
 
     entries = (
@@ -159,26 +158,22 @@ def extsetup():
          lambda: open(os.path.join(helpdir, 'subversion.rst')).read()),
     )
 
-    # in 1.6 and earler the help table is a tuple
-    if getattr(help.helptable, 'extend', None):
-        help.helptable.extend(entries)
-    else:
-        help.helptable = help.helptable + entries
+    help.helptable.extend(entries)
 
-    if templatekw:
-        templatekw.keywords.update(util.templatekeywords)
+    templatekw.keywords.update(util.templatekeywords)
 
-    if revset:
-        revset.symbols.update(util.revsets)
+    revset.symbols.update(util.revsets)
 
-    if subrepo:
-        subrepo.types['hgsubversion'] = svnexternals.svnsubrepo
+    subrepo.types['hgsubversion'] = svnexternals.svnsubrepo
 
 def reposetup(ui, repo):
     if repo.local():
         svnrepo.generate_repo_class(ui, repo)
         for tunnel in ui.configlist('hgsubversion', 'tunnels'):
             hg.schemes['svn+' + tunnel] = svnrepo
+
+    if ui.configbool('hgsubversion', 'nativerevs'):
+        extensions.wrapfunction(revset, 'stringset', util.revset_stringset)
 
 _old_local = hg.schemes['file']
 def _lookup(url):

@@ -32,7 +32,12 @@ all its tags and branches. In such cases you should clone from one level above
 trunk, as in the example above. This is known as `standard layout`, and works
 with repositories that use the conventional ``trunk``, ``tags`` and ``branches``
 directories. By default, hgsubversion will use this layout whenever it finds any
-of these directories at the specified directory on the server.
+of these directories at the specified directory on the server.  Standard layout
+also supports alternate names for the ``branches`` directory and multiple tags
+locations.  Finally, Standard Layout supports selecting a subdirectory relative
+to ``trunk``, and each branch and tag dir.  This is useful if you have a single
+``trunk``, ``branches``, and ``tags`` with several projects inside, and you wish
+to import only a single project.
 
 If you instead want to clone just a single directory or branch, clone the
 specific directory path. In the example above, to get *only* trunk, you would
@@ -40,10 +45,14 @@ issue ``hg clone http://python-nose.googlecode.com/svn/trunk nose-trunk``. This
 works with any directory with a Subversion repository, and is known as a single
 directory clone. Normally, converted changesets will be marked as belonging to
 the ``default`` branch, but this can be changed by using the ``-b/--branch``
-option when using Mercurial 1.5 or later. To force single directory clone, use
-hgsubversion.layout option (see below for detailed help) ::
+option. To force single directory clone, use hgsubversion.layout option (see
+below for detailed help) ::
 
  $ hg clone --layout single svn+http://python-nose.googlecode.com/svn nose-hg
+
+Finally, if you want to clone two or more directores as separate
+branches, use the custom layout.  See the documentation below for the
+``hgsubversionbranch.*`` configuration for detailed help.
 
 Pulling new revisions into an already-converted repository is the same
 as from any other Mercurial source. Within the first example above,
@@ -76,8 +85,6 @@ An example::
 
   $ hg log --template='{rev}:{node|short} {author|user}\nsvn: {svnrev}\n'
 
-The template keywords are available when using Mercurial 1.5 or later.
-
 For finding changesets from Subversion, hgsubversion extends revsets
 to provide two new selectors:
 
@@ -91,9 +98,7 @@ For example::
   $ hg log -r 'fromsvn()'
   $ hg log -r 'svnrev(500)'
 
-Revsets are available when using Mercurial 1.6 or later and are
-accepted by several Mercurial commands for specifying revisions. See
-``hg help revsets`` for details.
+See ``hg help revsets`` for details.
 
 Support for externals
 ---------------------
@@ -137,7 +142,7 @@ related Subversion repository.
 Alternatively, one can use the ``hgsubversion.externals`` in hgrc to
 specify ``subrepos`` as the externals mode. In this mode, ``.hgsub``
 and ``.hgsubstate`` files will be used instead of
-``.hgsvnexternals``. This feature requires Mercurial 1.7.1 or later.
+``.hgsvnexternals``.
 
 
 Using Subrepositories
@@ -173,8 +178,6 @@ where REWRITTEN_EXTERNAL_DEFINITION is like the original definition
 with the revision identifier replaced with {REV}.
 
 This mode has the following limitations:
-
-* Require Mercurial >= 1.7.1 to work correctly on all platforms.
 
 * "hgsubversion" subrepositories require hgsubversion extension to be
   available. To operate transparently on ``svn:externals`` we have to
@@ -296,11 +299,43 @@ settings:
     Path to a file for changing branch names during the conversion from
     Subversion to Mercurial.
 
+  ``hgsubversion.branchdir``
+
+    Specifies the subdirectory to look for branches under.  The
+    default is ``branches``.  This option has no effect for
+    single-directory clones.
+
+  ``hgsubversion.infix``
+
+    Specifies a path to strip between relative to the trunk/branch/tag
+    root as the mercurial root.  This can be used to import a single
+    sub-project when you have several sub-projects under a single
+    trunk/branches/tags layout in subversion.
+
   ``hgsubversion.filemap``
 
     Path to a file for filtering files during the conversion. Files may either
     be included or excluded. See the documentation for ``hg convert`` for more
     information on filemaps.
+
+  ``hgsubversion.filestoresize``
+
+    Maximum amount of temporary edited files data to be kept in memory,
+    in megabytes. The replay and stupid mode pull data by retrieving
+    delta information from the subversion repository and applying it on
+    known files data. Since the order of file edits is driven by the
+    subversion delta information order, edited files cannot be committed
+    immediately and are kept until all of them have been processed for
+    each changeset. ``filestoresize`` defines the maximum amount of
+    files data to be kept in memory before falling back to storing them
+    in a temporary directory. This setting is important with
+    repositories containing many files or large ones as both the
+    application of deltas and Mercurial commit process require the whole
+    file data to be available in memory. By limiting the amount of
+    temporary data kept in memory, larger files can be retrieved, at the
+    price of slower disk operations. Set it to a negative value to
+    disable the fallback behaviour and keep everything in memory.
+    Default to 200.
 
   ``hgsubversion.username``, ``hgsubversion.password``
 
@@ -324,10 +359,10 @@ settings:
     when necessary.
 
   ``hgsubversion.externals``
-    Set to ``subrepos`` to switch to subrepos-based externals support
-    (requires Mercurial 1.7.1 or later.) Default is ``svnexternals``,
-    which uses a custom hgsubversion-specific format and works on
-    older versions of Mercurial. Use ``ignore`` to avoid converting externals.
+    Set to ``subrepos`` to switch to subrepos-based externals support. Default
+    is ``svnexternals``, which uses a custom hgsubversion-specific format and
+    works on older versions of Mercurial. Use ``ignore`` to avoid converting
+    externals.
 
 The following options only have an effect on the initial clone of a repository:
 
@@ -338,7 +373,9 @@ The following options only have an effect on the initial clone of a repository:
     repository is converted into a single branch. The default,
     ``auto``, causes hgsubversion to assume a standard layout if any
     of trunk, branches, or tags exist within the specified directory
-    on the server.
+    on the server.  ``custom`` causes hgsubversion to read the
+    ``hgsubversionbranch`` config section to determine the repository
+    layout.
 
   ``hgsubversion.startrev``
 
@@ -369,6 +406,27 @@ The following options only have an effect on the initial clone of a repository:
     become out of step with the contents of the Subversion repo).  If
     you use this option, be sure to carefully check the result of a
     pull afterwards.
+
+    ``hgsubversionbranch.*``
+
+    Use this config section with the custom layout to specify a cusomt
+    mapping of subversion path to Mercurial branch.  This is useful if
+    your layout is substantially different from the standard
+    trunk/branches/tags layout and/or you are only interested in a few
+    branches.
+
+    Example config that pulls in trunk as the default branch,
+    personal/alice as the alice branch, and releases/2.0/2.7 as
+    release-2.7::
+
+        [hgsubversionbranch]
+            default = trunk
+            alice = personal/alice
+            release-2.7 = releases/2.0/2.7
+
+    Note that it is an error to specify more than one branch for a
+    given path, or to sepecify nested paths (e.g. releases/2.0 and
+    releases/2.0/2.7)
 
 Please note that some of these options may be specified as command line options
 as well, and when done so, will override the configuration. If an authormap,

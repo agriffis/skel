@@ -99,12 +99,7 @@ def commit(ui, repo, rev_ctx, meta, base_revision, svn):
     file_data = {}
     parent = rev_ctx.parents()[0]
     parent_branch = rev_ctx.parents()[0].branch()
-    branch_path = 'trunk'
-
-    if meta.layout == 'single':
-        branch_path = ''
-    elif parent_branch and parent_branch != 'default':
-        branch_path = 'branches/%s' % parent_branch
+    branch_path = meta.layoutobj.remotename(parent_branch)
 
     extchanges = svnexternals.diff(svnexternals.parse(ui, parent),
                                    svnexternals.parse(ui, rev_ctx))
@@ -138,8 +133,10 @@ def commit(ui, repo, rev_ctx, meta, base_revision, svn):
                     # this kind of renames: a -> b, b -> c
                     copies[file] = renamed[0]
                     base_data = parent[renamed[0]].data()
+                    if 'l' in parent[renamed[0]].flags():
+                        base_data = 'link ' + base_data
                 else:
-                    autoprops = svn.autoprops_config.properties(file) 
+                    autoprops = svn.autoprops_config.properties(file)
                     if autoprops:
                         props.setdefault(file, {}).update(autoprops)
 
@@ -150,9 +147,10 @@ def commit(ui, repo, rev_ctx, meta, base_revision, svn):
                 if ('x' in parent.filectx(file).flags()
                     and 'x' not in rev_ctx.filectx(file).flags()):
                     props.setdefault(file, {})['svn:executable'] = None
-                if ('l' in parent.filectx(file).flags()
-                    and 'l' not in rev_ctx.filectx(file).flags()):
-                    props.setdefault(file, {})['svn:special'] = None
+                if 'l' in parent.filectx(file).flags():
+                    base_data = 'link ' + base_data
+                    if 'l' not in rev_ctx.filectx(file).flags():
+                        props.setdefault(file, {})['svn:special'] = None
                 if hgutil.binary(base_data) and not isbinary:
                     props.setdefault(file, {})['svn:mime-type'] = None
                 action = 'modify'
@@ -201,16 +199,20 @@ def commit(ui, repo, rev_ctx, meta, base_revision, svn):
     if not new_target_files:
         raise NoFilesException()
     try:
-        svn.commit(new_target_files, rev_ctx.description(), file_data,
-                   base_revision, set(addeddirs), set(deleteddirs),
-                   props, newcopies)
+        return svn.commit(new_target_files, rev_ctx.description(), file_data,
+                          base_revision, set(addeddirs), set(deleteddirs),
+                          props, newcopies)
     except svnwrap.SubversionException, e:
+        ui.traceback()
+
         if len(e.args) > 0 and e.args[1] in (svnwrap.ERR_FS_TXN_OUT_OF_DATE,
-                                             svnwrap.ERR_FS_CONFLICT):
+                                             svnwrap.ERR_FS_CONFLICT,
+                                             svnwrap.ERR_FS_ALREADY_EXISTS):
             raise hgutil.Abort('Outgoing changesets parent is not at '
                                'subversion HEAD\n'
                                '(pull again and rebase on a newer revision)')
+        elif len(e.args) > 0 and e.args[1] == svnwrap.ERR_REPOS_HOOK_FAILURE:
+            # Special handling for svn hooks blocking error
+            raise hgutil.Abort(e.args[0])
         else:
             raise
-
-    return True

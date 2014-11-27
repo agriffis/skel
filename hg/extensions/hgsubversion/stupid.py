@@ -8,6 +8,7 @@ from mercurial import patch
 from mercurial import revlog
 from mercurial import util as hgutil
 
+import compathacks
 import svnwrap
 import svnexternals
 import util
@@ -157,27 +158,8 @@ def filteriterhunks(meta):
         applycurrent = False
         # Passing False instead of textmode because we should never
         # be ignoring EOL type.
-        if iterhunks.func_code.co_argcount == 1:
-            # Since 1.9 (28762bb767dc)
-            fp = args[0]
-            gen = iterhunks(fp)
-        else:
-            ui, fp = args[:2]
-            if len(args) > 2:
-                sourcefile = args[2]
-            else:
-                sourcefile = kwargs.get('sourcefile', None)
-            if len(args) > 3:
-                textmode = args[3]
-            else:
-                textmode = kwargs.get('textmode', False)
-            if not iterhunks.func_defaults:
-                # Since 1.7 (cfedc529e4a1)
-                gen = iterhunks(ui, fp)
-            elif len(iterhunks.func_defaults) == 1:
-                gen = iterhunks(ui, fp, sourcefile)
-            else:
-                gen = iterhunks(ui, fp, sourcefile, textmode)
+        fp = args[0]
+        gen = iterhunks(fp)
         for data in gen:
             if data[0] == 'file':
                 if data[1][1] in meta.filemap:
@@ -225,7 +207,16 @@ def patchrepoold(ui, meta, parentctx, patchfp):
 try:
     class svnbackend(patch.repobackend):
         def getfile(self, fname):
-            data, (islink, isexec) = super(svnbackend, self).getfile(fname)
+            # In Mercurial >= 3.2, if fname is missing, data will be None and we
+            # should return None, None in that case. Earlier versions will raise
+            # an IOError which we let propagate up the stack.
+            f = super(svnbackend, self).getfile(fname)
+            if f is None:
+              return None, None
+            data, flags = f
+            if data is None:
+                return None, None
+            islink, isexec = flags
             if islink:
                 data = 'link ' + data
             return data, (islink, isexec)
@@ -235,7 +226,7 @@ except AttributeError:
 def patchrepo(ui, meta, parentctx, patchfp):
     if not svnbackend:
         return patchrepoold(ui, meta, parentctx, patchfp)
-    store = patch.filestore()
+    store = patch.filestore(util.getfilestoresize(ui))
     try:
         touched = set()
         backend = svnbackend(ui, meta.repo, parentctx, store)
@@ -360,13 +351,16 @@ def diff_branchrev(ui, svn, meta, branch, branchpath, r, parentctx):
                       if f.symlink is not None)
     def filectxfn(repo, memctx, path):
         if path in files_data and files_data[path] is None:
-            raise IOError(errno.ENOENT, '%s is deleted' % path)
+            return compathacks.filectxfn_deleted(memctx, path)
 
         if path in binary_files or path in unknown_files:
             pa = path
             if branchpath:
                 pa = branchpath + '/' + path
-            data, mode = svn.get_file(pa, r.revnum)
+            try:
+                data, mode = svn.get_file(pa, r.revnum)
+            except IOError:
+                return compathacks.filectxfn_deleted_reraise(memctx)
             isexe = 'x' in mode
             islink = 'l' in mode
         else:
@@ -385,8 +379,12 @@ def diff_branchrev(ui, svn, meta, branch, branchpath, r, parentctx):
         # and this may actually imply a bug in getcopies
         if copied not in parentctx.manifest():
             copied = None
-        return context.memfilectx(path=path, data=data, islink=islink,
-                                  isexec=isexe, copied=copied)
+        return compathacks.makememfilectx(repo,
+                                          path=path,
+                                          data=data,
+                                          islink=islink,
+                                          isexec=isexe,
+                                          copied=copied)
 
     return list(touched_files), filectxfn
 
@@ -539,7 +537,12 @@ def fetch_branchrev(svn, meta, branch, branchpath, r, parentctx):
     else:
         branchprefix = (branchpath and branchpath + '/') or ''
         for path, e in r.paths.iteritems():
-            if not path.startswith(branchprefix):
+            if path == branchpath:
+                if e.action != 'R' or branch not in meta.branches:
+                    # Full-branch replacements are handled as reverts,
+                    # skip everything else.
+                    continue
+            elif not path.startswith(branchprefix):
                 continue
             if not meta.is_path_valid(path):
                 continue
@@ -577,7 +580,10 @@ def fetch_branchrev(svn, meta, branch, branchpath, r, parentctx):
         svnpath = path
         if branchpath:
             svnpath = branchpath + '/' + path
-        data, mode = svn.get_file(svnpath, r.revnum)
+        try:
+            data, mode = svn.get_file(svnpath, r.revnum)
+        except IOError:
+            return compathacks.filectxfn_deleted_reraise(memctx)
         isexec = 'x' in mode
         islink = 'l' in mode
         copied = copies.get(path)
@@ -585,8 +591,12 @@ def fetch_branchrev(svn, meta, branch, branchpath, r, parentctx):
         # and this may actually imply a bug in getcopies
         if copied not in parentctx.manifest():
             copied = None
-        return context.memfilectx(path=path, data=data, islink=islink,
-                                  isexec=isexec, copied=copied)
+        return compathacks.makememfilectx(repo,
+                                          path=path,
+                                          data=data,
+                                          islink=islink,
+                                          isexec=isexec,
+                                          copied=copied)
 
     return files, filectxfn
 
@@ -601,12 +611,18 @@ def checkbranch(meta, r, branch):
             return None
     return branchtip
 
-def branches_in_paths(meta, tbdelta, paths, revnum, checkpath, listdir):
+def branches_in_paths(meta, tbdelta, paths, revnum, checkpath, listdir,
+                      firstrun):
     '''Given a list of paths, return mapping of all branches touched
     to their branch path.
     '''
     branches = {}
-    paths_need_discovery = []
+    if firstrun:
+        paths_need_discovery = [p for (p, t) in listdir('', revnum)
+                                if t == 'f']
+    else:
+        paths_need_discovery = []
+
     for p in paths:
         relpath, branch, branchpath = meta.split_branch_path(p)
         if relpath is not None:
@@ -623,50 +639,27 @@ def branches_in_paths(meta, tbdelta, paths, revnum, checkpath, listdir):
     if not paths_need_discovery:
         return branches
 
-    paths_need_discovery = [(len(p), p) for p in paths_need_discovery]
-    paths_need_discovery.sort()
-    paths_need_discovery = [p[1] for p in paths_need_discovery]
     actually_files = []
     while paths_need_discovery:
         p = paths_need_discovery.pop(0)
-        path_could_be_file = True
-        ind = 0
-        while ind < len(paths_need_discovery) and not paths_need_discovery:
-            if op.startswith(p):
-                path_could_be_file = False
-            ind += 1
-        if path_could_be_file:
-            if checkpath(p, revnum) == 'f':
-                actually_files.append(p)
-            # if there's a copyfrom_path and there were files inside that copyfrom,
-            # we need to detect those branches. It's a little thorny and slow, but
-            # seems to be the best option.
-            elif paths[p].copyfrom_path and not p.startswith('tags/'):
-                paths_need_discovery.extend(['%s/%s' % (p, x[0])
-                                             for x in listdir(p, revnum)
-                                             if x[1] == 'f'])
+        if checkpath(p, revnum) == 'f':
+            actually_files.append(p)
+        # if there's a copyfrom_path and there were files inside that copyfrom,
+        # we need to detect those branches. It's a little thorny and slow, but
+        # seems to be the best option.
+        elif paths[p].copyfrom_path and not meta.get_path_tag(p):
+            paths_need_discovery.extend(['%s/%s' % (p, x[0])
+                                         for x in listdir(p, revnum)
+                                         if x[1] == 'f'])
 
-        if not actually_files:
+    for path in actually_files:
+        if meta.get_path_tag(path):
             continue
+        fpath, branch, bpath = meta.split_branch_path(path, existing=False)
+        if bpath is None:
+            continue
+        branches[branch] = bpath
 
-        filepaths = [p.split('/') for p in actually_files]
-        filepaths = [(len(p), p) for p in filepaths]
-        filepaths.sort()
-        filepaths = [p[1] for p in filepaths]
-        while filepaths:
-            path = filepaths.pop(0)
-            parentdir = '/'.join(path[:-1])
-            filepaths = [p for p in filepaths if not '/'.join(p).startswith(parentdir)]
-            branchpath = meta.normalize(parentdir)
-            if branchpath.startswith('tags/'):
-                continue
-            branchname = meta.localname(branchpath)
-            if branchpath.startswith('trunk/'):
-                branches[meta.localname('trunk')] = 'trunk'
-                continue
-            if branchname and branchname.startswith('../'):
-                continue
-            branches[branchname] = branchpath
     return branches
 
 def convert_rev(ui, meta, svn, r, tbdelta, firstrun):
@@ -676,7 +669,7 @@ def convert_rev(ui, meta, svn, r, tbdelta, firstrun):
         raise hgutil.Abort('filemaps currently unsupported with stupid replay.')
 
     branches = branches_in_paths(meta, tbdelta, r.paths, r.revnum,
-                                 svn.checkpath, svn.list_files)
+                                 svn.checkpath, svn.list_files, firstrun)
     brpaths = branches.values()
     bad_branch_paths = {}
     for br, bp in branches.iteritems():
@@ -703,9 +696,23 @@ def convert_rev(ui, meta, svn, r, tbdelta, firstrun):
         branch = meta.localname(p)
         if not (r.paths[p].action == 'R' and branch in meta.branches):
             continue
-        closed = checkbranch(meta, r, branch)
-        if closed is not None:
-            deleted_branches[branch] = closed
+        # Check the branch is not being replaced by one of its
+        # ancestors, it happens a lot with project-wide reverts.
+        frompath = r.paths[p].copyfrom_path
+        frompath, frombranch = meta.split_branch_path(
+            frompath, existing=False)[:2]
+        if frompath == '':
+            fromnode = meta.get_parent_revision(
+                    r.paths[p].copyfrom_rev + 1, frombranch, exact=True)
+            if fromnode != node.nullid:
+                fromctx = meta.repo[fromnode]
+                pctx = meta.repo[meta.get_parent_revision(
+                    r.revnum, branch, exact=True)]
+                if util.isancestor(pctx, fromctx):
+                    continue
+            closed = checkbranch(meta, r, branch)
+            if closed is not None:
+                deleted_branches[branch] = closed
 
     date = meta.fixdate(r.date)
     check_deleted_branches = set(tbdelta['branches'][1])
@@ -725,8 +732,9 @@ def convert_rev(ui, meta, svn, r, tbdelta, firstrun):
         # path does not support this case with svn >= 1.7. We can fix
         # it, or we can force the existing fetch_branchrev() path. Do
         # the latter for now.
-        incremental = (meta.revmap.oldest > 0 and
-                       parentctx.rev() != node.nullrev)
+        incremental = (meta.firstpulled > 0 and
+                       parentctx.rev() != node.nullrev and
+                       not firstrun)
 
         if incremental:
             try:
@@ -751,9 +759,12 @@ def convert_rev(ui, meta, svn, r, tbdelta, firstrun):
             if path in externals:
                 if externals[path] is None:
                     raise IOError(errno.ENOENT, 'no externals')
-                return context.memfilectx(path=path, data=externals[path],
-                                          islink=False, isexec=False,
-                                          copied=None)
+                return compathacks.makememfilectx(repo,
+                                                  path=path,
+                                                  data=externals[path],
+                                                  islink=False,
+                                                  isexec=False,
+                                                  copied=None)
             for bad in bad_branch_paths[b]:
                 if path.startswith(bad):
                     raise IOError(errno.ENOENT, 'Path %s is bad' % path)
@@ -770,7 +781,7 @@ def convert_rev(ui, meta, svn, r, tbdelta, firstrun):
             # svnmeta.committag(), we can skip the whole branch for now
             if (tag and tag not in meta.tags and
                 b not in meta.branches
-                and b not in meta.repo.branchtags()
+                and b not in compathacks.branchset(meta.repo)
                 and not files_touched):
                 continue
 
@@ -795,7 +806,7 @@ def convert_rev(ui, meta, svn, r, tbdelta, firstrun):
         meta.mapbranch(extra)
         current_ctx = context.memctx(meta.repo,
                                      [parentctx.node(), revlog.nullid],
-                                     r.message or util.default_commit_msg(ui),
+                                     util.getmessage(ui, r),
                                      files_touched,
                                      filectxfn,
                                      meta.authors[r.author],

@@ -3,7 +3,7 @@
 import errno
 import os
 from mercurial import util as hgutil
-from mercurial import node
+from mercurial.node import bin, hex, nullid
 
 import svncommands
 import util
@@ -14,9 +14,12 @@ class AuthorMap(dict):
 
     If the 'hgsubversion.defaultauthors' configuration option is set to false,
     attempting to obtain an unknown author will fail with an Abort.
+
+    If the 'hgsubversion.caseignoreauthors' configuration option is set to true,
+    the userid from Subversion is always compared lowercase.
     '''
 
-    def __init__(self, ui, path, defaulthost=None):
+    def __init__(self, meta):
         '''Initialise a new AuthorMap.
 
         The ui argument is used to print diagnostic messages.
@@ -24,15 +27,19 @@ class AuthorMap(dict):
         The path argument is the location of the backing store,
         typically .hg/svn/authors.
         '''
-        self.ui = ui
-        self.path = path
-        if defaulthost:
-            self.defaulthost = '@%s' % defaulthost.lstrip('@')
-        else:
-            self.defaulthost = ''
+        self.meta = meta
+        self.defaulthost = ''
+        if meta.defaulthost:
+            self.defaulthost = '@%s' % meta.defaulthost.lstrip('@')
+
         self.super = super(AuthorMap, self)
         self.super.__init__()
-        self.load(path)
+        self.load(self.meta.authors_file)
+
+        # append authors specified from the commandline
+        clmap = util.configpath(self.meta.ui, 'authormap')
+        if clmap:
+            self.load(clmap)
 
     def load(self, path):
         ''' Load mappings from a file at the specified path. '''
@@ -42,10 +49,10 @@ class AuthorMap(dict):
             return
 
         writing = False
-        if path != self.path:
-            writing = open(self.path, 'a')
+        if path != self.meta.authors_file:
+            writing = open(self.meta.authors_file, 'a')
 
-        self.ui.note('reading authormap from %s\n' % path)
+        self.meta.ui.debug('reading authormap from %s\n' % path)
         f = open(path, 'r')
         for number, line_org in enumerate(f):
 
@@ -57,18 +64,21 @@ class AuthorMap(dict):
                 src, dst = line.split('=', 1)
             except (IndexError, ValueError):
                 msg = 'ignoring line %i in author map %s: %s\n'
-                self.ui.status(msg % (number, path, line.rstrip()))
+                self.meta.ui.status(msg % (number, path, line.rstrip()))
                 continue
 
             src = src.strip()
             dst = dst.strip()
 
+            if self.meta.caseignoreauthors:
+                src = src.lower()
+
             if writing:
                 if not src in self:
-                    self.ui.debug('adding author %s to author map\n' % src)
+                    self.meta.ui.debug('adding author %s to author map\n' % src)
                 elif dst != self[src]:
                     msg = 'overriding author: "%s" to "%s" (%s)\n'
-                    self.ui.status(msg % (self[src], dst, src))
+                    self.meta.ui.status(msg % (self[src], dst, src))
                 writing.write(line_org)
 
             self[src] = dst
@@ -83,16 +93,21 @@ class AuthorMap(dict):
         as well as the backing store. '''
         if author is None:
             author = '(no author)'
-        if author in self:
-            result = self.super.__getitem__(author)
-        elif self.ui.configbool('hgsubversion', 'defaultauthors', True):
+
+        search_author = author
+        if self.meta.caseignoreauthors:
+            search_author = author.lower()
+
+        if search_author in self:
+            result = self.super.__getitem__(search_author)
+        elif self.meta.defaultauthors:
             self[author] = result = '%s%s' % (author, self.defaulthost)
             msg = 'substituting author "%s" for default "%s"\n'
-            self.ui.note(msg % (author, result))
+            self.meta.ui.debug(msg % (author, result))
         else:
             msg = 'author %s has no entry in the author map!'
             raise hgutil.Abort(msg % author)
-        self.ui.debug('mapping author "%s" to "%s"\n' % (author, result))
+        self.meta.ui.debug('mapping author "%s" to "%s"\n' % (author, result))
         return result
 
     def reverselookup(self, author):
@@ -112,27 +127,23 @@ class Tags(dict):
     """
     VERSION = 2
 
-    @classmethod
-    def filepath(cls, repo):
-        return os.path.join(repo.path, 'svn', 'tagmap')
-
-    def __init__(self, repo, endrev=None):
+    def __init__(self, meta, endrev=None):
         dict.__init__(self)
-        self.path = self.filepath(repo)
+        self.meta = meta
         self.endrev = endrev
-        if os.path.isfile(self.path):
-            self._load(repo)
+        if os.path.isfile(self.meta.tagfile):
+            self._load()
         else:
             self._write()
 
-    def _load(self, repo):
-        f = open(self.path)
+    def _load(self):
+        f = open(self.meta.tagfile)
         ver = int(f.readline())
         if ver < self.VERSION:
-            repo.ui.status('tag map outdated, running rebuildmeta...\n')
+            self.meta.ui.status('tag map outdated, running rebuildmeta...\n')
             f.close()
-            os.unlink(self.path)
-            svncommands.rebuildmeta(repo.ui, repo, ())
+            os.unlink(self.meta.tagfile)
+            svncommands.rebuildmeta(self.meta.ui, self.meta.repo, ())
             return
         elif ver != self.VERSION:
             raise hgutil.Abort('tagmap too new -- please upgrade')
@@ -144,12 +155,12 @@ class Tags(dict):
                 break
             if not tag:
                 continue
-            dict.__setitem__(self, tag, node.bin(ha))
+            dict.__setitem__(self, tag, bin(ha))
         f.close()
 
     def _write(self):
         assert self.endrev is None
-        f = open(self.path, 'w')
+        f = open(self.meta.tagfile, 'w')
         f.write('%s\n' % self.VERSION)
         f.close()
 
@@ -159,7 +170,7 @@ class Tags(dict):
 
     def __contains__(self, tag):
         return (tag and dict.__contains__(self, tag)
-                and dict.__getitem__(self, tag) != node.nullid)
+                and dict.__getitem__(self, tag) != nullid)
 
     def __getitem__(self, tag):
         if tag and tag in self:
@@ -170,8 +181,8 @@ class Tags(dict):
         if not tag:
             raise hgutil.Abort('tag cannot be empty')
         ha, revision = info
-        f = open(self.path, 'a')
-        f.write('%s %s %s\n' % (node.hex(ha), revision, tag))
+        f = open(self.meta.tagfile, 'a')
+        f.write('%s %s %s\n' % (hex(ha), revision, tag))
         f.close()
         dict.__setitem__(self, tag, ha)
 
@@ -180,31 +191,14 @@ class RevMap(dict):
 
     VERSION = 1
 
-    def __init__(self, repo):
+    def __init__(self, meta):
         dict.__init__(self)
-        self.path = self.mappath(repo)
-        self.repo = repo
-        self.ypath = os.path.join(repo.path, 'svn', 'lastpulled')
-        # TODO(durin42): Consider moving management of the youngest
-        # file to svnmeta itself rather than leaving it here.
-        # must load youngest file first, or else self._load() can
-        # clobber the info
-        _yonngest_str = util.load_string(self.ypath, '0')
-        self._youngest = int(_yonngest_str.strip())
-        self.oldest = 0
-        if os.path.isfile(self.path):
+        self.meta = meta
+
+        if os.path.isfile(self.meta.revmap_file):
             self._load()
         else:
             self._write()
-
-    def _set_youngest(self, rev):
-        self._youngest = max(self._youngest, rev)
-        util.save_string(self.ypath, str(self._youngest) + '\n')
-
-    def _get_youngest(self):
-        return self._youngest
-
-    youngest = property(_get_youngest, _set_youngest)
 
     def hashes(self):
         return dict((v, k) for (k, v) in self.iteritems())
@@ -213,14 +207,10 @@ class RevMap(dict):
         check = lambda x: x[0][1] == branch and x[0][0] < rev.revnum
         return sorted(filter(check, self.iteritems()), reverse=True)
 
-    @staticmethod
-    def mappath(repo):
-        return os.path.join(repo.path, 'svn', 'rev_map')
-
     @classmethod
-    def readmapfile(cls, repo, missingok=True):
+    def readmapfile(cls, path, missingok=True):
         try:
-            f = open(cls.mappath(repo))
+            f = open(path)
         except IOError, err:
             if not missingok or err.errno != errno.ENOENT:
                 raise
@@ -230,35 +220,41 @@ class RevMap(dict):
             raise hgutil.Abort('revmap too new -- please upgrade')
         return f
 
+    @util.gcdisable
     def _load(self):
-        for l in self.readmapfile(self.repo):
+        lastpulled = self.meta.lastpulled
+        firstpulled = self.meta.firstpulled
+        setitem = dict.__setitem__
+        for l in self.readmapfile(self.meta.revmap_file):
             revnum, ha, branch = l.split(' ', 2)
             if branch == '\n':
                 branch = None
             else:
                 branch = branch[:-1]
             revnum = int(revnum)
-            if revnum > self.youngest or not self.youngest:
-                self.youngest = revnum
-            if revnum < self.oldest or not self.oldest:
-                self.oldest = revnum
-            dict.__setitem__(self, (revnum, branch), node.bin(ha))
+            if revnum > lastpulled or not lastpulled:
+                lastpulled = revnum
+            if revnum < firstpulled or not firstpulled:
+                firstpulled = revnum
+            setitem(self, (revnum, branch), bin(ha))
+        self.meta.lastpulled = lastpulled
+        self.meta.firstpulled = firstpulled
 
     def _write(self):
-        f = open(self.path, 'w')
+        f = open(self.meta.revmap_file, 'w')
         f.write('%s\n' % self.VERSION)
         f.close()
 
     def __setitem__(self, key, ha):
         revnum, branch = key
-        f = open(self.path, 'a')
+        f = open(self.meta.revmap_file, 'a')
         b = branch or ''
-        f.write(str(revnum) + ' ' + node.hex(ha) + ' ' + b + '\n')
+        f.write(str(revnum) + ' ' + hex(ha) + ' ' + b + '\n')
         f.close()
-        if revnum > self.youngest or not self.youngest:
-            self.youngest = revnum
-        if revnum < self.oldest or not self.oldest:
-            self.oldest = revnum
+        if revnum > self.meta.lastpulled or not self.meta.lastpulled:
+            self.meta.lastpulled = revnum
+        if revnum < self.meta.firstpulled or not self.meta.firstpulled:
+            self.meta.firstpulled = revnum
         dict.__setitem__(self, (revnum, branch), ha)
 
 
@@ -266,7 +262,7 @@ class FileMap(object):
 
     VERSION = 1
 
-    def __init__(self, ui, path):
+    def __init__(self, meta):
         '''Initialise a new FileMap.
 
         The ui argument is used to print diagnostic messages.
@@ -274,14 +270,18 @@ class FileMap(object):
         The path argument is the location of the backing store,
         typically .hg/svn/filemap.
         '''
-        self.ui = ui
-        self.path = path
+        self.meta = meta
         self.include = {}
         self.exclude = {}
-        if os.path.isfile(self.path):
+        if os.path.isfile(self.meta.filemap_file):
             self._load()
         else:
             self._write()
+
+        # append file mapping specified from the commandline
+        clmap = util.configpath(self.meta.ui, 'filemap')
+        if clmap:
+            self.load(clmap)
 
     def _rpairs(self, name):
         e = len(name)
@@ -321,19 +321,19 @@ class FileMap(object):
         mapping = getattr(self, m)
         if path in mapping:
             msg = 'duplicate %s entry in %s: "%s"\n'
-            self.ui.status(msg % (m, fn, path))
+            self.meta.ui.status(msg % (m, fn, path))
             return
-        bits = m.strip('e'), path
-        self.ui.debug('%sing %s\n' % bits)
+        bits = m.rstrip('e'), path
+        self.meta.ui.debug('%sing %s\n' % bits)
         # respect rule order
         mapping[path] = len(self)
-        if fn != self.path:
-            f = open(self.path, 'a')
+        if fn != self.meta.filemap_file:
+            f = open(self.meta.filemap_file, 'a')
             f.write(m + ' ' + path + '\n')
             f.close()
 
     def load(self, fn):
-        self.ui.note('reading file map from %s\n' % fn)
+        self.meta.ui.debug('reading file map from %s\n' % fn)
         f = open(fn, 'r')
         self.load_fd(f, fn)
         f.close()
@@ -349,22 +349,22 @@ class FileMap(object):
                 if cmd in ('include', 'exclude'):
                     self.add(fn, cmd, path)
                     continue
-                self.ui.warn('unknown filemap command %s\n' % cmd)
+                self.meta.ui.warn('unknown filemap command %s\n' % cmd)
             except IndexError:
                 msg = 'ignoring bad line in filemap %s: %s\n'
-                self.ui.warn(msg % (fn, line.rstrip()))
+                self.meta.ui.warn(msg % (fn, line.rstrip()))
 
     def _load(self):
-        self.ui.note('reading in-repo file map from %s\n' % self.path)
-        f = open(self.path)
+        self.meta.ui.debug('reading in-repo file map from %s\n' % self.meta.filemap_file)
+        f = open(self.meta.filemap_file)
         ver = int(f.readline())
         if ver != self.VERSION:
             raise hgutil.Abort('filemap too new -- please upgrade')
-        self.load_fd(f, self.path)
+        self.load_fd(f, self.meta.filemap_file)
         f.close()
 
     def _write(self):
-        f = open(self.path, 'w')
+        f = open(self.meta.filemap_file, 'w')
         f.write('%s\n' % self.VERSION)
         f.close()
 
@@ -378,12 +378,16 @@ class BranchMap(dict):
     changes on other will now be on default (have no branch name set).
     '''
 
-    def __init__(self, ui, path):
-        self.ui = ui
-        self.path = path
+    def __init__(self, meta):
+        self.meta = meta
         self.super = super(BranchMap, self)
         self.super.__init__()
-        self.load(path)
+        self.load(self.meta.branchmap_file)
+
+        # append branch mapping specified from the commandline
+        clmap = util.configpath(self.meta.ui, 'branchmap')
+        if clmap:
+            self.load(clmap)
 
     def load(self, path):
         '''Load mappings from a file at the specified path.'''
@@ -391,10 +395,10 @@ class BranchMap(dict):
             return
 
         writing = False
-        if path != self.path:
-            writing = open(self.path, 'a')
+        if path != self.meta.branchmap_file:
+            writing = open(self.meta.branchmap_file, 'a')
 
-        self.ui.note('reading branchmap from %s\n' % path)
+        self.meta.ui.debug('reading branchmap from %s\n' % path)
         f = open(path, 'r')
         for number, line in enumerate(f):
 
@@ -409,12 +413,12 @@ class BranchMap(dict):
                 src, dst = line.split('=', 1)
             except (IndexError, ValueError):
                 msg = 'ignoring line %i in branch map %s: %s\n'
-                self.ui.status(msg % (number, path, line.rstrip()))
+                self.meta.ui.status(msg % (number, path, line.rstrip()))
                 continue
 
             src = src.strip()
             dst = dst.strip()
-            self.ui.debug('adding branch %s to branch map\n' % src)
+            self.meta.ui.debug('adding branch %s to branch map\n' % src)
 
             if not dst:
                 # prevent people from assuming such lines are valid
@@ -423,7 +427,7 @@ class BranchMap(dict):
                                    % (number, path))
             elif src in self and dst != self[src]:
                 msg = 'overriding branch: "%s" to "%s" (%s)\n'
-                self.ui.status(msg % (self[src], dst, src))
+                self.meta.ui.status(msg % (self[src], dst, src))
             self[src] = dst
 
         f.close()
@@ -440,12 +444,16 @@ class TagMap(dict):
         the other tag will not be reflected in the hg repository.
     '''
 
-    def __init__(self, ui, path):
-        self.ui = ui
-        self.path = path
+    def __init__(self, meta):
+        self.meta = meta
         self.super = super(TagMap, self)
         self.super.__init__()
-        self.load(path)
+        self.load(self.meta.tagmap_file)
+
+        # append tag mapping specified from the commandline
+        clmap = util.configpath(self.meta.ui, 'tagmap')
+        if clmap:
+            self.load(clmap)
 
     def load(self, path):
         '''Load mappings from a file at the specified path.'''
@@ -453,10 +461,10 @@ class TagMap(dict):
             return
 
         writing = False
-        if path != self.path:
-            writing = open(self.path, 'a')
+        if path != self.meta.tagmap_file:
+            writing = open(self.meta.tagmap_file, 'a')
 
-        self.ui.note('reading tag renames from %s\n' % path)
+        self.meta.ui.debug('reading tag renames from %s\n' % path)
         f = open(path, 'r')
         for number, line in enumerate(f):
 
@@ -471,16 +479,16 @@ class TagMap(dict):
                 src, dst = line.split('=', 1)
             except (IndexError, ValueError):
                 msg = 'ignoring line %i in tag renames %s: %s\n'
-                self.ui.status(msg % (number, path, line.rstrip()))
+                self.meta.ui.status(msg % (number, path, line.rstrip()))
                 continue
 
             src = src.strip()
             dst = dst.strip()
-            self.ui.debug('adding tag %s to tag renames\n' % src)
+            self.meta.ui.debug('adding tag %s to tag renames\n' % src)
 
             if src in self and dst != self[src]:
                 msg = 'overriding tag rename: "%s" to "%s" (%s)\n'
-                self.ui.status(msg % (self[src], dst, src))
+                self.meta.ui.status(msg % (self[src], dst, src))
             self[src] = dst
 
         f.close()

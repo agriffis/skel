@@ -1,7 +1,9 @@
+import difflib
 import posixpath
 
 from mercurial import util as hgutil
 from mercurial import error
+from mercurial import worker
 
 import svnwrap
 import svnrepo
@@ -38,34 +40,68 @@ def verify(ui, repo, args=None, **opts):
 
     ui.write('verifying %s against %s@%i\n' % (ctx, branchurl, srev))
 
+    def diff_file(path, svndata):
+        fctx = ctx[path]
+
+        if ui.verbose and not fctx.isbinary():
+            svndesc = '%s/%s/%s@%d' % (svn.svn_url, branchpath, path, srev)
+            hgdesc = '%s@%s' % (path, ctx)
+
+            for c in difflib.unified_diff(svndata.splitlines(True),
+                                          fctx.data().splitlines(True),
+                                          svndesc, hgdesc):
+                ui.note(c)
+
     if opts.get('stupid', ui.configbool('hgsubversion', 'stupid')):
         svnfiles = set()
         result = 0
 
         hgfiles = set(ctx) - util.ignoredfiles
 
-        svndata = svn.list_files(branchpath, srev)
-        for i, (fn, type) in enumerate(svndata):
-            util.progress(ui, 'verify', i, total=len(hgfiles))
+        def verifydata(svndata):
+            svnworker = svnrepo.svnremoterepo(ui, url).svn
 
-            if type != 'f':
-                continue
+            i = 0
+            res = True
+            for fn, type in svndata:
+                i += 1
+                if type != 'f':
+                    continue
+
+                fp = fn
+                if branchpath:
+                    fp = branchpath + '/' + fn
+                data, mode = svnworker.get_file(posixpath.normpath(fp), srev)
+                try:
+                    fctx = ctx[fn]
+                except error.LookupError:
+                    yield i, "%s\0%r" % (fn, res)
+                    continue
+
+                if not fctx.data() == data:
+                    ui.write('difference in: %s\n' % fn)
+                    diff_file(fn, data)
+                    res = False
+                if not fctx.flags() == mode:
+                    ui.write('wrong flags for: %s\n' % fn)
+                    res = False
+                yield i, "%s\0%r" % (fn, res)
+
+        if url.startswith('file://'):
+            perarg = 0.00001
+        else:
+            perarg = 0.000001
+
+        svndata = svn.list_files(branchpath, srev)
+        w = worker.worker(repo.ui, perarg, verifydata, (), tuple(svndata))
+        i = 0
+        for _, t in w:
+            ui.progress('verify', i, total=len(hgfiles))
+            i += 1
+            fn, ok = t.split('\0', 2)
+            if not bool(ok):
+                result = 1
             svnfiles.add(fn)
-            fp = fn
-            if branchpath:
-                fp = branchpath + '/' + fn
-            data, mode = svn.get_file(posixpath.normpath(fp), srev)
-            try:
-                fctx = ctx[fn]
-            except error.LookupError:
-                result = 1
-                continue
-            if not fctx.data() == data:
-                ui.write('difference in: %s\n' % fn)
-                result = 1
-            if not fctx.flags() == mode:
-                ui.write('wrong flags for: %s\n' % fn)
-                result = 1
 
         if hgfiles != svnfiles:
             unexpected = hgfiles - svnfiles
@@ -76,7 +112,7 @@ def verify(ui, repo, args=None, **opts):
                 ui.write('missing file: %s\n' % f)
             result = 1
 
-        util.progress(ui, 'verify', None, total=len(hgfiles))
+        ui.progress('verify', None, total=len(hgfiles))
 
     else:
         class VerifyEditor(svnwrap.Editor):
@@ -118,13 +154,13 @@ def verify(ui, repo, args=None, **opts):
                     self.props = None
 
                 self.seen += 1
-                util.progress(self.ui, 'verify', self.seen, total=self.total)
+                self.ui.progress('verify', self.seen, total=self.total)
 
             def open_file(self, path, base_revnum):
                 raise NotImplementedError()
 
             def apply_textdelta(self, file_baton, base_checksum, pool=None):
-                stream = editor.NeverClosingStringIO()
+                stream = svnwrap.SimpleStringIO(closing=False)
                 handler = svnwrap.apply_txdelta('', stream)
                 if not callable(handler):
                     raise hgutil.Abort('Error in Subversion bindings: '
@@ -154,6 +190,7 @@ def verify(ui, repo, args=None, **opts):
 
                     if hgdata != svndata:
                         self.ui.warn('difference in: %s\n' % self.file)
+                        diff_file(self.file, svndata)
                         self.failed = True
 
                 if self.file is not None:
@@ -166,6 +203,9 @@ def verify(ui, repo, args=None, **opts):
                 if self.props is not None:
                     self.props[name] = value
 
+            def close_file(self, file_baton, checksum, pool=None):
+                pass
+
             def close_directory(self, dir_baton, pool=None):
                 pass
 
@@ -173,7 +213,7 @@ def verify(ui, repo, args=None, **opts):
                 raise NotImplementedError()
 
             def check(self):
-                util.progress(self.ui, 'verify', None, total=self.total)
+                self.ui.progress('verify', None, total=self.total)
 
                 for f in self.unexpected:
                     self.ui.warn('unexpected file: %s\n' % f)

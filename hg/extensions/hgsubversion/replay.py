@@ -6,6 +6,7 @@ from mercurial import node
 from mercurial import context
 from mercurial import util as hgutil
 
+import compathacks
 import svnexternals
 import util
 
@@ -30,7 +31,6 @@ def updateexternals(ui, meta, current):
     branches = {}
     for path, entry in current.externals.iteritems():
         if not meta.is_path_valid(path):
-            ui.warn('WARNING: Invalid path %s in externals\n' % path)
             continue
 
         p, b, bp = meta.split_branch_path(path)
@@ -52,62 +52,54 @@ def updateexternals(ui, meta, current):
             else:
                 current.delete(path)
 
-
-def _safe_message(msg):
-  if msg:
-      try:
-          msg.decode('utf-8')
-      except UnicodeDecodeError:
-          # ancient svn failed to enforce utf8 encoding
-          return msg.decode('iso-8859-1').encode('utf-8')
-  return msg
-
-
 def convert_rev(ui, meta, svn, r, tbdelta, firstrun):
+    try:
+        return _convert_rev(ui, meta, svn, r, tbdelta, firstrun)
+    finally:
+        meta.editor.current.close()
+
+def _convert_rev(ui, meta, svn, r, tbdelta, firstrun):
 
     editor = meta.editor
     editor.current.clear()
     editor.current.rev = r
+    editor.setsvn(svn)
 
-    if firstrun and meta.revmap.oldest <= 0:
+    if firstrun and meta.firstpulled <= 0:
         # We know nothing about this project, so fetch everything before
         # trying to apply deltas.
         ui.debug('replay: fetching full revision\n')
         svn.get_revision(r.revnum, editor)
     else:
-        svn.get_replay(r.revnum, editor, meta.revmap.oldest)
+        svn.get_replay(r.revnum, editor, meta.firstpulled)
+    editor.close()
 
     current = editor.current
-    current.findmissing(svn)
 
     updateexternals(ui, meta, current)
 
     if current.exception is not None:  # pragma: no cover
         traceback.print_exception(*current.exception)
         raise ReplayException()
-    if current.missing:
-        raise MissingPlainTextError()
 
-    # paranoidly generate the list of files to commit
-    files_to_commit = set(current.files.keys())
-    files_to_commit.update(current.symlinks.keys())
-    files_to_commit.update(current.execfiles.keys())
-    files_to_commit.update(current.deleted.keys())
-    # back to a list and sort so we get sane behavior
-    files_to_commit = list(files_to_commit)
-    files_to_commit.sort()
+    files_to_commit = current.files()
     branch_batches = {}
     rev = current.rev
     date = meta.fixdate(rev.date)
 
     # build up the branches that have files on them
+    failoninvalid = ui.configbool('hgsubversion',
+            'failoninvalidreplayfile', False)
     for f in files_to_commit:
         if not meta.is_path_valid(f):
+            if failoninvalid:
+                raise hgutil.Abort('file %s should not be in commit list' % f)
             continue
         p, b = meta.split_branch_path(f)[:2]
         if b not in branch_batches:
             branch_batches[b] = []
-        branch_batches[b].append((p, f))
+        if p:
+            branch_batches[b].append((p, f))
 
     closebranches = {}
     for branch in tbdelta['branches'][1]:
@@ -142,7 +134,7 @@ def convert_rev(ui, meta, svn, r, tbdelta, firstrun):
             tag = meta.get_path_tag(meta.remotename(branch))
             if (tag and tag not in meta.tags
                 and branch not in meta.branches
-                and branch not in meta.repo.branchtags()
+                and branch not in compathacks.branchset(meta.repo)
                 and not files):
                 continue
 
@@ -155,31 +147,37 @@ def convert_rev(ui, meta, svn, r, tbdelta, firstrun):
 
         def filectxfn(repo, memctx, path):
             current_file = files[path]
-            if current_file in current.deleted:
-                raise IOError(errno.ENOENT, '%s is deleted' % path)
-            copied = current.copies.get(current_file)
-            flags = parentctx.flags(path)
-            is_exec = current.execfiles.get(current_file, 'x' in flags)
-            is_link = current.symlinks.get(current_file, 'l' in flags)
-            if current_file in current.files:
-                data = current.files[current_file]
-                if is_link and data.startswith('link '):
-                    data = data[len('link '):]
-                elif is_link:
-                    ui.debug('file marked as link, but may contain data: '
-                             '%s (%r)\n' % (current_file, flags))
+            try:
+                data, isexec, islink, copied = current.pop(current_file)
+            except IOError:
+                return compathacks.filectxfn_deleted_reraise(memctx)
+            if isexec is None or islink is None:
+                flags = parentctx.flags(path)
+                if isexec is None:
+                    isexec = 'x' in flags
+                if islink is None:
+                    islink = 'l' in flags
+
+            if data is not None:
+                if islink:
+                    if data.startswith('link '):
+                        data = data[len('link '):]
+                    else:
+                        ui.debug('file marked as link, but may contain data: '
+                            '%s\n' % current_file)
             else:
                 data = parentctx.filectx(path).data()
-            return context.memfilectx(path=path,
-                                      data=data,
-                                      islink=is_link, isexec=is_exec,
-                                      copied=copied)
+            return compathacks.makememfilectx(repo,
+                                              path=path,
+                                              data=data,
+                                              islink=islink,
+                                              isexec=isexec,
+                                              copied=copied)
 
-        message = _safe_message(rev.message)
         meta.mapbranch(extra)
         current_ctx = context.memctx(meta.repo,
                                      parents,
-                                     message or util.default_commit_msg(ui),
+                                     util.getmessage(ui, rev),
                                      files.keys(),
                                      filectxfn,
                                      meta.authors[rev.author],
@@ -202,21 +200,22 @@ def convert_rev(ui, meta, svn, r, tbdelta, firstrun):
             continue
 
         parent_ctx = meta.repo.changectx(ha)
+        files = []
         def del_all_files(*args):
             raise IOError(errno.ENOENT, 'deleting all files')
 
-        # True here meant nuke all files, shouldn't happen with branch closing
-        if current.emptybranches[branch]: # pragma: no cover
-            raise hgutil.Abort('Empty commit to an open branch attempted. '
-                               'Please report this issue.')
+        # True here means nuke all files.  This happens when you
+        # replace a branch root with an empty directory
+        if current.emptybranches[branch]:
+            files = meta.repo[ha].files()
 
         extra = meta.genextra(rev.revnum, branch)
         meta.mapbranch(extra)
 
         current_ctx = context.memctx(meta.repo,
                                      (ha, node.nullid),
-                                     _safe_message(rev.message) or ' ',
-                                     [],
+                                     util.getmessage(ui, rev),
+                                     files,
                                      del_all_files,
                                      meta.authors[rev.author],
                                      date,
