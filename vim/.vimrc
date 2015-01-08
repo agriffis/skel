@@ -110,6 +110,7 @@ let g:ctrlp_user_command = {
   \ }
 let g:ctrlp_extensions = ['tag']
 let g:ctrlp_cmd = 'CtrlPMixed'
+let g:ctrlp_root_markers = ['.topdir']
 
 " shell is bash
 let g:is_bash=1

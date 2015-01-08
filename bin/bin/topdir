@@ -5,6 +5,10 @@ if [[ -n $TOPDIR ]]; then
     exit
 fi
 
+is_topdir_topdir() {
+    [[ -e $1/.topdir ]]
+}
+
 is_tags_topdir() {
     [[ -e $1/tags ]]
 }
@@ -46,6 +50,7 @@ is_svn_trunk() {
 }
 
 is_topdir() {
+    is_topdir_topdir "$1" || \
     is_tags_topdir "$1" || \
     is_bzr_topdir "$1" || \
     is_git_topdir "$1" || \
