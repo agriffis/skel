@@ -3,13 +3,14 @@
 nightly=/usr/local/chromium-nightly
 sandbox=$nightly/chrome_sandbox
 
-set -e
+set -ex
 
 cd ~/Downloads
 rm -rf Linux_x64 chrome-linux
 wget -q https://download-chromium.appspot.com/dl/Linux_x64
 unzip -q Linux_x64
-sudo rm -rf $nightly
+sudo rm -rf $nightly.old
+[[ ! -e $nightly ]] || sudo mv $nightly $nightly.old
 sudo mv chrome-linux $nightly
 sudo chown root:root $sandbox
 sudo chmod 4755 $sandbox
