@@ -2,5 +2,15 @@
 
 gateway=jupiter.arongriffis.com
 
+ssh-add -l &>/dev/null
+if [[ $? == 2 ]]; then
+  exec ssh-agent "$(type -P "$0")" "$@"
+fi
+
+ssh-add -l &>/dev/null
+if [[ $? != 0 ]]; then
+  ssh-add || exit
+fi
+
 ssh -fA $gateway 'ln -sfn $SSH_AUTH_SOCK foo; sleep 30'
 mosh $gateway -- env SSH_AUTH_SOCK=foo ssh -t "$@"
