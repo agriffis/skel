@@ -9,6 +9,8 @@ elif [[ $1 == e ]]; then
     exec "$EDITOR" ~/Drive/tt.txt
 elif [[ $1 == l ]]; then
     exec tail -n1 ~/Drive/tt.txt
+elif [[ $1 == r ]]; then
+    sed -i '$d' ~/Drive/tt.txt
 elif [[ -n $1 ]]; then
     echo "I don't understand: $*" >&2
     exit 1
