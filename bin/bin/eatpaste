@@ -14,9 +14,8 @@
 require 'date.rb'
 require 'cgi'
 
-zero = $0.sub %r{.*/}, ''
+#zero = $0.sub %r{.*/}, ''
 rcfile = ENV['HOME'] + '/.eatpasterc'
-concat = ' '
 
 # Attempt to retain compatibility with bash .eatpasterc
 ranks = Hash.new
@@ -24,7 +23,7 @@ class <<ranks
   alias oldbrackets []
   def [](obj) oldbrackets(obj) or 9999 end
 end
-if File.exists?(rcfile)
+if File.exist?(rcfile)
   rc = IO.readlines(rcfile, nil)[0]
   rc.sub(%r{.*?ranks\s*=\s*\((.*?)\).*}, '\1').split.each_with_index {|x,i|
     ranks[x] = i.to_i
