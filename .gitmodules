@@ -16,15 +16,3 @@
 [submodule "vim/.vim/bundle/python-mode"]
 	path = vim/.vim/bundle/python-mode
 	url = git://github.com/klen/python-mode.git
-[submodule "emacs/.emacs.d/vendor/evil"]
-	path = emacs/.emacs.d/vendor/evil
-	url = https://gitorious.org/evil/evil.git
-[submodule "emacs/.emacs.d/vendor/evil-leader"]
-	path = emacs/.emacs.d/vendor/evil-leader
-	url = https://github.com/cofi/evil-leader.git
-[submodule "emacs/.emacs.d/vendor/vim-empty-lines-mode"]
-	path = emacs/.emacs.d/vendor/vim-empty-lines-mode
-	url = https://github.com/jmickelin/vim-empty-lines-mode
-[submodule "emacs/.emacs.d/vendor/web-mode"]
-	path = emacs/.emacs.d/vendor/web-mode
-	url = https://github.com/fxbois/web-mode.git
