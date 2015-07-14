@@ -21,6 +21,8 @@
 	sub = submodule
 	up = checkout
 	update = checkout
+	uncommit = reset --soft HEAD~1
+	amend = commit --amend -C HEAD
 
 	# Runs diff using vimdiff to compare versions
 	vimdiff = difftool -t vimdiff
