@@ -16,3 +16,6 @@
 [submodule "vim/.vim/bundle/python-mode"]
 	path = vim/.vim/bundle/python-mode
 	url = git://github.com/klen/python-mode.git
+[submodule "emacs/.emacs.d"]
+	path = emacs/.emacs.d
+	url = https://github.com/syl20bnr/spacemacs
