@@ -24,7 +24,7 @@ main() {
     setup-x11
     #setup-pycl
     setup-ipython
-    setup-synergy
+    #setup-synergy
     setup-crashplan
     setup-redshift
     setup-transmission
@@ -159,7 +159,7 @@ setup-crashplan() {
 setup-redshift() {
     if type -P redshift-gtk &>/dev/null; then
         _redshift() {
-            ( sleep 10; redshift-gtk -l 42.75:-71.6 -t 6500:4500 ) &
+            ( sleep 10; redshift-gtk -l 42.75:-71.6 -t 6500:5000 ) &
             trap "kill $!; exit" 0 1 2 3 15
         }
         linkf _redshift
@@ -185,13 +185,18 @@ setup-emacs() {
 setup-gnome() {
     #setup-super
     #setup-super2
-    ( sleep 10; setup-scroll ) &
+    #( sleep 10; setup-scroll ) &
     link gnome-session
 }
 
 setup-kde4() {
+    #setup-scroll
     export WINDOW_MANAGER=$(type -P ${wm:-kwin})
     export KDEWM=$WINDOW_MANAGER
+    link startkde
+}
+
+setup-kde5() {
     link startkde
 }
 
@@ -218,7 +223,6 @@ setup-desktop() {
     unset wm
     case $XSERVER:${HOSTNAME%%.*}:$USER in
         (*:gargan:aron)    setup-gnome ;; # twm & xterm ;;
-        (*:frabjous:aron)  setup-kde4 ;; # twm & xterm ;;
         (*:oliva:amg)      wm=sawfish; setup-gnome ;; # Amy's workstation
         (*) setup-gnome ;; # fall-through default
     esac

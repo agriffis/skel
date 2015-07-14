@@ -1,7 +1,7 @@
 #if defined(MODE_day) || defined(wterm)
 nite.mode: day
 
-#define my_background  #ffffff
+#define my_background  #f6f6f6
 #define my_foreground  #000000
 #define my_color0      #000000
 #define my_color1      #8b4b4b
@@ -23,7 +23,7 @@ nite.mode: day
 #else
 nite.mode: nite
 
-#define my_background  #151515
+#define my_background  #000000
 #define my_foreground  #e8e8d3
 #define my_color0      #2e3436
 #define my_color1      #cc0000

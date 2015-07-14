@@ -3,7 +3,7 @@
 pass=$(dd if=/dev/random ibs=1 count=${1:-8} 2>/dev/null | \
 tr '\000-\377' '0-9A-Za-z0-9A-Za-z0-9A-Za-z0-9A-Za-z0-9A-Za-z')
 
-if [[ -n $DISPLAY ]] && type -P xclip &>/dev/null; then
+if [[ -n $DISPLAY && -x /usr/bin/xclip ]]; then
     #echo -n "$pass" | xclip -i -selection primary
     echo -n "$pass" | xclip -i -selection clipboard
 fi

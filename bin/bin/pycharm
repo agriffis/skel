@@ -1,4 +1,4 @@
 #!/bin/bash
 
-cd ~/Downloads/pycharm-2.7.3/bin
+cd /usr/local/pycharm/bin
 exec ./pycharm.sh "$@"

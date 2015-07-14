@@ -366,9 +366,11 @@ let g:pymode_lint_on_write = 0
 let g:pymode_lint_unmodified = 0
 let g:pymode_lint_ignore = "E301,E302,E261,E501"
 let g:pymode_rope_complete_on_dot = 0
-let g:pymode_rope_completion_bind = ''
 let g:pymode_rope_autoimport = 1
 let g:pymode_rope_goto_definition_cmd = 'e'
+
+" pymode bindings
+let g:pymode_rope_completion_bind = ''       " <C-Space>
 
 " The g:pyindent settings only take effect if g:pymode_indent == 0
 " http://stackoverflow.com/questions/3538785/how-to-turn-off-double-indentation-in-vim

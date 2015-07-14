@@ -24,7 +24,7 @@ function! GrepInit()
   endif
 
   if ! exists('g:grepexc')
-    let g:grepexc = split('_darcs .git .hg .svn CVS migrations')
+    let g:grepexc = split('_darcs .git .hg .svn .tox CVS migrations')
     let g:grepexc += split('*~ *.bak *.o *.pyc *.mo')
     if exists('g:grepexc2')
       let g:grepexc += g:grepexc2

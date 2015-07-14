@@ -91,6 +91,13 @@ if buf =~ /\n/
 #   # falls through to load this URL
 
   # -----------------------------------------
+  # Multi-line URL or text with trailing w/s
+  # -----------------------------------------
+  when /\s$/m then
+    putx buf.gsub(/\s+$/m, '')
+    exit
+
+  # -----------------------------------------
   # Multi-line URL or text to be concatenated
   # -----------------------------------------
   else
