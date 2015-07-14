@@ -1,0 +1,28 @@
+#!/usr/bin/env python3
+
+import json
+import requests
+import os
+import pprint
+import sys
+
+user = os.environ['HIPCHAT_USER']
+token = os.environ['HIPCHAT_TOKEN']
+url = 'https://api.hipchat.com/v2/user/{}'.format(user)
+
+s = requests.Session()
+s.headers['content-type'] = 'application/json'
+s.headers['authorization'] = 'Bearer {}'.format(token)
+
+def set_presence(show, status=None):
+    data = s.get(url, timeout=30).json()
+    p = data.get('presence')
+    if p:
+        p.update(
+            show=show,
+            status=status,
+        )
+        s.put(url, data=json.dumps(data), timeout=30)
+
+if __name__ == '__main__':
+    set_presence(*sys.argv[1:])

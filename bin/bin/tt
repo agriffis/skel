@@ -1,26 +1,39 @@
 #!/bin/bash
 
+do_hipchat() {
+    if [[ $(last) == START* ]]; then
+        tt-hip chat
+    else
+        tt-autohip
+    fi
+}
+
+last() {
+    tail -n1 ~/Drive/tt.txt
+}
+
 darg=()
 if [[ $1 == *:* ]]; then
     darg=( -d "$1" )
 elif [[ -n $1 && $1 != *[!0-9]* ]]; then
     darg=( -d "$1 minutes ago" )
 elif [[ $1 == e ]]; then
-    exec "$EDITOR" ~/Drive/tt.txt
+    exec vim ~/Drive/tt.txt
 elif [[ $1 == l ]]; then
-    exec tail -n1 ~/Drive/tt.txt
+    last; exit
 elif [[ $1 == r ]]; then
     sed -i '$d' ~/Drive/tt.txt
+    last; do_hipchat; exit
 elif [[ -n $1 ]]; then
     echo "I don't understand: $*" >&2
     exit 1
 fi
 
-last=$(tail -n1 ~/Drive/tt.txt)
-
 action=START
-if [[ $last == START* ]]; then
+if [[ $(last) == START* ]]; then
     action=STOP
 fi
 
 printf '%s %s\n' "$action" "$(date "${darg[@]}" +%Y%m%d-%H%M%S)" | tee -a ~/Drive/tt.txt
+
+do_hipchat
