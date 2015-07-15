@@ -6,8 +6,10 @@ import os
 import pprint
 import sys
 
-user = os.environ['HIPCHAT_USER']
-token = os.environ['HIPCHAT_TOKEN']
+hipchatrc = os.path.expanduser('~/.hipchat')
+env = json.load(open(hipchatrc))
+user = env['HIPCHAT_USER']
+token = env['HIPCHAT_TOKEN']
 url = 'https://api.hipchat.com/v2/user/{}'.format(user)
 
 s = requests.Session()
