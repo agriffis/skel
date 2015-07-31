@@ -17,7 +17,7 @@
      ;; Uncomment some layer names and press <SPC f e R> (Vim style) or
      ;; <M-m f e R> (Emacs style) to install them.
      ;; ----------------------------------------------------------------
-     ;; auto-completion
+     auto-completion
      better-defaults
      emacs-lisp
      (git :variables
@@ -28,7 +28,7 @@
      org
      python
      ;; shell
-     ;; syntax-checking
+     syntax-checking
      themes-megapack
      vim-empty-lines
      )
@@ -36,7 +36,10 @@
    ;; wrapped in a layer. If you need some configuration for these
    ;; packages then consider to create a layer, you can also put the
    ;; configuration in `dotspacemacs/config'.
-   dotspacemacs-additional-packages '()
+   dotspacemacs-additional-packages
+   '(
+     ;; replace-colorthemes doesn't work
+     )
    ;; A list of packages and/or extensions that will not be install and loaded.
    dotspacemacs-excluded-packages
    '(
@@ -225,7 +228,6 @@ layers configuration."
  '(custom-safe-themes
    (quote
     ("c35c0effa648fd320300f3d45696c640a92bdc7cf0429d002a96bda2b42ce966" "8aebf25556399b58091e533e455dd50a6a9cba958cc4ebb0aab175863c25b9a4" "d725097d2547e9205ab6c8b034d6971c2f0fc64ae5f357b61b7de411ca3e7ab2" "3038a172e5b633d0b1ee284e6520a73035d0cb52f28b1708e22b394577ad2df1" default)))
- '(debug-on-error t)
  '(fci-rule-color "#444444" t)
  '(git-gutter:added-sign "☀")
  '(git-gutter:deleted-sign "☂")
