@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # -*- tab-width:2; indent-tabs-mode:t -*- vim: set noet ts=2:
 
 # Copyright (C) 2009  David Hilley <davidhi@cc.gatech.edu>
