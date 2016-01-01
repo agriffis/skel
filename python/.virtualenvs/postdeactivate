@@ -1,0 +1,14 @@
+#!/bin/bash
+# This hook is run after every virtualenv is deactivated.
+
+unset GEM_HOME
+
+if [[ -n $DEACTIVATE_PATH ]]; then
+    PATH=$DEACTIVATE_PATH
+    unset DEACTIVATE_PATH
+fi
+
+if [[ -n $DEACTIVATE_PWD ]]; then
+    cd "$DEACTIVATE_PWD"
+    unset DEACTIVATE_PWD
+fi

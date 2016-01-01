@@ -1,0 +1,5 @@
+#!/bin/bash
+# This hook is run after every virtualenv is activated.
+
+export GEM_HOME=$VIRTUAL_ENV/gems
+PATH=$VIRTUAL_ENV/gems/bin:$PATH

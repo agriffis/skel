@@ -1,2 +1,5 @@
 __pycache__/
 *.py[cod]
+/vim/.vim/bak/
+/vim/.vim/swap/
+\#*#

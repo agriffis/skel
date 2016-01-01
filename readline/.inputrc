@@ -11,6 +11,7 @@ control-l: clear-screen
 "\e[A": history-search-backward
 "\e[B": history-search-forward
 "\M-s": menu-complete
+control-space: history-expand-line
 
 # doesn't seem to work
 #$if java

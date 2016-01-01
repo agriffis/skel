@@ -44,7 +44,8 @@
 
 main() {
     declare mode oldmode
-    declare xrdb_query=$(xrdb -query)
+    declare xrdb_query
+    xrdb_query=$(xrdb -query) || exit
     grep -q 'nite.mode:.*day' <<<"$xrdb_query" \
         && oldmode=day || oldmode=nite
     grep -q 'nite.lunarized:.*true' <<<"$xrdb_query" \
@@ -83,9 +84,7 @@ main() {
     update_xfce_terminal &
     update_xterm
     update_desktop
-    update_emacs
-    update_vim
-    update_irssi
+    update_editors
     wait
 }
 
@@ -437,44 +436,9 @@ update_roxterm() {
     scribble_dbus_roxterm Profiles/Default
 }
 
-update_emacs() {
-    declare x require theme=adwaita
-    [[ $mode == nite ]] && require=inkpot-theme theme=inkpot
-    $opt_solarized || $opt_lunarized && theme=solarized-dark require=
-    emacsclient -e "(disable-theme 'adwaita)"
-    emacsclient -e "(disable-theme 'inkpot)"
-    emacsclient -e "(disable-theme 'solarized-dark)"
-    [[ -n $require ]] && emacsclient -e "(require '$require)"
-    emacsclient -e "(load-theme '$theme t)"
-}
-
-update_vim() {
-    declare x scheme=default
-    [[ $mode == nite ]] && scheme=jellybeans
-    $opt_solarized || $opt_lunarized && scheme=solarized
-    for x in $(vim --serverlist); do
-        vim --servername "$x" --remote-send "<c-\\><c-n>:call TryColorscheme('$scheme')<cr>"
-    done
-}
-
-update_irssi() {
-    declare x theme=light
-    [[ $mode == nite ]] && theme=dark
-    for x in irssi; do
-        screen -q -ls $x
-        if [[ $? == 11 ]]; then
-            ( # can't ctrl-u a blank line, so add a temporary X
-              screen -S $x -X stuff $'X\cu'
-              sleep 0.2 # seems to be necessary
-              screen -S $x -X stuff "/set theme $theme"$'\n'
-              sleep 0.2
-              screen -S $x -X stuff $'\cy'
-              sleep 0.2
-              screen -S $x -X stuff $'\b' # remove the X
-            ) &
-        fi
-    done
-    wait
+update_editors() {
+    # Update tmux, emacs and vim
+    scheme $mode
 }
 
 update_desktop() {

@@ -1,0 +1,66 @@
+#!/bin/bash
+#
+# scheme -- change color scheme for terminals and applications
+#
+# Copyright 2015 Aron Griffis <agriffis@n01se.net>
+# Released under the GNU GPL v2
+
+main() {
+    declare scheme="$1" background
+
+    case $scheme in
+        default|white|lite|day) scheme=light ;;
+        black|night|nite) scheme=dark ;;
+    esac
+
+    set -- "$scheme" "${scheme##*-}"
+
+    update_emacs "$@"
+    update_vim "$@"
+    update_tmux "$@"
+}
+
+update_emacs() {
+    declare require theme scheme="$1"
+
+    case $scheme in
+        #dark) require=ujelly-theme theme=ujelly ;;
+        #dark) require=inkpot-theme theme=inkpot ;;
+        dark) theme=spacemacs-dark ;;
+        solarized-*) require= theme=solarized-dark ;;
+        *) require= theme=spacemacs-light ;;
+    esac
+
+    [[ -n $require ]] && \
+    emacsclient -e "(require '$require)"
+    emacsclient -e "(load-theme '$theme)"
+}
+
+update_vim() {
+    declare x scheme="$1"
+
+    case "$scheme" in
+        light) scheme=default ;;
+        dark) scheme=jellybeans ;;
+        solarized-*) scheme=solarized ;;
+    esac
+
+    for x in $(vim --serverlist); do
+        vim --servername "$x" --remote-send "<c-\\><c-n>:call TryColorscheme('$scheme')<cr>"
+    done
+}
+
+update_tmux() {
+    declare x scheme="$1" background="$2"
+
+    if [[ $scheme == solarized* ]]; then
+        background=dark
+    fi
+
+    case "$background" in
+        light) tmux set -g status-style fg=default,bg=white,dim ;;
+        dark) tmux set -g status-style fg=default,bg=black ;;
+    esac
+}
+
+main "$@"

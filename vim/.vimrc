@@ -144,7 +144,7 @@ endif
 " Use .vim for viminfo; directory will be made above
 if isdirectory($HOME."/.vim")
   if has("viminfo")
-    set viminfo='50,n~/.vim/viminfo
+    set viminfo='50,s100,n~/.vim/viminfo
   endif
   let $CVIMSYN='~/.vim/'
 endif

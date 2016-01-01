@@ -1,0 +1,54 @@
+#!/usr/bin/env python3
+
+import datetime
+import os
+import subprocess
+import sys
+
+
+file = os.path.expanduser('~/.pomodoro')
+
+
+def main(*args):
+    arg = args[0] if args else 'start'
+
+    if arg == 'start':
+        dt = datetime.datetime.now()
+        stamp = int(dt.timestamp())
+        with open(file, 'w') as f:
+            f.write(str(stamp))
+        tmux("set -g status-left '  '")
+        tmux("set -g status-right '#(pom status)'")
+        tmux("refresh-client -S")
+
+    elif arg == 'stop':
+        try:
+            os.remove(file)
+        except FileNotFoundError:
+            pass
+        tmux("set -g status-left ''")
+        tmux("set -g status-right ''")
+
+    elif arg == 'status':
+        try:
+            with open(file) as f:
+                stamp = int(f.read())
+        except FileNotFoundError:
+            pass
+        else:
+            dt = datetime.datetime.fromtimestamp(stamp)
+            delta = datetime.datetime.now() - dt
+            minutes = int(delta.total_seconds()) // 60
+            print("{:2d}".format(25 - minutes))
+            if 25 < minutes < 30:
+                tmux("clock-mode")
+            elif minutes >= 30:
+                main('stop')
+
+
+def tmux(arg):
+    subprocess.call('tmux ' + arg, shell=True)
+
+
+if __name__ == '__main__':
+    main(*sys.argv[1:])

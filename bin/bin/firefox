@@ -4,7 +4,8 @@ unset http{,s}_proxy HTTP{,S}_PROXY
 unset ftp_proxy FTP_PROXY
 
 case " $* " in
-    *' -P '*|*' -ProfileManager '*) export MOZ_NO_REMOTE=1 ;;
+    *' -P '*|*' -ProfileManager '*|*' --ProfileManager '*)
+        export MOZ_NO_REMOTE=1 ;;
 esac
 
 exec "$(wrapped $0)" "$@"

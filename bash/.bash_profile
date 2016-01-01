@@ -21,7 +21,7 @@ frontpath PATH \
   /usr/local/bin /usr/local/sbin \
   /usr/bin /bin /usr/sbin /sbin \
   /usr/X11R6/bin /usr/games /usr/games/bin
-[[ $HOME == / ]] || frontpath PATH ~/bin ~/sbin ~/node_modules/.bin
+[[ $HOME == / ]] || frontpath PATH ~/bin ~/.local/bin ~/node_modules/.bin
 
 # ccache on Gentoo and Debian respectively
 frontpath PATH /usr/lib{64,}/ccache/bin /usr/lib{64,}/ccache

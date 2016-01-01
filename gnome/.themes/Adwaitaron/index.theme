@@ -1,0 +1,10 @@
+[X-GNOME-Metatheme]
+Name=Adwaitaron
+Comment=There might be two
+Type=X-GNOME-Metatheme
+Encoding=UTF-8
+GtkTheme=Adwaita
+MetacityTheme=Adwaitaron
+IconTheme=Adwaita
+CursorTheme=Adwaita
+CursorSize=24

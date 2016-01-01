@@ -1,0 +1,9 @@
+if ENV.fetch('VAGRANT_DEFAULT_PROVIDER', 'libvirt') == 'libvirt'
+  ENV['VAGRANT_DEFAULT_PROVIDER'] = 'lxc'
+end
+
+Vagrant.configure("2") do |config|
+  config.vm.provider :lxc do |vm|
+    vm.customize 'network.link', 'virbr0'
+  end
+end
