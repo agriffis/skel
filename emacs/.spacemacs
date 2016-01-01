@@ -19,18 +19,23 @@
      ;; ----------------------------------------------------------------
      auto-completion
      better-defaults
+
+     git
+     github
+     ;; version-control
+
+     (clojure :variables
+              clojure-enable-fancify-symbols t)
      emacs-lisp
-     (git :variables
-          git-enable-github-support t
-          git-gutter-use-fringe nil)
      html
      markdown
      org
      python
+     django
+     (syntax-checking :variables syntax-checking-enable-tooltips nil)
+
      ;; shell
-     syntax-checking
-     themes-megapack
-     vim-empty-lines
+     ;; vim-empty-lines
      )
    ;; List of additional packages that will be installed wihout being
    ;; wrapped in a layer. If you need some configuration for these
@@ -38,13 +43,18 @@
    ;; configuration in `dotspacemacs/config'.
    dotspacemacs-additional-packages
    '(
-     ;; replace-colorthemes doesn't work
+     bracketed-paste
      )
    ;; A list of packages and/or extensions that will not be install and loaded.
    dotspacemacs-excluded-packages
    '(
-     powerline
+     eldoc        ; too slow
      smartparens
+     toxi-theme   ; broken
+     evil-matchit
+     rainbow-delimeters  ; gets confused by unbalanced parens in html
+     org-bullets  ; prefer plain-jane asterisks
+     yasnippet
      )
    ;; If non-nil spacemacs will delete any orphan packages, i.e. packages that
    ;; are declared in a layer which is not a member of
@@ -76,16 +86,18 @@ before layers configuration."
    ;; List of themes, the first of the list is loaded when spacemacs starts.
    ;; Press <SPC> T n to cycle to the next theme in the list (works great
    ;; with 2 themes variants, one dark and one light)
-   dotspacemacs-themes '(solarized-dark
-                         inkpot
-                         ujelly
-                         flatui)
+;; dotspacemacs-themes '(spacemacs-light
+;;                       spacemacs-dark
+;;                       ;; inkpot
+;;                       ;; ujelly
+;;                       ;; flatui
+;;                       )
    ;; If non nil the cursor color matches the state color.
    dotspacemacs-colorize-cursor-according-to-state t
    ;; Default font. `powerline-scale' allows to quickly tweak the mode-line
    ;; size to make separators look not too crappy.
-   dotspacemacs-default-font '("Source Code Pro"
-                               :size 13
+   dotspacemacs-default-font '("DejaVu Sans Mono"
+                               :size 10
                                :weight normal
                                :width normal
                                :powerline-scale 1.1)
@@ -154,46 +166,68 @@ before layers configuration."
    ;; specified with an installed package.
    ;; Not used for now.
    dotspacemacs-default-package-repository nil
+
    )
   ;; User initialization goes here
+  (setq-default
+   evil-escape-key-sequence "~!"
+   web-mode-enable-auto-closing t
+   )
   )
 
-(defun dotspacemacs/config ()
+(defun dotspacemacs/user-config ()
   "Configuration function.
  This function is called at the very end of Spacemacs initialization after
 layers configuration."
-  (setq powerline-default-separator 'nil)
+  ;; Don't use unicode symbols for diminished minor modes
+  (setq dotspacemacs-mode-line-unicode-symbols nil)
+
   (global-hl-line-mode -1)
   (set-default 'truncate-lines t)
-  (setq web-mode-engines-alist
-        '(("django" . "\\.html\\'"))
-        )
+  (setq evil-move-beyond-eol nil)
+  ;; (global-diff-hl-mode -1)
+
+  ;; customize company-mode to avoid idle completion, and start manual
+  ;; completion with C-space
+  (setq company-idle-delay nil)  ; no idle completion
+  (define-key evil-insert-state-map (kbd "C-@") 'company-complete)
+
+  ;; https://github.com/syl20bnr/spacemacs/issues/3064
+  (require 'bracketed-paste)
+  (bracketed-paste-enable)
+
+  ;; Prefer the unindented original presentation
+  (setq org-startup-indented nil)
+
+  ;; Don't highlight smartparens overlays, because they seem to use the same
+  ;; fg/bg so it's just unreadable.
+  (setq sp-highlight-pair-overlay nil)
+  (setq sp-highlight-wrap-overlay nil)
+  (setq sp-highlight-wrap-tag-overlay nil)
+
+  (setq web-mode-markup-indent-offset 4)
+  (setq web-mode-css-indent-offset 4)
+  (setq web-mode-code-indent-offset 4)
+  (setq web-mode-style-padding 4)
+  (setq web-mode-script-padding 4)
+  (setq web-mode-block-padding 4)
+  (setq web-mode-comment-style 2)  ; server comment
+
+  (setq web-mode-engines-alist '(("django" . "\\.html\\'")))
 )
 
-;; (defun load-theme-only (new)
-;;   (dolist (old custom-enabled-themes)
-;;     (disable-theme old))
-;;   (load-theme new)
-;;   ;; Force the background color back to default, see
-;;   ;; http://stackoverflow.com/questions/19054228/emacs-disable-theme-background-color-in-terminal
-;;   (dolist (frame (frame-list))
-;;     (unless (display-graphic-p frame)
-;;       (set-face-background 'default "unspecified-bg" frame))))
-
-(defun frame-restore-background (frame)
-  (unless (display-graphic-p frame)
-    ;; Force the background color back to default, see
-    ;; http://stackoverflow.com/questions/19054228/emacs-disable-theme-background-color-in-terminal
-    (set-face-background 'default "unspecified-bg" frame)))
-
-(defun restore-background (orig-fun &rest args)
-  (let ((res (apply orig-fun args)))
-    (dolist (frame (frame-list))
-      (frame-restore-background frame))
-    res))
-
-(advice-add 'load-theme :around #'restore-background)
-(add-hook 'after-make-frame-functions 'frame-restore-background)
+;; (defun frame-restore-background (frame)
+;;   (unless (display-graphic-p frame)
+;;     ;; Force the background color back to default, see
+;;     ;; http://stackoverflow.com/questions/19054228/emacs-disable-theme-background-color-in-terminal
+;;     (set-face-background 'default "unspecified-bg" frame)))
+;; (defun restore-background (orig-fun &rest args)
+;;   (let ((res (apply orig-fun args)))
+;;     (dolist (frame (frame-list))
+;;       (frame-restore-background frame))
+;;     res))
+;; (advice-add 'load-theme :around #'restore-background)
+;; (add-hook 'after-make-frame-functions 'frame-restore-background)
 
 ;; Include underscore as a word character.
 ;; http://daemianmack.com/?p=45 (though it doesn't get the hook
@@ -227,12 +261,14 @@ layers configuration."
  '(cua-read-only-cursor-color "#859900")
  '(custom-safe-themes
    (quote
-    ("c35c0effa648fd320300f3d45696c640a92bdc7cf0429d002a96bda2b42ce966" "8aebf25556399b58091e533e455dd50a6a9cba958cc4ebb0aab175863c25b9a4" "d725097d2547e9205ab6c8b034d6971c2f0fc64ae5f357b61b7de411ca3e7ab2" "3038a172e5b633d0b1ee284e6520a73035d0cb52f28b1708e22b394577ad2df1" default)))
+    ("bffa9739ce0752a37d9b1eee78fc00ba159748f50dc328af4be661484848e476" "fa2b58bb98b62c3b8cf3b6f02f058ef7827a8e497125de0254f56e373abee088" "3f78849e36a0a457ad71c1bda01001e3e197fe1837cb6eaa829eb37f0a4bdad5" "c35c0effa648fd320300f3d45696c640a92bdc7cf0429d002a96bda2b42ce966" "8aebf25556399b58091e533e455dd50a6a9cba958cc4ebb0aab175863c25b9a4" "d725097d2547e9205ab6c8b034d6971c2f0fc64ae5f357b61b7de411ca3e7ab2" "3038a172e5b633d0b1ee284e6520a73035d0cb52f28b1708e22b394577ad2df1" default)))
+ '(diff-hl-margin-mode nil)
  '(fci-rule-color "#444444" t)
  '(git-gutter:added-sign "☀")
  '(git-gutter:deleted-sign "☂")
  '(git-gutter:modified-sign "☁")
  '(git-gutter:window-width 2)
+ '(global-diff-hl-mode t)
  '(global-git-gutter-mode t)
  '(highlight-changes-colors (quote ("#d33682" "#6c71c4")))
  '(highlight-symbol-colors
@@ -262,6 +298,10 @@ layers configuration."
  '(pos-tip-background-color "#073642")
  '(pos-tip-foreground-color "#93a1a1")
  '(ring-bell-function (quote ignore) t)
+ '(safe-local-variable-values
+   (quote
+    ((python-shell-virtualenv-path . "/home/aron/.virtualenvs/pp")
+     (encoding . utf-8))))
  '(smartrep-mode-line-active-bg (solarized-color-blend "#859900" "#073642" 0.2))
  '(term-default-bg-color "#002b36")
  '(term-default-fg-color "#839496")
@@ -295,4 +335,9 @@ layers configuration."
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- )
+ '(default ((t (:background nil))))
+ '(company-tooltip-common ((t (:inherit company-tooltip :weight bold :underline nil))))
+ '(company-tooltip-common-selection ((t (:inherit company-tooltip-selection :weight bold :underline nil))))
+ '(diff-hl-change ((t (:foreground "yellow"))))
+ '(diff-hl-delete ((t (:inherit diff-removed :foreground "red"))))
+ '(diff-hl-insert ((t (:inherit diff-added :foreground "blue")))))
