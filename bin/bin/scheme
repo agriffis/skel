@@ -24,8 +24,6 @@ update_emacs() {
     declare require theme scheme="$1"
 
     case $scheme in
-        #dark) require=ujelly-theme theme=ujelly ;;
-        #dark) require=inkpot-theme theme=inkpot ;;
         dark) theme=spacemacs-dark ;;
         solarized-*) require= theme=solarized-dark ;;
         *) require= theme=spacemacs-light ;;

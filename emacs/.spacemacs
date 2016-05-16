@@ -34,6 +34,8 @@
      django
      (syntax-checking :variables syntax-checking-enable-tooltips nil)
 
+     themes-megapack
+
      ;; shell
      ;; vim-empty-lines
      )
