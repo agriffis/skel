@@ -198,10 +198,10 @@ ps1_mod_git() {
     PS1_CACHE_GIT_TOP=$(find_parent_with .git/HEAD)
     PS1_CACHE_GIT_CWD=$PWD
   fi
-  declare top=$PS1_CACHE_GIT_TOP
+  declare top="$PS1_CACHE_GIT_TOP"
   [[ -z $top ]] && return 1
-  declare head=$(<$top/.git/HEAD)
-  [[ -n $head ]] && ps1_status "[$head]"
+  declare head=$(git -C "$top" branch | grep '^\*')
+  [[ -n $head ]] && ps1_status "[${head#? }]"
 }
 #ps1_register_module git
 
