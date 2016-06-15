@@ -272,7 +272,7 @@ XTerm.vt100.backgroundImage:    my_image
 XTerm.vt100.loginShell:           false
 XTerm.vt100.eightBitInput:        false
 XTerm.vt100.metaSendsEscape:      true
-XTerm.vt100.cursorBlink:          true
+XTerm.vt100.cursorBlink:          false
 XTerm.vt100.cursorOffTime:        500
 XTerm.vt100.cursorOnTime:         1000
 XTerm.vt100.saveLines:            20000
