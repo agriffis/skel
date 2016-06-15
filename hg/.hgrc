@@ -10,7 +10,7 @@ purge =
 rebase =
 record =
 shelve =
-hgsubversion = ~/Dropbox/stow/hg/extensions/hgsubversion
+#hgsubversion = ~/Dropbox/stow/hg/extensions/hgsubversion
 transplant =
 
 [ui]
