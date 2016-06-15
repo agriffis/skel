@@ -153,7 +153,7 @@ before layers configuration."
    ;; If non nil smooth scrolling (native-scrolling) is enabled. Smooth
    ;; scrolling overrides the default behavior of Emacs which recenters the
    ;; point when it reaches the top or bottom of the screen.
-   dotspacemacs-smooth-scrolling t
+   dotspacemacs-smooth-scrolling nil
    ;; If non-nil smartparens-strict-mode will be enabled in programming modes.
    dotspacemacs-smartparens-strict-mode nil
    ;; Select a scope to highlight delimiters. Possible value is `all',
@@ -183,6 +183,11 @@ before layers configuration."
 layers configuration."
   ;; Don't use unicode symbols for diminished minor modes
   (setq dotspacemacs-mode-line-unicode-symbols nil)
+
+  ;; https://github.com/syl20bnr/spacemacs/issues/6097
+  (setq scroll-conservatively 101
+        scroll-margin 0
+        scroll-preserve-screen-position 't)
 
   (global-hl-line-mode -1)
   (set-default 'truncate-lines t)
