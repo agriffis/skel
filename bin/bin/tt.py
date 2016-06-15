@@ -15,7 +15,7 @@ def punch(stamp):
     days.setdefault(date, datetime.timedelta(0))
     days[date] += stamp - prev
 
-with open('/home/aron/Drive/tt.txt') as tt:
+with open('/home/aron/Dropbox/tt.txt') as tt:
     for expected, line in itertools.izip(actions, tt):
         action, stamp = line.strip().split()
         assert action == expected
