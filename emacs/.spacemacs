@@ -46,6 +46,7 @@
    dotspacemacs-additional-packages
    '(
      bracketed-paste
+     editorconfig
      )
    ;; A list of packages and/or extensions that will not be install and loaded.
    dotspacemacs-excluded-packages
@@ -206,6 +207,9 @@ layers configuration."
   ;; Prefer the unindented original presentation
   (setq org-startup-indented nil)
 
+  ;; Assume text files are markdown
+  (add-to-list 'auto-mode-alist '("\\.txt\\'" . markdown-mode))
+
   ;; Don't highlight smartparens overlays, because they seem to use the same
   ;; fg/bg so it's just unreadable.
   (setq sp-highlight-pair-overlay nil)
@@ -219,8 +223,16 @@ layers configuration."
   (setq web-mode-script-padding 4)
   (setq web-mode-block-padding 4)
   (setq web-mode-comment-style 2)  ; server comment
-
   (setq web-mode-engines-alist '(("django" . "\\.html\\'")))
+
+  ;; Include underscore as a word character.
+  ;; http://daemianmack.com/?p=45 (though it doesn't get the hook
+  ;; definition right) and comments in
+  ;; https://gist.github.com/timcharper/5034251
+  (defun underscore-is-word-char ()
+    (modify-syntax-entry ?_ "w"))
+
+  (add-hook 'change-major-mode-hook 'underscore-is-word-char)
 )
 
 ;; (defun frame-restore-background (frame)
@@ -235,15 +247,6 @@ layers configuration."
 ;;     res))
 ;; (advice-add 'load-theme :around #'restore-background)
 ;; (add-hook 'after-make-frame-functions 'frame-restore-background)
-
-;; Include underscore as a word character.
-;; http://daemianmack.com/?p=45 (though it doesn't get the hook
-;; definition right) and comments in
-;; https://gist.github.com/timcharper/5034251
-(defun underscore-is-word-char ()
-  (modify-syntax-entry ?_ "w"))
-
-(add-hook 'change-major-mode-hook 'underscore-is-word-char)
 
 ;; Do not write anything past this comment. This is where Emacs will
 ;; auto-generate custom variable definitions.
