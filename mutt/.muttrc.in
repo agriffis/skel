@@ -25,6 +25,8 @@ ifelse(USER, aron, <<
   define(G1_GPG, B7DC85DF)
   define(GM_ADDR, aron<<@>>arongriffis.com)
   define(GM_USER, agriffis<<@>>gmail.com)
+  define(SS_ADDR, aron<<@>>scampersand.com)
+  define(SS_USER, aron<<@>>scampersand.com)
   define(HP_GPG, 20104EB0) dnl 5E6A3C6B
 >>, <<
   define(NAME, Amy Griffis)
@@ -53,17 +55,26 @@ ifdef(<<GM_PASS>>, <<
   define(GM_SMTP, <<smtp://GM_USER@smtp.gmail.com:587/>>)
 >>)
 
+define(SS_HOST, ifdef(<<OFFLINE>>, <<OFFLMAIL/ss>>, <<imaps://imap.gmail.com>>))
+ifdef(<<SS_PASS>>, <<
+  define(SS_SMTP, <<smtp://SS_USER:SS_PASS@smtp.gmail.com:587/>>)
+>>, <<
+  define(SS_SMTP, <<smtp://SS_USER@smtp.gmail.com:587/>>)
+>>)
+
 # When using offlineimap, folders are stored at the top level instead of under
 # INBOX, e.g. OFFLMAIL/hp/xen
 ifdef(<<OFFLINE>>, <<
   define(G1_FOLDER, <<G1_HOST>>)
   define(GM_FOLDER, <<GM_HOST>>)
+  define(SS_FOLDER, <<SS_HOST>>)
 >>, <<
   define(G1_FOLDER, <<G1_HOST/INBOX>>)
   define(GM_FOLDER, <<GM_HOST>>)
+  define(SS_FOLDER, <<SS_HOST>>)
 >>)
-ifdef(<<DEFAULT_HOST>>,, define(DEFAULT_HOST, <<GM_HOST>>))
-ifdef(<<DEFAULT_FOLDER>>,, define(DEFAULT_FOLDER, <<GM_FOLDER>>))
+ifdef(<<DEFAULT_HOST>>,, define(DEFAULT_HOST, <<SS_HOST>>))
+ifdef(<<DEFAULT_FOLDER>>,, define(DEFAULT_FOLDER, <<SS_FOLDER>>))
 
 # Send settings, applied in
 #     - in send-hooks (compose),
@@ -118,6 +129,20 @@ define(<<GM_SEND2>>, <<set \
   smtp_url="GM_SMTP" &sendmail \
   ifdef(<<OFFLINE>>,
     <<sendbox=GM_FOLDER/Outbox>>) >>)
+
+define(<<SS_PATT>>, <<@scampersand.com>>)
+define(<<SS_SEND>>, <<set \
+  from="NAME <SS_ADDR>" \
+  pgp_autoencrypt=no \
+  pgp_autosign=no \
+  pgp_sign_as=G1_GPG \
+  norecord >>)
+define(<<SS_SEND2>>, <<set \
+  hostname=gmail.com \
+  postponed=SS_FOLDER/Drafts \
+  smtp_url="SS_SMTP" &sendmail \
+  ifdef(<<OFFLINE>>,
+    <<sendbox=SS_FOLDER/Outbox>>) >>)
 
 define(<<ML>>, <<
   patsubst($2, <<\([^
@@ -204,8 +229,8 @@ ifelse(sysval, 0, <<
 
   # only used when recalling from the command-line, otherwise hooks and
   # bindings kick in.
-  GM_SEND
-  GM_SEND2
+  SS_SEND
+  SS_SEND2
 
   # Headers to display in the pager
 define(<<HEADERS>>, <<\
@@ -281,9 +306,9 @@ ifdef(<<OFFLINE>>, <<
   bind  attach      v           view-attach
 
 # Make sure *_send macros fire on return from compose menu
-  macro compose q '<exit><enter-command>             GM_SEND; GM_SEND2<enter>'
-# macro compose q '<enter-command> set postponed=GM_FOLDER/[Gmail]/Drafts<enter><postpone-message><enter-command> GM_SEND; GM_SEND2<enter>'
-  macro compose P '<postpone-message><enter-command> GM_SEND; GM_SEND2<enter>'
+  macro compose q '<exit><enter-command>             SS_SEND; SS_SEND2<enter>'
+# macro compose q '<enter-command> set postponed=SS_FOLDER/[Gmail]/Drafts<enter><postpone-message><enter-command> SS_SEND; SS_SEND2<enter>'
+  macro compose P '<postpone-message><enter-command> SS_SEND; SS_SEND2<enter>'
 
 # Change bindings according to folder/account we're presently accessing.
 # SEND macros contain double quotes, so use only single quotes here.
@@ -297,6 +322,11 @@ ifdef(<<OFFLINE>>, <<
 # folder-hook GM_HOST 'macro compose q '\''<enter-command> set postponed=GM_FOLDER/[Gmail]/Drafts<enter><postpone-message><enter-command> GM_SEND; GM_SEND2<enter>'\'
   folder-hook GM_HOST 'macro compose P '\''<postpone-message><enter-command> GM_SEND; GM_SEND2<enter>'\'
   folder-hook GM_HOST 'bind index,pager S noop'
+  folder-hook SS_HOST 'SS_SEND; SS_SEND2'
+  folder-hook SS_HOST 'macro compose q '\''<exit><enter-command>             SS_SEND; SS_SEND2<enter>'\'
+# folder-hook SS_HOST 'macro compose q '\''<enter-command> set postponed=SS_FOLDER/[Gmail]/Drafts<enter><postpone-message><enter-command> SS_SEND; SS_SEND2<enter>'\'
+  folder-hook SS_HOST 'macro compose P '\''<postpone-message><enter-command> SS_SEND; SS_SEND2<enter>'\'
+  folder-hook SS_HOST 'bind index,pager S noop'
 
 # END OPTION 2
 
@@ -384,11 +414,14 @@ ifdef(<<OFFLINE>>, <<
                         macro index \cf "<sync-mailbox><shell-escape>offlineimap -a DreamRecv\r"'
   folder-hook GM_HOST  'set spoolfile=GM_HOST/INBOX; \
                         macro index \cf "<sync-mailbox><shell-escape>offlineimap -a Gmail\r"'
+  folder-hook SS_HOST  'set spoolfile=SS_HOST/INBOX; \
+                        macro index \cf "<sync-mailbox><shell-escape>offlineimap -a Scampersand\r"'
 >>, <<
   # When online, reference all folders as =xen starting at INBOX of current
   # account
   folder-hook G1_HOST  'set folder=G1_FOLDER spoolfile=G1_HOST/INBOX'
   folder-hook GM_HOST  'set folder=GM_FOLDER spoolfile=GM_HOST/INBOX'
+  folder-hook SS_HOST  'set folder=SS_FOLDER spoolfile=SS_HOST/INBOX'
 
   account-hook . 'unset imap_user; unset imap_pass; unset tunnel'
 
@@ -407,6 +440,14 @@ ifdef(<<OFFLINE>>, <<
     account-hook GM_HOST 'set tunnel=$my_gm_tunnel'>>)
   ifdef(<<GM_PASS>>, <<
     account-hook GM_HOST 'set imap_pass="GM_PASS"'>>)
+
+  account-hook SS_HOST 'set imap_user=SS_USER'
+  ifdef(<<SS_TUNNEL>>, <<
+    # ease quoting issues
+    set my_gm_tunnel="SS_TUNNEL"
+    account-hook SS_HOST 'set tunnel=$my_gm_tunnel'>>)
+  ifdef(<<SS_PASS>>, <<
+    account-hook SS_HOST 'set imap_pass="SS_PASS"'>>)
 >>)
 
   # Browser always remains at last browsed location, update it to the root of
@@ -416,6 +457,8 @@ ifdef(<<OFFLINE>>, <<
     "push '<change-folder>?<change-dir><kill-line>G1_FOLDER\r<exit>'"
   folder-hook GM_HOST \
     "push '<change-folder>?<change-dir><kill-line>GM_FOLDER\r<exit>'"
+  folder-hook SS_HOST \
+    "push '<change-folder>?<change-dir><kill-line>SS_FOLDER\r<exit>'"
 
 # ========================================================================
 # HOOKS
@@ -526,8 +569,8 @@ ifelse(USER, amg, <<
   send-hook . unmy_hdr *
   send-hook .               'set text_flowed=no'
   send-hook '~C @gmail.com' 'set text_flowed=yes'
-  send-hook . 'GM_SEND'
-  send2-hook . 'GM_SEND2'
+  send-hook . 'SS_SEND'
+  send2-hook . 'SS_SEND2'
 
 # ========================================================================
 # Inboxes
@@ -535,6 +578,7 @@ ifelse(USER, amg, <<
 
   #mailboxes G1_HOST/INBOX
   mailboxes GM_HOST/INBOX
+  mailboxes SS_HOST/INBOX
 
 # ========================================================================
 # Griffis1 hooks
