@@ -43,7 +43,7 @@ update_vim() {
         solarized-*) scheme=solarized ;;
     esac
 
-    for x in $(vim --serverlist); do
+    for x in $(vim --serverlist 2>/dev/null); do
         vim --servername "$x" --remote-send "<c-\\><c-n>:call TryColorscheme('$scheme')<cr>"
     done
 }
