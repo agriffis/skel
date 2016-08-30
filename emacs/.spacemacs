@@ -8,6 +8,7 @@
    ;; List of additional paths where to look for configuration layers.
    ;; Paths must have a trailing slash (ie. `~/.mycontribs/')
    dotspacemacs-configuration-layer-path '()
+
    ;; List of configuration layers to load. If it is the symbol `all' instead
    ;; of a list then all discovered layers will be installed.
    dotspacemacs-configuration-layers
@@ -39,6 +40,7 @@
      ;; shell
      ;; vim-empty-lines
      )
+
    ;; List of additional packages that will be installed wihout being
    ;; wrapped in a layer. If you need some configuration for these
    ;; packages then consider to create a layer, you can also put the
@@ -47,7 +49,9 @@
    '(
      bracketed-paste
      editorconfig
+     org-journal
      )
+
    ;; A list of packages and/or extensions that will not be install and loaded.
    dotspacemacs-excluded-packages
    '(
@@ -59,6 +63,7 @@
      org-bullets  ; prefer plain-jane asterisks
      yasnippet
      )
+
    ;; If non-nil spacemacs will delete any orphan packages, i.e. packages that
    ;; are declared in a layer which is not a member of
    ;; the list `dotspacemacs-configuration-layers'
@@ -74,8 +79,10 @@ before layers configuration."
    ;; Either `vim' or `emacs'. Evil is always enabled but if the variable
    ;; is `emacs' then the `holy-mode' is enabled at startup.
    dotspacemacs-editing-style 'vim
+
    ;; If non nil output loading progress in `*Messages*' buffer.
    dotspacemacs-verbose-loading nil
+
    ;; Specify the startup banner. Default value is `official', it displays
    ;; the official spacemacs logo. An integer value is the index of text
    ;; banner, `random' chooses a random text banner in `core/banners'
@@ -83,9 +90,11 @@ before layers configuration."
    ;; by your Emacs build.
    ;; If the value is nil then no banner is displayed.
    dotspacemacs-startup-banner 'official
+
    ;; List of items to show in the startup buffer. If nil it is disabled.
    ;; Possible values are: `recents' `bookmarks' `projects'."
    dotspacemacs-startup-lists '(recents projects)
+
    ;; List of themes, the first of the list is loaded when spacemacs starts.
    ;; Press <SPC> T n to cycle to the next theme in the list (works great
    ;; with 2 themes variants, one dark and one light)
@@ -97,6 +106,7 @@ before layers configuration."
 ;;                       )
    ;; If non nil the cursor color matches the state color.
    dotspacemacs-colorize-cursor-according-to-state t
+
    ;; Default font. `powerline-scale' allows to quickly tweak the mode-line
    ;; size to make separators look not too crappy.
    dotspacemacs-default-font '("DejaVu Sans Mono"
@@ -104,6 +114,7 @@ before layers configuration."
                                :weight normal
                                :width normal
                                :powerline-scale 1.1)
+
    ;; The leader key
    dotspacemacs-leader-key "SPC"
    ;; The leader key accessible in `emacs state' and `insert state'
@@ -204,6 +215,26 @@ layers configuration."
   (require 'bracketed-paste)
   (bracketed-paste-enable)
 
+  (require 'editorconfig)
+  (editorconfig-mode 1)
+
+  ;; https://www.emacswiki.org/emacs/OrgJournal
+  (require 'org-journal)
+  (setq org-journal-dir "~/Dropbox/Journal"
+        org-journal-file-format "%Y%m%d.org")
+  (evil-leader/set-key
+    "jj" 'org-journal-new-entry)
+
+  ;; Copy the Spacemacs bindings for org-mode to org-journal-mode. This has to
+  ;; happen before adding new entries, since spacemacs//init-leader-mode-map
+  ;; checks to see if the map exists already.
+  (setq spacemacs-org-journal-mode-map (copy-keymap spacemacs-org-mode-map))
+  (spacemacs//init-leader-mode-map 'org-journal-mode 'spacemacs-org-journal-mode-map)
+
+  (evil-leader/set-key-for-mode 'org-journal-mode
+    "jn" 'org-journal-open-next-entry
+    "jp" 'org-journal-open-previous-entry)
+
   ;; Prefer the unindented original presentation
   (setq org-startup-indented nil)
 
@@ -216,6 +247,8 @@ layers configuration."
   (setq sp-highlight-wrap-overlay nil)
   (setq sp-highlight-wrap-tag-overlay nil)
 
+  ;; These are defaults. They can be overridden if there's a .editorconfig
+  ;; present.
   (setq web-mode-markup-indent-offset 4)
   (setq web-mode-css-indent-offset 4)
   (setq web-mode-code-indent-offset 4)
@@ -255,29 +288,10 @@ layers configuration."
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(ahs-case-fold-search nil)
- '(ahs-default-range (quote ahs-range-whole-buffer))
- '(ahs-idle-interval 0.25)
- '(ahs-idle-timer 0 t)
- '(ahs-inhibit-face-list nil)
- '(ansi-color-faces-vector
-   [default bold shadow italic underline bold bold-italic bold])
- '(ansi-color-names-vector
-   (vector "#ffffff" "#f36c60" "#8bc34a" "#fff59d" "#4dd0e1" "#b39ddb" "#81d4fa" "#262626"))
- '(compilation-message-face (quote default))
- '(cua-global-mark-cursor-color "#2aa198")
- '(cua-normal-cursor-color "#839496")
- '(cua-overwrite-cursor-color "#b58900")
- '(cua-read-only-cursor-color "#859900")
  '(custom-safe-themes
    (quote
     ("bffa9739ce0752a37d9b1eee78fc00ba159748f50dc328af4be661484848e476" "fa2b58bb98b62c3b8cf3b6f02f058ef7827a8e497125de0254f56e373abee088" "3f78849e36a0a457ad71c1bda01001e3e197fe1837cb6eaa829eb37f0a4bdad5" "c35c0effa648fd320300f3d45696c640a92bdc7cf0429d002a96bda2b42ce966" "8aebf25556399b58091e533e455dd50a6a9cba958cc4ebb0aab175863c25b9a4" "d725097d2547e9205ab6c8b034d6971c2f0fc64ae5f357b61b7de411ca3e7ab2" "3038a172e5b633d0b1ee284e6520a73035d0cb52f28b1708e22b394577ad2df1" default)))
  '(diff-hl-margin-mode nil)
- '(fci-rule-color "#444444" t)
- '(git-gutter:added-sign "☀")
- '(git-gutter:deleted-sign "☂")
- '(git-gutter:modified-sign "☁")
- '(git-gutter:window-width 2)
  '(global-diff-hl-mode t)
  '(global-git-gutter-mode t)
  '(highlight-changes-colors (quote ("#d33682" "#6c71c4")))
@@ -311,6 +325,7 @@ layers configuration."
  '(safe-local-variable-values
    (quote
     ((python-shell-virtualenv-path . "/home/aron/.virtualenvs/pp")
+     (python-shell-virtualenv-path . "/home/aron/.virtualenvs/fec-cms")
      (encoding . utf-8))))
  '(smartrep-mode-line-active-bg (solarized-color-blend "#859900" "#073642" 0.2))
  '(term-default-bg-color "#002b36")
