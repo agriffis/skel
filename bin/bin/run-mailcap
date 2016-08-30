@@ -524,7 +524,7 @@ foreach (@files) {
 
         $comm =~ s!([^%])%t!$1$type!g;
         $comm =~ s!([^%])%F!$1!g;
-        $comm =~ s!%{(.*?)}!$_="'$ENV{$1}'";s/\`//g;s/\'\'//g;$_!ge;
+        $comm =~ s!%\{(.*?)\}!$_="'$ENV{$1}'";s/\`//g;s/\'\'//g;$_!ge;
         $comm =~ s!\\(.)!$1!g;
         $comm =~ s!\'\'!\'!g;
         $comm =~ s!$quotedsemi!;!go;
