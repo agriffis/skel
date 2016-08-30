@@ -22,9 +22,8 @@ text/html; mailcap_bg %s chromium-browser file://@s ; nametemplate=%s.html ; tes
 text/html; mailcap_bg %s firefox file://@s ; nametemplate=%s.html ; test=test -n "$DISPLAY" && which firefox >/dev/null 2>&1
 text/html; mailcap_bg %s mozilla file://@s ; nametemplate=%s.html ; test=test -n "$DISPLAY" && which mozilla >/dev/null 2>&1
 text/html; w3m    %s ; nametemplate=%s.html ; needsterminal ; test=which w3m    >/dev/null 2>&1
-text/html; links2 %s ; nametemplate=%s.html ; needsterminal ; test=which links2 >/dev/null 2>&1
-text/html; elinks %s ; nametemplate=%s.html ; needsterminal ; test=which elinks >/dev/null 2>&1
 text/html; links  %s ; nametemplate=%s.html ; needsterminal ; test=which links  >/dev/null 2>&1
+text/html; elinks %s ; nametemplate=%s.html ; needsterminal ; test=which elinks >/dev/null 2>&1
 text/html; fix-html %s | env RAN_HTML_FIXUPS=1 run-mailcap --action=cat text/html:- ; \
            copiousoutput ; test=test -z "$RAN_HTML_FIXUPS" && which fix-html >/dev/null 2>&1
 text/html; w=`(stty size </dev/tty||echo '24 80') | cut -d' ' -f2 | xargs expr -10 +` && \
@@ -34,14 +33,11 @@ text/html; w=`(stty size </dev/tty||echo '24 80') | cut -d' ' -f2 | xargs expr -
            test=which w3m >/dev/null 2>&1
 text/html; w=`(stty size </dev/tty||echo '24 80') | cut -d' ' -f2 | xargs expr -10 +` && \
            c=`eval $(locale)\; case "$LC_CTYPE" in *.utf8) echo " -codepage iso-10646-1" \;\; esac` && \
-           links2 $c -width $w -html-margin 0 -html-numbered-links 1 -force-html -dump %s | sed 's/[[:blank:]]*$//' | cat -s; \
-           nametemplate=%s.html ; copiousoutput ; test=which links2 >/dev/null 2>&1
+           links $c -width $w -html-margin 0 -html-numbered-links 1 -force-html -dump %s | sed 's/[[:blank:]]*$//' | cat -s; \
+           nametemplate=%s.html ; copiousoutput ; test=which links >/dev/null 2>&1
 text/html; w=`(stty size </dev/tty||echo '24 80') | cut -d' ' -f2 | xargs expr -10 +` && \
            elinks -dump 1 -dump-width $w -localhost 1 -eval "set document.browse.margin_width = 0" %s ; \
            nametemplate=%s.html ; copiousoutput ; test=which elinks >/dev/null 2>&1
-text/html; w=`(stty size </dev/tty||echo '24 80') | cut -d' ' -f2 | xargs expr -10 +` && \
-           links -dump -width $w %s ; \
-           nametemplate=%s.html ; copiousoutput ; test=which links >/dev/null 2>&1
 
 text/calendar; vcalendar-filter %s 2>&1 ; copiousoutput ; test=which vcalendar-filter >/dev/null 2>&1
 
