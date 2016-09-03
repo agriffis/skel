@@ -47,7 +47,6 @@
    ;; configuration in `dotspacemacs/config'.
    dotspacemacs-additional-packages
    '(
-     bracketed-paste
      editorconfig
      org-journal
      )
@@ -211,9 +210,14 @@ layers configuration."
   (setq company-idle-delay nil)  ; no idle completion
   (define-key evil-insert-state-map (kbd "C-@") 'company-complete)
 
+  ;; don't intercept clicks
+  (xterm-mouse-mode -1)
+
   ;; https://github.com/syl20bnr/spacemacs/issues/3064
-  (require 'bracketed-paste)
-  (bracketed-paste-enable)
+  ;; now default in Emacs 25
+  ;; https://github.com/emacs-mirror/emacs/blob/master/etc/NEWS
+  ;(require 'bracketed-paste)
+  ;(bracketed-paste-enable)
 
   (require 'editorconfig)
   (editorconfig-mode 1)
@@ -319,9 +323,12 @@ layers configuration."
     ("#002b36" "#002b36" "#002b36" "#002b36" "#002b36" "#002b36" "#002b36" "#002b36")))
  '(magit-diff-use-overlays nil)
  '(magit-use-overlays nil)
+ '(package-selected-packages
+   (quote
+    (auto-complete cider smartparens evil flycheck company helm helm-core markdown-mode projectile magit with-editor hydra yapfify uuidgen py-isort org-projectile org-download mwim live-py-mode link-hint github-search eyebrowse evil-visual-mark-mode evil-unimpaired evil-ediff dumb-jump darkokai-theme column-enforce-mode clojure-snippets request zonokai-theme zenburn-theme zen-and-art-theme ws-butler window-numbering which-key web-mode volatile-highlights vi-tilde-fringe use-package underwater-theme ujelly-theme twilight-theme twilight-bright-theme twilight-anti-bright-theme tronesque-theme toc-org tao-theme tangotango-theme tango-plus-theme tango-2-theme tagedit sunny-day-theme sublime-themes subatomic256-theme subatomic-theme stekene-theme spacemacs-theme spaceline spacegray-theme soothe-theme solarized-theme soft-stone-theme soft-morning-theme soft-charcoal-theme smyx-theme smooth-scrolling smeargle slim-mode seti-theme scss-mode sass-mode reverse-theme restart-emacs rainbow-delimiters railscasts-theme quelpa pyvenv pytest pyenv-mode py-yapf purple-haze-theme professional-theme popwin pony-mode planet-theme pip-requirements phoenix-dark-pink-theme phoenix-dark-mono-theme persp-mode pcre2el pastels-on-dark-theme paradox page-break-lines orgit organic-green-theme org-repo-todo org-present org-pomodoro org-plus-contrib org-journal open-junk-file omtose-phellack-theme oldlace-theme occidental-theme obsidian-theme noctilux-theme niflheim-theme neotree naquadah-theme mustang-theme move-text monokai-theme monochrome-theme molokai-theme moe-theme mmm-mode minimal-theme material-theme markdown-toc majapahit-theme magit-gitflow magit-gh-pulls macrostep lush-theme lorem-ipsum linum-relative light-soap-theme leuven-theme less-css-mode jbeans-theme jazz-theme jade-mode ir-black-theme inkpot-theme info+ indent-guide ido-vertical-mode hy-mode hungry-delete htmlize hl-todo highlight-parentheses highlight-numbers highlight-indentation heroku-theme hemisu-theme help-fns+ helm-themes helm-swoop helm-pydoc helm-projectile helm-mode-manager helm-make helm-gitignore helm-flx helm-descbinds helm-css-scss helm-company helm-c-yasnippet helm-ag hc-zenburn-theme gruvbox-theme gruber-darker-theme grandshell-theme gotham-theme google-translate golden-ratio gnuplot github-clone github-browse-file gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link gist gh-md gandalf-theme flycheck-pos-tip flx-ido flatui-theme flatland-theme firebelly-theme fill-column-indicator farmhouse-theme fancy-battery expand-region exec-path-from-shell evil-visualstar evil-tutor evil-surround evil-search-highlight-persist evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-magit evil-lisp-state evil-indent-plus evil-iedit-state evil-exchange evil-escape evil-args evil-anzu espresso-theme emmet-mode elisp-slime-nav editorconfig dracula-theme django-theme define-word darktooth-theme darkmine-theme darkburn-theme dakrone-theme cython-mode cyberpunk-theme company-web company-statistics company-quickhelp company-anaconda colorsarenice-theme color-theme-sanityinc-tomorrow color-theme-sanityinc-solarized clues-theme clj-refactor clean-aindent-mode cider-eval-sexp-fu cherry-blossom-theme busybee-theme buffer-move bubbleberry-theme bracketed-paste birds-of-paradise-plus-theme badwolf-theme auto-yasnippet auto-highlight-symbol auto-compile apropospriate-theme anti-zenburn-theme ample-zen-theme ample-theme alect-themes aggressive-indent afternoon-theme adaptive-wrap ace-window ace-link ace-jump-helm-line ac-ispell)))
  '(pos-tip-background-color "#073642")
  '(pos-tip-foreground-color "#93a1a1")
- '(ring-bell-function (quote ignore) t)
+ '(ring-bell-function (quote ignore))
  '(safe-local-variable-values
    (quote
     ((python-shell-virtualenv-path . "/home/aron/.virtualenvs/pp")
