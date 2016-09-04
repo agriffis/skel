@@ -15,6 +15,7 @@ main() {
     declare opt_background=
     declare opt_xterm_colors=
     declare opt_iterm2_scheme=
+    declare opt_eval=false
     declare -a parsed_opts params
 
     ghettopt "$@" || exit
@@ -24,6 +25,15 @@ main() {
 
     if [[ -e $opt_config ]] && ! source "$opt_config"; then
         die "Error loading $opt_config"
+    fi
+
+    if $opt_eval; then
+        if [[ $# -gt 0 ]]; then
+            get_scheme_vars "$1"
+        else
+            get_scheme_vars "$(get_state)"
+        fi
+        exit 0
     fi
 
     if [[ $# -gt 0 ]]; then
@@ -36,9 +46,7 @@ main() {
 toggle_scheme() {
     declare old_scheme new_scheme
 
-    if [[ -e $HOME/.scheme ]]; then
-        old_scheme=$(<$HOME/.scheme)
-    fi
+    old_scheme=$(get_state)
 
     if [[ -z $old_scheme ]]; then
         die "Don't know the current scheme, can't toggle"
@@ -53,15 +61,15 @@ toggle_scheme() {
     set_scheme "$new_scheme"
 }
 
+get_state() {
+    cat ~/.scheme 2>/dev/null
+}
+
 set_scheme() {
     declare scheme="$1"
     declare background iterm2_scheme xterm_colors emacs_theme vim_theme
 
-    background=$(get_scheme_var "$scheme" background)
-    iterm2_scheme=$(get_scheme_var "$scheme" iterm2_scheme)
-    xterm_colors=$(get_scheme_var "$scheme" xterm_colors)
-    emacs_theme=$(get_scheme_var "$scheme" emacs_theme)
-    vim_theme=$(get_scheme_var "$scheme" vim_theme)
+    eval "$(get_scheme_vars "$scheme")"
 
     update_state "$scheme"
 
@@ -72,12 +80,20 @@ set_scheme() {
 
     update_emacs "$emacs_theme" &
     update_vim "$vim_theme" "$background" &
-#   update_tmux "$scheme" "$background"
+    update_tmux "$scheme" "$background" &
 
     after_update_hook "${parsed_opts[@]}" "${params[@]}"
 
     wait # for anything backgrounded
     exit 0
+}
+
+get_scheme_vars() {
+    declare v scheme="$1"
+
+    for v in background iterm2_scheme xterm_colors emacs_theme vim_theme; do
+        printf '%s=%q\n' $v "$(get_scheme_var "$scheme" $v)"
+    done
 }
 
 get_scheme_var() {
@@ -198,13 +214,9 @@ update_vim() {
 update_tmux() {
     declare x scheme="$1" background="$2"
 
-    if [[ $scheme == solarized* ]]; then
-        background=dark
-    fi
-
-    case "$background" in
-        light) tmux set -g status-style fg=default,bg=white,dim ;;
-        dark) tmux set -g status-style fg=default,bg=black ;;
+    case "$scheme:$background" in
+        solarized*|*:dark) tmux set -g status-style fg=default,bg=black ;;
+        *:light) tmux set -g status-style fg=default,bg=white,dim ;;
     esac
 }
 
