@@ -2,50 +2,197 @@
 #
 # scheme -- change color scheme for terminals and applications
 #
-# Copyright 2015 Aron Griffis <agriffis@n01se.net>
+# Copyright 2015, 2016 Aron Griffis <aron@scampersand.com>
 # Released under the GNU GPL v2
 
+
 main() {
-    declare scheme="$1" background
+    unset ${!opt_*}
 
-    case $scheme in
-        default|white|lite|day) scheme=light ;;
-        black|night|nite) scheme=dark ;;
-    esac
+    declare opt_config=$HOME/.schemes
+    declare force_dark=false
+    declare force_light=false
+    declare opt_background=
+    declare opt_xterm_colors=
+    declare opt_iterm2_scheme=
+    declare -a parsed_opts params
 
-    set -- "$scheme" "${scheme##*-}"
+    ghettopt "$@" || exit
+    set -- "${params[@]}"
 
-    update_emacs "$@"
-    update_vim "$@"
-    update_tmux "$@"
+    load_default_schemes
+
+    if [[ -e $opt_config ]] && ! source "$opt_config"; then
+        die "Error loading $opt_config"
+    fi
+
+    if [[ $# -gt 0 ]]; then
+        set_scheme "${1//-/_}"
+    else
+        toggle_scheme
+    fi
+}
+
+toggle_scheme() {
+    declare old_scheme new_scheme
+
+    if [[ -e $HOME/.scheme ]]; then
+        old_scheme=$(<$HOME/.scheme)
+    fi
+
+    if [[ -z $old_scheme ]]; then
+        die "Don't know the current scheme, can't toggle"
+    fi
+
+    new_scheme=$(get_scheme_var "$old_scheme" toggle)
+
+    if [[ -z $new_scheme ]]; then
+        die "Can't toggle from $old_scheme, missing \$lookup"
+    fi
+
+    set_scheme "$new_scheme"
+}
+
+set_scheme() {
+    declare scheme="$1"
+    declare background iterm2_scheme xterm_colors emacs_theme vim_theme
+
+    background=$(get_scheme_var "$scheme" background)
+    iterm2_scheme=$(get_scheme_var "$scheme" iterm2_scheme)
+    xterm_colors=$(get_scheme_var "$scheme" xterm_colors)
+    emacs_theme=$(get_scheme_var "$scheme" emacs_theme)
+    vim_theme=$(get_scheme_var "$scheme" vim_theme)
+
+    update_state "$scheme"
+
+    update_gnome_terminal "$xterm_colors" &
+    #update_xfce_terminal "$xterm_colors" &  # XXX port to $xterm_colors
+    #update_roxterm "$xterm_colors" &  # XXX port to $xterm_colors
+    update_iterm2 "$iterm2_scheme" &
+
+    update_emacs "$emacs_theme" &
+    update_vim "$vim_theme" "$background" &
+#   update_tmux "$scheme" "$background"
+
+    after_update_hook "${parsed_opts[@]}" "${params[@]}"
+
+    wait # for anything backgrounded
+    exit 0
+}
+
+get_scheme_var() {
+    declare scheme_var="$1_$2" opt_var="opt_$2"
+    if [[ $2 == background ]] && $force_dark; then
+        echo dark
+    elif [[ $2 == background ]] && $force_light; then
+        echo light
+    elif [[ -n ${!opt_var} ]]; then
+        echo "${!opt_var}"
+    else
+        echo "${!scheme_var}"
+    fi
+}
+
+opt_dark() {
+    if $force_light; then
+        echo "Can't force both light and dark" >&2
+        exit 1
+    fi
+    force_dark=true
+}
+
+opt_light() {
+    if $force_dark; then
+        echo "Can't force both light and dark" >&2
+        exit 1
+    fi
+    force_light=true
+}
+
+opt_version() {
+    echo "${0##*/} version 0.2"
+    exit 0
+}
+
+die() {
+    echo "$*" >&2
+    exit 1
+}
+
+load_default_schemes() {
+    light_background=light
+    light_iterm2_scheme=CLRS
+    # background foreground then ANSI 0-15
+    light_xterm_colors="#f6f6f6 #000000 #000000 #8b4b4b #4b8b4b #8b8b4b
+                        #4b4b8b #8b4b8b #4b8b8b #d9d9d9 #262626 #c99b9b
+                        #9bc99b #c9c99b #9b9bc9 #c99bc9 #9bc9c9 #ffffff"
+    light_emacs_theme=spacemacs-light
+    light_vim_theme=default
+    light_toggle=dark
+
+    dark_background=dark
+    dark_iterm2_scheme=Floraverse
+    dark_xterm_colors="#000000 #e8e8d3 #2e3436 #cc0000 #4e9a06 #edd400
+                       #3465a4 #92659a #07c7ca #d3d7cf #6e706b #ef2929
+                       #8ae234 #fce94f #729fcf #c19fbe #63e9e9 #eeeeec"
+    dark_emacs_theme=spacemacs-dark
+    dark_vim_theme=jellybeans
+    dark_toggle=light
+
+    solarized_light_background=light
+    solarized_light_iterm2_scheme='Solarized Light'
+    # background foreground then ANSI 0-15
+    solarized_light_xterm_colors="
+        #fdf6e3 #839496 #eee8d5 #dc322f #859900 #b58900
+        #268bd2 #d33682 #2aa198 #073642 #fdf6e3 #cb4b16
+        #93a1a1 #839496 #657b83 #6c71c4 #586e75 #002b36"
+    #xterm_cursor="#586e75"  XXX
+    solarized_light_emacs_theme=sanityinc-solarized-light
+    solarized_light_vim_theme=solarized
+    solarized_light_toggle=solarized_dark
+
+    solarized_dark_background=dark
+    solarized_dark_iterm2_scheme='Solarized Dark'
+    solarized_dark_xterm_colors="
+        #002b36 #657b83 #073642 #dc322f #859900 #b58900
+        #268bd2 #d33682 #2aa198 #eee8d5 #002b36 #cb4b16
+        #586e75 #657b83 #839496 #6c71c4 #93a1a1 #fdf6e3"
+    #xterm_cursor="#93a1a1"  XXX
+    solarized_dark_emacs_theme=sanityinc-solarized-dark
+    solarized_dark_vim_theme=solarized
+    solarized_dark_toggle=solarized_light
+}
+
+update_state() {
+    echo "$1" > ~/.scheme
 }
 
 update_emacs() {
-    declare require theme scheme="$1"
+    declare emacs_theme="$1"
 
-    case $scheme in
-        dark) theme=spacemacs-dark ;;
-        solarized-*) require= theme=solarized-dark ;;
-        *) require= theme=spacemacs-light ;;
-    esac
-
-    [[ -n $require ]] && \
-    emacsclient -e "(require '$require)"
-    emacsclient -e "(load-theme '$theme)"
+    if emacsclient -e t &>/dev/null; then
+        emacsclient -e "(load-theme '$emacs_theme)"
+    fi
 }
 
 update_vim() {
-    declare x scheme="$1"
+    declare vim_theme="$1" background="$2"  # XXX background
 
-    case "$scheme" in
-        light) scheme=default ;;
-        dark) scheme=jellybeans ;;
-        solarized-*) scheme=solarized ;;
-    esac
+#   case "$scheme" in
+#       light) scheme=default ;;
+#       dark) scheme=jellybeans ;;
+#       solarized-*) scheme=solarized ;;
+#   esac
 
     for x in $(vim --serverlist 2>/dev/null); do
-        vim --servername "$x" --remote-send "<c-\\><c-n>:call TryColorscheme('$scheme')<cr>"
+        vim --servername "$x" --remote-send "<c-\\><c-n>:call TryColorscheme('$vim_theme')<cr>"
     done
+
+    # Terminal vim without the server feature (which depends on X11)
+    # can inspect these files periodically and then update.
+    mkdir -p ~/.vim
+    echo "$vim_theme" > ~/.vim/theme
+    echo "$background" > ~/.vim/background
 }
 
 update_tmux() {
@@ -61,4 +208,1053 @@ update_tmux() {
     esac
 }
 
-main "$@"
+after_update_hook() {
+    : # does nothing
+}
+
+update_xrdb() {
+    if $opt_xrdb; then
+        xrdb -UMODE_$oldmode -DMODE_$mode \
+            $($opt_lunarized && echo -DLUNARIZED) \
+            $($opt_solarized && echo -DSOLARIZED) \
+            ~/.Xdefaults
+        # update existing xrdb_query variable
+        xrdb_query=$(xrdb -query)
+    fi
+    eval "$(sed -rn <<<"$xrdb_query" -e \
+      's/^XTerm.vt100.color([0-9]+):[[:blank:]]*(.*)/xterm_colors[\1]="\2"/ip
+       s/^XTerm.vt100.background:[[:blank:]]*(.*)/xterm_background="\1"/ip
+       s/^XTerm.vt100.foreground:[[:blank:]]*(.*)/xterm_foreground="\1"/ip
+       s/^XTerm.vt100.cursorColor:[[:blank:]]*(.*)/xterm_cursor="\1"/ip
+       s/^XTerm.vt100.backgroundImage:[[:blank:]]*(.*)/xterm_image="\1"/ip
+       ')"
+}
+
+update_xterm() {
+    type xtermcontrol &>/dev/null || return
+
+    # figure out the cmdline
+    declare opts="\
+        $(for ((x=0; x<16; x++)); do
+                [[ -n ${xterm_colors[x]} ]] || continue
+                printf '%q ' "--color$x=${xterm_colors[x]}"
+            done
+            [[ -n $xterm_background ]] && printf '%q ' "--bg=$xterm_background"
+            [[ -n $xterm_foreground ]] && printf '%q ' "--fg=$xterm_foreground"
+        )"
+
+    # collect pids
+    declare -a pids
+    declare p pp pcmd
+    while read p pp cmd; do
+        pids+=( $p )
+        eval "declare cmd_$p=\$cmd ppid_$p=\$pp"
+    done <<<"$(ps -eo pid= -o ppid= -o comm=)"
+
+    # subshell because we want to avoid all the killed this and that messages...
+    (
+
+    # operate on pids where the parent is xterm or rxvt
+    declare -a xtpids
+    for p in ${pids[*]}; do
+            eval "pp=\$ppid_$p"
+            eval "pcmd=\$cmd_$pp"
+            [[ $pcmd == xterm || $pcmd == *rxvt || $pcmd = *rxvtd ]] || continue
+            [[ -w /proc/$p/fd/1 ]] || continue
+            (
+                eval "xtermcontrol -f $opts"
+                # set the border on rxvt too
+                [[ $pcmd == *rxvt || $pcmd == *rxvtd ]] && \
+                xtermcontrol -f --raw=$'\e]708;'"$xterm_background"$'\a'
+            ) < /proc/$p/fd/0 > /proc/$p/fd/1 &
+            xtpids=( "${xtpids[@]}" $! )
+    done
+
+    # goodbye kill messages
+    exec 2>/dev/null
+
+    # set a sleeper to kill any that get hung up
+    (
+        sleep 10
+        kill "${xtpids[@]}"
+        sleep 0.5
+        kill -9 "${xtpids[@]}"
+    ) &>/dev/null &
+    declare killer=$!
+
+    for p in "${xtpids[@]}"; do
+        wait $p
+    done
+    kill $killer
+
+    ) # end no-kill-messages subshell
+
+    return 0
+}
+
+update_gnome_terminal() {
+    update_gnome_terminal_gconf Flex "$@" # &
+    update_gnome_terminal_dconf Flex "$@" # &
+}
+
+update_gnome_terminal_gconf() {
+    declare profile="$1" xterm_colors="$2"
+
+    type gconftool-2 &>/dev/null || return
+
+    # what flex profiles have we?
+    declare -a profiles
+    profiles=( $(gconftool-2 -S visible_name | \
+        sed -rn "s,^ */apps/gnome-terminal/profiles/(.*)/visible_name = .*${profile}\$,\\1,p") )
+    [[ -n $profiles ]] || return
+
+    # unpack xterm_colors string
+    declare xterm_foreground xterm_background
+    xterm_colors=( $xterm_colors )
+    if [[ ${#xterm_colors[@]} != 18 ]]; then
+        echo "Invalid xterm_colors (${#xterm_colors[@]} elements)" >&2
+        return
+    fi
+    xterm_background="${xterm_colors[0]}"
+    xterm_foreground="${xterm_colors[1]}"
+    xterm_colors=( "${xterm_colors[@]:2}" )
+
+    # translate the colors to 48-bit
+    declare -a gnome_colors
+    declare gnome_foreground gnome_background x
+    for ((x=0; x<16; x++)); do
+        gnome_colors[x]=$(48bit "${xterm_colors[x]}")
+    done
+    gnome_foreground=$(48bit "$xterm_foreground")
+    gnome_background=$(48bit "$xterm_background")
+
+    # make this into a palette
+    declare gnome_palette="${gnome_colors[0]}$(printf ':%s' "${gnome_colors[@]:1}")"
+
+    # cycle over the profiles and settings
+    for x in "${profiles[@]}"; do
+        gconftool-2 -t string -s "/apps/gnome-terminal/profiles/$x/palette" "$gnome_palette"
+        gconftool-2 -t string -s "/apps/gnome-terminal/profiles/$x/background_color" "$gnome_background"
+        gconftool-2 -t string -s "/apps/gnome-terminal/profiles/$x/foreground_color" "$gnome_foreground"
+        if [[ -n $xterm_image ]]; then
+            gconftool-2 -t float -s "/apps/gnome-terminal/profiles/$x/background_darkness" 0
+            gconftool-2 -t string -s "/apps/gnome-terminal/profiles/$x/background_type" "image"
+            gconftool-2 -t string -s "/apps/gnome-terminal/profiles/$x/background_image" "$xterm_image"
+        else
+            gconftool-2 -t float -s "/apps/gnome-terminal/profiles/$x/background_darkness" 1
+            gconftool-2 -t string -s "/apps/gnome-terminal/profiles/$x/background_type" "solid"
+        fi
+    done
+}
+
+48bit() {
+    rgb[0]=$(( 0x${1:1:2} * 0xffff / 0xff ))
+    rgb[1]=$(( 0x${1:3:2} * 0xffff / 0xff ))
+    rgb[2]=$(( 0x${1:5:2} * 0xffff / 0xff ))
+    printf '#%04x%04x%04x' "${rgb[@]}"
+}
+
+update_gnome_terminal_dconf() {
+    declare profile="$1" xterm_colors="$2"
+
+    type dconf &>/dev/null || return
+
+    # unpack xterm_colors string
+    declare xterm_foreground xterm_background
+    xterm_colors=( $xterm_colors )
+    if [[ ${#xterm_colors[@]} != 18 ]]; then
+        echo "Invalid xterm_colors (${#xterm_colors[@]} elements)" >&2
+        return
+    fi
+    xterm_background="${xterm_colors[0]}"
+    xterm_foreground="${xterm_colors[1]}"
+    xterm_colors=( "${xterm_colors[@]:2}" )
+
+    # we'd like to use gsettings--it's a nicer front end--but it
+    # doesn't handle the settings lists that gnome-terminal uses for its
+    # profiles.
+    declare -a all_profiles profiles
+    declare p n
+    all_profiles=( $(dconf list /org/gnome/terminal/legacy/profiles:/) )
+    for p in "${all_profiles[@]}"; do
+        p="/org/gnome/terminal/legacy/profiles:/${p%/}"
+        n=$(dconf read "$p/visible-name")
+        if [[ $n == *"-$profile'" ]]; then
+            profiles+=( "$p" )
+        fi
+    done
+    [[ -n $profiles ]] || return
+
+    # translate the colors to decimal rgb
+    declare -a gnome_colors
+    declare gnome_foreground gnome_background x
+    for ((x=0; x<16; x++)); do
+        gnome_colors[x]=$(rgb "${xterm_colors[x]}")
+    done
+    gnome_foreground=$(rgb "$xterm_foreground")
+    gnome_background=$(rgb "$xterm_background")
+
+    # make this into a palette
+    declare gnome_palette="[${gnome_colors[0]}$(printf ", %s" "${gnome_colors[@]:1}")]"
+
+    # cycle over the profiles and settings
+    for p in "${profiles[@]}"; do
+        dconf write "$p/use-theme-colors" false
+        dconf write "$p/foreground-color" "$gnome_foreground"
+        dconf write "$p/background-color" "$gnome_background"
+        dconf write "$p/palette" "$gnome_palette"
+    done
+}
+
+rgb() {
+    printf "'rgb(%d,%d,%d)'" \
+           $(( 0x${1:1:2} )) \
+           $(( 0x${1:3:2} )) \
+           $(( 0x${1:5:2} ))
+}
+
+update_iterm2() {
+    declare iterm2_scheme="$1"
+    type osascript &>/dev/null || return
+    it2scheme.py "$iterm2_scheme"
+}
+
+default_xfce_config="
+[Configuration]
+MiscAlwaysShowTabs=FALSE
+MiscMenubarDefault=FALSE
+MiscMouseAutohide=TRUE
+MiscToolbarsDefault=FALSE
+MiscTabCloseButtons=FALSE
+ScrollingBar=TERMINAL_SCROLLBAR_NONE
+AccelNewTab=<Super>t
+AccelNewWindow=<Shift><Control>n
+AccelDetachTab=
+AccelCloseTab=
+AccelCloseWindow=
+AccelShowMenubar=<Shift><Control>m
+AccelPrevTab=<Super>p
+AccelNextTab=<Super>n
+AccelSwitchToTab1=
+AccelSwitchToTab2=
+AccelSwitchToTab3=
+AccelSwitchToTab4=
+AccelSwitchToTab5=
+AccelSwitchToTab6=
+AccelSwitchToTab7=
+AccelSwitchToTab8=
+AccelSwitchToTab9=
+ShortcutsNoMenukey=TRUE
+ShortcutsNoMnemonics=TRUE
+ScrollingOnOutput=FALSE
+"
+
+update_xfce_terminal() {
+    declare xfce_config
+    declare i
+
+    mkdir -p ~/.config/Terminal
+    if [[ -s ~/.config/Terminal/terminalrc ]]; then
+        xfce_config=$(grep -v \
+            -e '^ColorPalette[0-9]*=' \
+            -e '^ColorForeground=' \
+            -e '^ColorBackground=' \
+            -e '^ColorCursor=' \
+            -e '^BackgroundMode=' \
+            -e '^BackgroundImageFile=' \
+            -e '^BackgroundDarkness=' \
+            ~/.config/Terminal/terminalrc)
+    else
+        xfce_config=$default_xfce_config
+    fi
+
+    {
+        echo "$xfce_config"
+        for ((i=0; i<16; i++)); do
+            echo "ColorPalette$((i+1))=$(48bit "${xterm_colors[i]}")"
+        done
+        echo "ColorForeground=$(48bit "$xterm_foreground")"
+        echo "ColorBackground=$(48bit "$xterm_background")"
+        if [[ -n $xterm_cursor ]]; then
+            echo "ColorCursor=$(48bit "$xterm_cursor")"
+        fi
+        if [[ -n $xterm_image ]]; then
+            echo "BackgroundMode=TERMINAL_BACKGROUND_IMAGE"
+            echo "BackgroundImageFile=$xterm_image"
+            echo "BackgroundDarkness=0"
+        fi
+    } > ~/.config/Terminal/terminalrc
+}
+
+default_roxterm_profile="
+[roxterm profile]
+font=Inconsolata Medium 11
+hide_menubar=1
+always_show_tabs=0
+scrollbar_pos=0
+disable_menu_access=1
+disable_menu_shortcuts=1
+disable_tab_menu_shortcuts=1
+allow_bold=1
+"
+
+scribble_config() {
+    # Must be called with "options" associative array
+    declare cf="$1" title="$2" content line name value
+
+    if [[ -f $cf ]]; then
+        content=$(<$cf)
+        if [[ $content != "$title"* ]]; then
+            echo "Error: $cf doesn't start with $title" >&2
+            return 1
+        fi
+        content=$(sed 1d <<<"$content")
+    fi
+
+    (
+        mkdir -p "$(dirname "$cf")"
+        exec > "$cf"
+        echo "$title"
+
+        while read line; do
+            name=${line%%=*}
+            value=${line#*=}
+            if [[ -n $name && -z ${options[$name]} && -n ${options[$name]-unset} ]]; then
+                echo "$line"
+            fi
+        done <<<"$content"
+
+        for name in "${!options[@]}"; do
+            echo "$name=${options[$name]}"
+        done
+    )
+}
+
+dbus_roxterm_set() {
+    declare profile="$1" name="$2" value="$3" Type type
+    case $value in
+        [0-9]*.*) Type=FloatOption type=double ;;
+        [0-9]*) Type=IntOption type=int32 ;;
+        *) Type=StringOption type=string ;;
+    esac
+    dbus-send --session /net/sf/roxterm/Options \
+        net.sf.roxterm.Options.$Type "string:$profile" \
+        "string:$name" "$type:$value"
+}
+
+scribble_dbus_roxterm() {
+    # Must be called with "options" associative array
+    declare profile="$1" name
+    for name in "${!options[@]}"; do
+        dbus_roxterm_set "$profile" "$name" "${options[$name]}"
+    done
+}
+
+update_roxterm() {
+    declare config_dir="$HOME/.config/roxterm.sourceforge.net"
+    declare -A options
+    declare name value
+
+    # Updating and reloading the profile causes geometry to reset
+    # to 80x25, so don't do that.
+    #
+    # Also this doesn't seem to work on F18:
+    #
+    #    dbus-send --session /net/sf/roxterm/Options \
+    #        net.sf.roxterm.Options.OptionsChanged \
+    #        string:Profiles string:Default 
+    #
+    #    dbus-send --session /net/sf/roxterm/Options \
+    #        net.sf.roxterm.Options.OptionsChanged \
+    #        string:Colours string:Flex
+
+    # Update the color scheme, both saved and live.
+    options=(
+        ['foreground']="$(48bit "$xterm_foreground")"
+        ['background']="$(48bit "$xterm_background")"
+        ['palette_size']=16
+        )
+    if [[ -n $xterm_cursor ]]; then
+        options['cursor']="$(48bit "$xterm_cursor")"
+    fi
+    for ((name=0; name<16; name++)); do
+        options[$name]="$(48bit "${xterm_colors[$name]}")"
+    done
+    scribble_config "$config_dir/Colours/Flex" "[roxterm colour scheme]"
+    scribble_dbus_roxterm Colours/Flex
+
+    # Update the profile, both saved and live.
+    options=()
+    if [[ -n $xterm_image ]]; then
+        options['background_img']="$xterm_image"
+        options['background_type']=1
+        options['saturation']=1.0
+        options['scroll_background']=0
+    else
+        options['background_type']=0
+    fi
+    scribble_config "$config_dir/Profiles/Default" "[roxterm profile]"
+    scribble_dbus_roxterm Profiles/Default
+}
+
+ghettopt() {
+  # ghettopt, simple command-line processing in pure Bash.
+  # version 1.0
+  #
+  # Copyright 2008, 2012 Aron Griffis <aron@arongriffis.com>
+  #
+  # Permission is hereby granted, free of charge, to any person obtaining
+  # a copy of this software and associated documentation files (the
+  # "Software"), to deal in the Software without restriction, including
+  # without limitation the rights to use, copy, modify, merge, publish,
+  # distribute, sublicense, and/or sell copies of the Software, and to
+  # permit persons to whom the Software is furnished to do so, subject to
+  # the following conditions:
+  #
+  # The above copyright notice and this permission notice shall be included
+  # in all copies or substantial portions of the Software.
+  #
+  # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+  # OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+  # MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+  # IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+  # CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+  # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+  # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+  _ghettopt_main() {
+    declare -a longs shorts
+    declare go_long go_short i o v
+
+    # Extract long options from variable declarations.
+    for o in $(compgen -A variable opt_); do
+      v=${!o}; o=${o#opt_}; o=${o//_/-}
+      if [[ $v == false || $v == true ]]; then
+        longs=( "${longs[@]}" ${o//_/-} no-${o//_/-} )
+      else
+        longs=( "${longs[@]}" ${o//_/-}: )
+      fi
+    done
+
+    # Extract long options from function declarations.
+    # These are allowed to have colons on the end.
+    for o in $(compgen -A function opt_); do
+      longs=( "${longs[@]}" "${o#opt_}" )
+    done
+
+    # Make it a comma-separated list.
+    go_long="${longs[*]}"
+    go_long="${go_long// /,}"
+
+    # Extract short options from $shortopts, add takes-a-value colon.
+    if [[ -n $shortopts ]]; then
+      shorts=( "${shortopts[@]%%:*}" )
+      for ((i=0; i<${#shortopts[@]}; i++)); do
+        o=${shortopts[i]#?:}
+        if [[ ,$go_long, == *,"$o":,* ]]; then
+          shorts[i]=${shorts[i]}:
+        fi
+      done
+    fi
+
+    # Make it a simple string.
+    go_short="${shorts[*]}"
+    go_short="${go_short// /}"
+
+    # Call getopt!
+    declare args
+    args=$(getopt -o "$go_short" --long "$go_long" -n "$0" -- "$@") || return
+    eval set -- "$args"
+
+    # Figure out what getopt returned...
+    declare opt var val
+    parsed_opts=()
+    while true; do
+      [[ $1 != -- ]] || { shift; break; }
+
+      # Translate short options to long.
+      if [[ $1 == -? ]]; then
+        opt=${1#-}
+        for x in "${shortopts[@]}"; do
+          if [[ $x == "$opt":* ]]; then
+            opt=${x##*:}
+            break
+          fi
+        done
+      else
+        opt=${1#--}
+      fi
+
+      # Figure out $var and $val; shift positional params.
+      var=opt_${opt//-/_}
+      case ,"$go_long", in
+        # Make sure to handle opt_no_something (--no-something)
+        # which has a (silly) negation of --no-no-something
+        (*,"no-$opt",*)
+          val=true
+          parsed_opts=( "${parsed_opts[@]}" "$1" )
+          shift ;;
+        (*,"$opt",*)
+          if [[ $opt == no-* ]]; then
+            var=${var/no_/}
+            val=false
+          else
+            val=true
+          fi
+          parsed_opts=( "${parsed_opts[@]}" "$1" )
+          shift ;;
+        (*,"$opt:",*) 
+          val=$2
+          parsed_opts=( "${parsed_opts[@]}" "$1" "$2" )
+          shift 2 ;;
+        (*)
+          echo "error processing $1: not in \$go_long?" >&2
+          return 1 ;;
+      esac
+
+      if _ghettopt_is_function "$var"; then
+        $var
+      elif _ghettopt_is_function "$var:"; then
+        $var: "$val"
+      elif _ghettopt_is_array "$var"; then
+        eval "$var=( \"\${$var[@]}\" \"\$val\" )"
+      elif _ghettopt_is_var "$var"; then
+        eval "$var=\$val"
+      else
+        echo "error processing $var: no func/array/var?" >&2
+        return 1
+      fi
+    done
+
+    params=( "$@" )
+  }
+
+  _ghettopt_is_function() {
+    [[ $(type -t "$1") == function ]]
+  }
+
+  _ghettopt_is_array() {
+    set -- $(declare -p "$1" 2>/dev/null)
+    [[ $2 == -*a* ]]
+  }
+
+  _ghettopt_is_var() {
+    declare -p "$1" &>/dev/null
+  }
+
+  _ghettopt_version_check() {
+    if [[ -z $BASH_VERSION ]]; then
+      echo "ghettopt: unknown version of bash might not be compatible" >&2
+      return 1
+    fi
+
+    # This is a lexical comparison that should be sufficient forever.
+    if [[ $BASH_VERSION < 2.05b ]]; then
+      echo "ghettopt: bash $BASH_VERSION might not be compatible" >&2
+      return 1
+    fi
+
+    return 0
+  }
+
+  _ghettopt_version_check
+  _ghettopt_main "$@"
+  declare status=$?
+  unset -f _ghettopt_main _ghettopt_version_check \
+    _ghettopt_is_function _ghettopt_is_array _ghettopt_is_var
+  return $status
+}
+
+getopt() {
+  # pure-getopt, a drop-in replacement for GNU getopt in pure Bash.
+  # version 1.4
+  #
+  # Copyright 2012 Aron Griffis <aron@arongriffis.com>
+  #
+  # Permission is hereby granted, free of charge, to any person obtaining
+  # a copy of this software and associated documentation files (the
+  # "Software"), to deal in the Software without restriction, including
+  # without limitation the rights to use, copy, modify, merge, publish,
+  # distribute, sublicense, and/or sell copies of the Software, and to
+  # permit persons to whom the Software is furnished to do so, subject to
+  # the following conditions:
+  # 
+  # The above copyright notice and this permission notice shall be included
+  # in all copies or substantial portions of the Software.
+  # 
+  # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+  # OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+  # MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+  # IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+  # CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+  # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+  # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+  _getopt_main() {
+    # Returns one of the following statuses:
+    #   0 success
+    #   1 error parsing parameters
+    #   2 error in getopt invocation
+    #   3 internal error
+    #   4 reserved for -T
+    #
+    # For statuses 0 and 1, generates normalized and shell-quoted
+    # "options -- parameters" on stdout.
+
+    declare parsed status
+    declare short long name flags
+    declare have_short=false
+
+    # Synopsis from getopt man-page:
+    #
+    #   getopt optstring parameters
+    #   getopt [options] [--] optstring parameters
+    #   getopt [options] -o|--options optstring [options] [--] parameters
+    #
+    # The first form can be normalized to the third form which
+    # _getopt_parse() understands. The second form can be recognized after
+    # first parse when $short hasn't been set.
+
+    if [[ -n ${GETOPT_COMPATIBLE+isset} || $1 == [^-]* ]]; then
+      # Enable compatibility mode
+      flags=c$flags
+      # Normalize first to third synopsis form
+      set -- -o "$1" -- "${@:2}"
+    fi
+
+    # First parse always uses flags=p since getopt always parses its own
+    # arguments effectively in this mode.
+    parsed=$(_getopt_parse getopt ahl:n:o:qQs:TuV \
+      alternative,help,longoptions:,name,options:,quiet,quiet-output,shell:,test,version \
+      p "$@")
+    status=$?
+    if [[ $status != 0 ]]; then
+      if [[ $status == 1 ]]; then
+        echo "Try \`getopt --help' for more information." >&2
+        # Since this is the first parse, convert status 1 to 2
+        status=2
+      fi
+      return $status
+    fi
+    eval "set -- $parsed"
+
+    while [[ $# -gt 0 ]]; do
+      case $1 in
+        (-a|--alternative)
+          flags=a$flags ;;
+
+        (-h|--help)
+          _getopt_help
+          return 2  # as does GNU getopt
+          ;; 
+
+        (-l|--longoptions)
+          long="$long${long:+,}$2"
+          shift ;;
+
+        (-n|--name)
+          name=$2
+          shift ;;
+
+        (-o|--options)
+          short=$2
+          have_short=true
+          shift ;;
+
+        (-q|--quiet)
+          flags=q$flags ;;
+
+        (-Q|--quiet-output)
+          flags=Q$flags ;;
+
+        (-s|--shell)
+          case $2 in
+            (sh|bash)
+              flags=${flags//t/} ;;
+            (csh|tcsh)
+              flags=t$flags ;;
+            (*)
+              echo 'getopt: unknown shell after -s or --shell argument' >&2
+              echo "Try \`getopt --help' for more information." >&2
+              return 2 ;;
+          esac
+          shift ;;
+
+        (-u|--unquoted)
+          flags=u$flags ;;
+
+        (-T|--test)
+          return 4 ;;
+
+        (-V|--version)
+          echo "pure-getopt 1.4"
+          return 0 ;;
+
+        (--)
+          shift
+          break ;;
+      esac
+
+      shift
+    done
+
+    if ! $have_short; then
+      # $short was declared but never set, not even to an empty string.
+      # This implies the second form in the synopsis.
+      if [[ $# == 0 ]]; then
+        echo 'getopt: missing optstring argument' >&2
+        echo "Try \`getopt --help' for more information." >&2
+        return 2
+      fi
+      short=$1
+      have_short=true
+      shift
+    fi
+
+    if [[ $short == -* ]]; then
+      # Leading dash means generate output in place rather than reordering,
+      # unless we're already in compatibility mode.
+      [[ $flags == *c* ]] || flags=i$flgas
+      short=${short#?}
+    elif [[ $short == +* ]]; then
+      # Leading plus means POSIXLY_CORRECT, unless we're already in
+      # compatibility mode.
+      [[ $flags == *c* ]] || flags=p$flags
+      short=${short#?}
+    fi
+
+    # This should fire if POSIXLY_CORRECT is in the environment, even if
+    # it's an empty string.  That's the difference between :+ and +
+    flags=${POSIXLY_CORRECT+p}$flags
+
+    _getopt_parse "${name:-getopt}" "$short" "$long" "$flags" "$@"
+  }
+
+  _getopt_parse() {
+    # Inner getopt parser, used for both first parse and second parse.
+    # Returns 0 for success, 1 for error parsing, 3 for internal error.
+    # In the case of status 1, still generates stdout with whatever could
+    # be parsed.
+    #
+    # $flags is a string of characters with the following meanings:
+    #   a - alternative parsing mode
+    #   c - GETOPT_COMPATIBLE
+    #   i - generate output in place rather than reordering
+    #   p - POSIXLY_CORRECT
+    #   q - disable error reporting
+    #   Q - disable normal output
+    #   t - quote for csh/tcsh
+    #   u - unquoted output
+
+    declare name="$1" short="$2" long="$3" flags="$4"
+    shift 4
+
+    # Split $long on commas, prepend double-dashes, strip colons;
+    # for use with _getopt_resolve_abbrev
+    declare -a longarr
+    _getopt_split longarr "$long"
+    longarr=( "${longarr[@]/#/--}" )
+    longarr=( "${longarr[@]%:}" )
+    longarr=( "${longarr[@]%:}" )
+
+    # Parse and collect options and parameters
+    declare -a opts params
+    declare o alt_recycled=false error=0
+
+    while [[ $# -gt 0 ]]; do
+      case $1 in
+        (--)
+          params=( "${params[@]}" "${@:2}" )
+          break ;;
+
+        (--*=*)
+          o=${1%%=*}
+          if ! o=$(_getopt_resolve_abbrev "$o" "${longarr[@]}"); then
+            error=1
+          elif [[ ,"$long", == *,"${o#--}"::,* ]]; then
+            opts=( "${opts[@]}" "$o" "${1#*=}" )
+          elif [[ ,"$long", == *,"${o#--}":,* ]]; then
+            opts=( "${opts[@]}" "$o" "${1#*=}" )
+          elif [[ ,"$long", == *,"${o#--}",* ]]; then
+            if $alt_recycled; then
+              # GNU getopt isn't self-consistent about whether it reports
+              # errors with a single dash or double dash in alternative
+              # mode, but in this case it reports with a single dash.
+              _getopt_err "$name: option '${o#-}' doesn't allow an argument"
+            else
+              _getopt_err "$name: option '$o' doesn't allow an argument"
+            fi
+            error=1
+          else
+            echo "getopt: assertion failed (1)" >&2
+            return 3
+          fi
+          alt_recycled=false
+          ;;
+
+        (--?*)
+          o=$1
+          if ! o=$(_getopt_resolve_abbrev "$o" "${longarr[@]}"); then
+            error=1
+          elif [[ ,"$long", == *,"${o#--}",* ]]; then
+            opts=( "${opts[@]}" "$o" )
+          elif [[ ,"$long", == *,"${o#--}::",* ]]; then
+            opts=( "${opts[@]}" "$o" '' )
+          elif [[ ,"$long", == *,"${o#--}:",* ]]; then
+            if [[ $# -ge 2 ]]; then
+              shift
+              opts=( "${opts[@]}" "$o" "$1" )
+            else
+              _getopt_err "$name: option '$o' requires an argument"
+              error=1
+            fi
+          else
+            echo "getopt: assertion failed (2)" >&2
+            return 3
+          fi
+          alt_recycled=false
+          ;;
+
+        (-*)
+          if [[ $flags == *a* ]]; then
+            # Alternative parsing mode!
+            # Try to handle as a long option if any of the following apply:
+            #  1. There's an equals sign in the mix -x=3 or -xy=3
+            #  2. There's 2+ letters and an abbreviated long match -xy
+            #  3. There's a single letter and an exact long match
+            #  4. There's a single letter and no short match
+            o=${1::2} # temp for testing #4
+            if [[ $1 == *=* || $1 == -?? || \
+                  ,$long, == *,"${1#-}"[:,]* || \
+                  ,$short, != *,"${o#-}"[:,]* ]]; then
+              o=$(_getopt_resolve_abbrev "${1%%=*}" "${longarr[@]}" 2>/dev/null)
+              case $? in
+                (0)
+                  # Unambiguous match. Let the long options parser handle
+                  # it, with a flag to get the right error message.
+                  set -- "-$@"
+                  alt_recycled=true
+                  continue ;;
+                (1)
+                  # Ambiguous match, generate error and continue.
+                  _getopt_resolve_abbrev "${1%%=*}" "${longarr[@]}" >/dev/null
+                  error=1
+                  shift
+                  continue ;;
+                (2)
+                  # No match, fall through to single-character check.
+                  true ;;
+                (*)
+                  echo "getopt: assertion failed (3)" >&2
+                  return 3 ;;
+              esac
+            fi
+          fi
+
+          o=${1::2}
+          if [[ "$short" == *"${o#-}"::* ]]; then
+            if [[ ${#1} -gt 2 ]]; then
+              opts=( "${opts[@]}" "$o" "${1:2}" )
+            else
+              opts=( "${opts[@]}" "$o" '' )
+            fi
+          elif [[ "$short" == *"${o#-}":* ]]; then
+            if [[ ${#1} -gt 2 ]]; then
+              opts=( "${opts[@]}" "$o" "${1:2}" )
+            elif [[ $# -ge 2 ]]; then
+              shift
+              opts=( "${opts[@]}" "$o" "$1" )
+            else
+              _getopt_err "$name: option requires an argument -- '${o#-}'"
+              error=1
+            fi
+          elif [[ "$short" == *"${o#-}"* ]]; then
+            opts=( "${opts[@]}" "$o" )
+            if [[ ${#1} -gt 2 ]]; then
+              set -- "$o" "-${1:2}" "${@:2}"
+            fi
+          else
+            if [[ $flags == *a* ]]; then
+              # Alternative parsing mode! Report on the entire failed
+              # option. GNU includes =value but we omit it for sanity with
+              # very long values.
+              _getopt_err "$name: unrecognized option '${1%%=*}'"
+            else
+              _getopt_err "$name: invalid option -- '${o#-}'"
+              if [[ ${#1} -gt 2 ]]; then
+                set -- "$o" "-${1:2}" "${@:2}"
+              fi
+            fi
+            error=1
+          fi ;;
+
+        (*)
+          # GNU getopt in-place mode (leading dash on short options)
+          # overrides POSIXLY_CORRECT
+          if [[ $flags == *i* ]]; then
+            opts=( "${opts[@]}" "$1" )
+          elif [[ $flags == *p* ]]; then
+            params=( "${params[@]}" "$@" )
+            break
+          else
+            params=( "${params[@]}" "$1" )
+          fi
+      esac
+
+      shift
+    done
+
+    if [[ $flags == *Q* ]]; then
+      true  # generate no output
+    else
+      echo -n ' '
+      if [[ $flags == *[cu]* ]]; then
+        printf '%s -- %s' "${opts[*]}" "${params[*]}"
+      else
+        if [[ $flags == *t* ]]; then
+          _getopt_quote_csh "${opts[@]}" -- "${params[@]}"
+        else
+          _getopt_quote "${opts[@]}" -- "${params[@]}"
+        fi
+      fi
+      echo
+    fi
+
+    return $error
+  }
+
+  _getopt_err() {
+    if [[ $flags != *q* ]]; then
+      printf '%s\n' "$1" >&2
+    fi
+  }
+
+  _getopt_resolve_abbrev() {
+    # Resolves an abbrevation from a list of possibilities.
+    # If the abbreviation is unambiguous, echoes the expansion on stdout
+    # and returns 0.  If the abbreviation is ambiguous, prints a message on
+    # stderr and returns 1. (For first parse this should convert to exit
+    # status 2.)  If there is no match at all, prints a message on stderr
+    # and returns 2.
+    declare a q="$1"
+    declare -a matches
+    shift
+    for a; do
+      if [[ $q == "$a" ]]; then
+        # Exact match. Squash any other partial matches.
+        matches=( "$a" )
+        break
+      elif [[ $flags == *a* && $q == -[^-]* && $a == -"$q" ]]; then
+        # Exact alternative match. Squash any other partial matches.
+        matches=( "$a" )
+        break
+      elif [[ $a == "$q"* ]]; then
+        # Abbreviated match.
+        matches=( "${matches[@]}" "$a" )
+      elif [[ $flags == *a* && $q == -[^-]* && $a == -"$q"* ]]; then
+        # Abbreviated alternative match.
+        matches=( "${matches[@]}" "$a" )
+      fi
+    done
+    case ${#matches[@]} in
+      (0)
+        [[ $flags == *q* ]] || \
+        printf "$name: unrecognized option %s\n" >&2 \
+          "$(_getopt_quote "$q")"
+        return 2 ;;
+      (1)
+        printf '%s' "$matches"; return 0 ;;
+      (*) 
+        [[ $flags == *q* ]] || \
+        printf "$name: option %s is ambiguous; possibilities: %s\n" >&2 \
+          "$(_getopt_quote "$q")" "$(_getopt_quote "${matches[@]}")"
+        return 1 ;;
+    esac
+  }
+
+  _getopt_split() {
+    # Splits $2 at commas to build array specified by $1
+    declare IFS=,
+    eval "$1=( \$2 )"
+  }
+
+  _getopt_quote() {
+    # Quotes arguments with single quotes, escaping inner single quotes
+    declare s space q=\'
+    for s; do
+      printf "$space'%s'" "${s//$q/$q\\$q$q}"
+      space=' '
+    done
+  }
+
+  _getopt_quote_csh() {
+    # Quotes arguments with single quotes, escaping inner single quotes,
+    # bangs, backslashes and newlines
+    declare s i c space
+    for s; do
+      echo -n "$space'"
+      for ((i=0; i<${#s}; i++)); do
+        c=${s:i:1}
+        case $c in
+          (\\|\'|!)
+            echo -n "'\\$c'" ;;
+          ($'\n')
+            echo -n "\\$c" ;;
+          (*)
+            echo -n "$c" ;;
+        esac
+      done
+      echo -n \'
+      space=' '
+    done
+  }
+
+  _getopt_help() {
+    cat <<-EOT >&2
+	
+	Usage:
+	 getopt optstring parameters
+	 getopt [options] [--] optstring parameters
+	 getopt [options] -o|--options optstring [options] [--] parameters
+	
+	Options:
+	 -a, --alternative            Allow long options starting with single -
+	 -h, --help                   This small usage guide
+	 -l, --longoptions <longopts> Long options to be recognized
+	 -n, --name <progname>        The name under which errors are reported
+	 -o, --options <optstring>    Short options to be recognized
+	 -q, --quiet                  Disable error reporting by getopt(3)
+	 -Q, --quiet-output           No normal output
+	 -s, --shell <shell>          Set shell quoting conventions
+	 -T, --test                   Test for getopt(1) version
+	 -u, --unquote                Do not quote the output
+	 -V, --version                Output version information
+	
+	EOT
+  }
+
+  _getopt_version_check() {
+    if [[ -z $BASH_VERSION ]]; then
+      echo "getopt: unknown version of bash might not be compatible" >&2
+      return 1
+    fi
+
+    # This is a lexical comparison that should be sufficient forever.
+    if [[ $BASH_VERSION < 2.05b ]]; then
+      echo "getopt: bash $BASH_VERSION might not be compatible" >&2
+      return 1
+    fi
+
+    return 0
+  }
+
+  _getopt_version_check
+  _getopt_main "$@"
+  declare status=$?
+  unset -f _getopt_main _getopt_err _getopt_parse _getopt_quote \
+    _getopt_quote_csh _getopt_resolve_abbrev _getopt_split _getopt_help \
+    _getopt_version_check
+  return $status
+}
+
+[[ $BASH_SOURCE != "$0" ]] || main "$@"
