@@ -92,7 +92,7 @@ get_scheme_vars() {
     declare v scheme="$1"
 
     for v in background iterm2_scheme xterm_colors emacs_theme vim_theme; do
-        printf '%s=%q\n' $v "$(get_scheme_var "$scheme" $v)"
+        printf '%s=%q;\n' $v "$(get_scheme_var "$scheme" $v)"
     done
 }
 
@@ -225,6 +225,8 @@ update_vim() {
 
 update_tmux() {
     declare x scheme="$1" background="$2"
+
+    tmux info &>/dev/null || return
 
     case "$scheme:$background" in
         solarized*|*:dark) tmux set -g status-style fg=default,bg=black ;;
@@ -440,7 +442,7 @@ rgb() {
 update_iterm2() {
     declare iterm2_scheme="$1"
     type osascript &>/dev/null || return
-    it2scheme.py "$iterm2_scheme"
+    it2scheme.py "$iterm2_scheme" --profile Flex
 }
 
 default_xfce_config="
