@@ -187,12 +187,11 @@ update_emacs() {
     declare emacs_theme="$1" background="$2"
 
     if emacsclient -e t &>/dev/null; then
-        if [[ $emacs_theme == solarized ]]; then
-            emacsclient -e "
-                (set-terminal-parameter nil 'background-mode '$background)
-                (set-frame-parameter nil 'background-mode '$background)
-                (load-theme '$emacs_theme)"
-        fi
+        emacsclient -e "
+            (dolist (frame (frame-list))
+             (set-terminal-parameter frame 'background-mode '$background)
+             (set-frame-parameter frame 'background-mode '$background))
+            (load-theme '$emacs_theme)"
     fi
 }
 
