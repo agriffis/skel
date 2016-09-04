@@ -78,7 +78,7 @@ set_scheme() {
     #update_roxterm "$xterm_colors" &  # XXX port to $xterm_colors
     update_iterm2 "$iterm2_scheme" &
 
-    update_emacs "$emacs_theme" &
+    update_emacs "$emacs_theme" "$background" &
     update_vim "$vim_theme" "$background" &
     update_tmux "$scheme" "$background" &
 
@@ -184,10 +184,15 @@ update_state() {
 }
 
 update_emacs() {
-    declare emacs_theme="$1"
+    declare emacs_theme="$1" background="$2"
 
     if emacsclient -e t &>/dev/null; then
-        emacsclient -e "(load-theme '$emacs_theme)"
+        if [[ $emacs_theme == solarized ]]; then
+            emacsclient -e "
+                (set-terminal-parameter nil 'background-mode '$background)
+                (set-frame-parameter nil 'background-mode '$background)
+                (load-theme '$emacs_theme)"
+        fi
     fi
 }
 
