@@ -185,13 +185,21 @@ update_state() {
 
 update_emacs() {
     declare emacs_theme="$1" background="$2"
+    declare terminal_background_mode=nil gui_background_mode=nil
+
+    if [[ $emacs_theme == solarized ]]; then
+        terminal_background_mode="'dark"  # let terminal do its thing
+        gui_background_mode="'$background"
+    fi
 
     if emacsclient -e t &>/dev/null; then
         emacsclient -e "
             (dolist (frame (frame-list))
-             (set-terminal-parameter frame 'background-mode '$background)
-             (set-frame-parameter frame 'background-mode '$background))
-            (load-theme '$emacs_theme)"
+              (let ((background-mode (if (display-graphic-p frame)
+                                         $gui_background_mode $terminal_background_mode)))
+                (set-terminal-parameter frame 'background-mode background-mode)
+                (set-frame-parameter frame 'background-mode background-mode)))"
+        emacsclient -e "(load-theme '$emacs_theme)"
     fi
 }
 
