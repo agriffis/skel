@@ -163,7 +163,7 @@ load_default_schemes() {
         #268bd2 #d33682 #2aa198 #073642 #fdf6e3 #cb4b16
         #93a1a1 #839496 #657b83 #6c71c4 #586e75 #002b36"
     #xterm_cursor="#586e75"  XXX
-    solarized_light_emacs_theme=sanityinc-solarized-light
+    solarized_light_emacs_theme=solarized
     solarized_light_vim_theme=solarized
     solarized_light_toggle=solarized_dark
 
@@ -174,7 +174,7 @@ load_default_schemes() {
         #268bd2 #d33682 #2aa198 #eee8d5 #002b36 #cb4b16
         #586e75 #657b83 #839496 #6c71c4 #93a1a1 #fdf6e3"
     #xterm_cursor="#93a1a1"  XXX
-    solarized_dark_emacs_theme=sanityinc-solarized-dark
+    solarized_dark_emacs_theme=solarized
     solarized_dark_vim_theme=solarized
     solarized_dark_toggle=solarized_light
 }
