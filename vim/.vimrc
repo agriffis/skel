@@ -27,6 +27,7 @@ set showmode            " message on status line to show current mode
 set showmatch           " briefly jump to matching bracket
 set swapsync=""         " don't call fsync() or sync(); let linux handle it
 set nowarn              " don't warn for shell command when buffer changed
+set updatetime=2000
 set wildmode=longest,list,full
 
 " Statusline thanks to Ciaran
@@ -193,33 +194,7 @@ EOT
 endif
 
 "================================== COLORS =================================
-runtime scripts/detect_background.vim
-if ! exists('g:loaded_detect_background')
-  function! DetectBackground(foo)
-    let g:detected_background = &background
-    return g:detected_background
-  endfunction
-endif
-
-" When using the inkpot colorscheme, make the background black instead of gray
-let g:inkpot_black_background=1
-
-function! TryColorscheme(scheme)
-  if exists('g:colors_name') && g:colors_name == a:scheme
-    return 0
-  endif
-  try
-    exec 'colorscheme' a:scheme
-    return 0
-  catch /^Vim\%((\a\+)\)\=:E185/
-  endtry
-  return 1
-endfunction
-
-let g:dark_colorscheme = 'inkpot'
-let g:light_colorscheme = 'default'
-
-function! SetColors()
+function! InitTerm()
   if &term =~ '^xterm' && &t_Co <= 16
     set t_Co=16
     if exists('v:termresponse')
@@ -234,57 +209,37 @@ function! SetColors()
       endif
     endif
   endif
-  if g:detected_background == 'dark' && (&term == 'builtin_gui' || &t_Co >= 88)
-        \ && TryColorscheme(g:dark_colorscheme) == 0
-    return
-  elseif g:detected_background == 'light' 
-        \ && TryColorscheme(g:light_colorscheme) == 0
-    return
-  endif
-  call TryColorscheme('default')
 endfunction
 
-" :colorscheme default resets &background, for no apparent reason
-function! RestoreBackground()
-  if exists('g:colors_name') && g:colors_name == 'default' &&
-        \ exists('g:detected_background') &&
-        \ g:detected_background != &background
-    let &background = g:detected_background
-    if exists('syntax_on') | syn reset | endif
-  endif
-endfunction
-
-function! ColorSetup()
-  call DetectBackground(v:termresponse)
-  let &background = g:detected_background
-  call SetColors()
-  call RestoreBackground()
-endfunction
-
-if has("gui_running") || ! has("termresponse") || &t_RV == ''
+if has("termresponse") && ! has("gui_running")
   augroup ag_setcolors
     autocmd!
-    autocmd VimEnter,GUIEnter * call ColorSetup()
-  augroup END
-else
-  augroup ag_setcolors
-    autocmd!
-    autocmd TermResponse * call ColorSetup()
+    autocmd TermResponse * call InitTerm()
   augroup END
 endif
 
-augroup ag_setcolors
-  autocmd TermChanged * if &t_RV == '' | call ColorSetup() | endif
-augroup END
-
-if v:version >= 700
-  augroup ag_setcolors
-    " NOTE: This won't nest inside TermResponse, and it isn't covered by
-    " autocmd-nested, so we also call RestoreBackground() explicitly from
-    " ColorSetup()
-    autocmd ColorScheme * call RestoreBackground()
-  augroup END
-endif
+function! TryTheme(theme, ...)
+  let l:background = a:0 ? a:1 : ''
+  if a:theme == 'solarized'
+    " force dark bg to prevent double toggle with term scheme
+    let l:background = 'dark'
+  endif
+  if exists('g:colors_name') && g:colors_name == a:theme &&
+      \ empty(l:background) || &background == l:background
+    return 1
+  endif
+  try
+    exec 'colorscheme' a:theme
+  catch /^Vim\%((\a\+)\)\=:E185/
+    return 0
+  endtry
+  if ! empty(l:background)
+    let &background = l:background
+  endif
+  if exists('syntax_on')
+    syn reset
+  endif
+endfunction
 
 "=================================== MAIL ==================================
 augroup ag_mail
