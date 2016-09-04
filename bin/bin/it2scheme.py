@@ -2,13 +2,23 @@
 # https://iterm2.com/documentation-scripting.html
 # https://github.com/gnachman/iTerm2/blob/master/tests/example.osascript
 
+import argparse
 import os
 import sys
 
 
-def load_scheme(name):
+def main(*args):
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--profile')
+    parser.add_argument('name')
+    args = parser.parse_args(args)
+    load_scheme(args.name, args.profile)
+
+
+def load_scheme(name, profile=None):
     scheme = schemes[name]
-    scpt = make_scpt(scheme)
+    template = profile_template if profile else here_template
+    scpt = make_scpt(template, profile=profile, scheme=scheme)
     quoted = shell_quote(scpt)
     os.system("osascript -e " + quoted)
 
@@ -17,13 +27,14 @@ def shell_quote(s):
     return "'" + s.replace("'", "'\\''") + "'"
 
 
-def make_scpt(scheme):
-    scpt = scpt_template.format('\n                '.join(
-        'set {} to {}'.format(k, v) for k, v in scheme.items()))
+def make_scpt(template, scheme, **kwargs):
+    settings = '\n'.join(
+        'set {} to {}'.format(k, v) for k, v in scheme.items())
+    scpt = template.format(settings=settings, **kwargs)
     return scpt
 
 
-scpt_template = """
+profile_template = """
 tell application "iTerm2"
   repeat with w in windows
     tell w
@@ -32,8 +43,8 @@ tell application "iTerm2"
           repeat with s in sessions
             tell s
               set p to get profile name
-              if p is "Flex"
-                {}
+              if p is "{profile}"
+                {settings}
               end if
             end tell
           end repeat
@@ -41,6 +52,15 @@ tell application "iTerm2"
       end repeat
     end tell
   end repeat
+end tell
+"""
+
+
+here_template = """
+tell application "iTerm2"
+  tell current session of current window
+    {settings}
+  end tell
 end tell
 """
 
@@ -3672,4 +3692,4 @@ schemes = {
 
 
 if __name__ == '__main__':
-    load_scheme(sys.argv[1])
+    main(*sys.argv[1:])
