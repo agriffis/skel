@@ -35,7 +35,7 @@
      django
      (syntax-checking :variables syntax-checking-enable-tooltips nil)
 
-     themes-megapack
+     ;; themes-megapack
 
      ;; shell
      ;; vim-empty-lines
@@ -286,6 +286,10 @@ layers configuration."
 ;; (advice-add 'load-theme :around #'restore-background)
 ;; (add-hook 'after-make-frame-functions 'frame-restore-background)
 
+;; http://emacs.stackexchange.com/questions/3112/how-to-reset-color-theme
+(defadvice load-theme (before theme-dont-propagate activate)
+  (mapcar #'disable-theme custom-enabled-themes))
+
 ;; Do not write anything past this comment. This is where Emacs will
 ;; auto-generate custom variable definitions.
 (custom-set-variables
@@ -293,9 +297,11 @@ layers configuration."
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(ansi-color-names-vector
+   ["#bcbcbc" "#d70008" "#5faf00" "#875f00" "#268bd2" "#800080" "#008080" "#5f5f87"])
  '(custom-safe-themes
    (quote
-    ("8db4b03b9ae654d4a57804286eb3e332725c84d7cdab38463cb6b97d5762ad26" "4aee8551b53a43a883cb0b7f3255d6859d766b6c5e14bcb01bed572fcbef4328" "4cf3221feff536e2b3385209e9b9dc4c2e0818a69a1cdb4b522756bcdf4e00a4" "bffa9739ce0752a37d9b1eee78fc00ba159748f50dc328af4be661484848e476" "fa2b58bb98b62c3b8cf3b6f02f058ef7827a8e497125de0254f56e373abee088" "3f78849e36a0a457ad71c1bda01001e3e197fe1837cb6eaa829eb37f0a4bdad5" "c35c0effa648fd320300f3d45696c640a92bdc7cf0429d002a96bda2b42ce966" "8aebf25556399b58091e533e455dd50a6a9cba958cc4ebb0aab175863c25b9a4" "d725097d2547e9205ab6c8b034d6971c2f0fc64ae5f357b61b7de411ca3e7ab2" "3038a172e5b633d0b1ee284e6520a73035d0cb52f28b1708e22b394577ad2df1" default)))
+    ("a276998eb08b2d51d1b4fe74e885c56e33124a44e56b9276e670a61f694f03a4" "016d14b6ac7cac14a33979d4d56bd15f5ae98db28f251ad85686373f4606431d" "be4025b1954e4ac2a6d584ccfa7141334ddd78423399447b96b6fa582f206194" "45712b65018922c9173439d9b1b193cb406f725f14d02c8c33e0d2cdad844613" "8db4b03b9ae654d4a57804286eb3e332725c84d7cdab38463cb6b97d5762ad26" "4aee8551b53a43a883cb0b7f3255d6859d766b6c5e14bcb01bed572fcbef4328" "4cf3221feff536e2b3385209e9b9dc4c2e0818a69a1cdb4b522756bcdf4e00a4" "bffa9739ce0752a37d9b1eee78fc00ba159748f50dc328af4be661484848e476" "fa2b58bb98b62c3b8cf3b6f02f058ef7827a8e497125de0254f56e373abee088" "3f78849e36a0a457ad71c1bda01001e3e197fe1837cb6eaa829eb37f0a4bdad5" "c35c0effa648fd320300f3d45696c640a92bdc7cf0429d002a96bda2b42ce966" "8aebf25556399b58091e533e455dd50a6a9cba958cc4ebb0aab175863c25b9a4" "d725097d2547e9205ab6c8b034d6971c2f0fc64ae5f357b61b7de411ca3e7ab2" "3038a172e5b633d0b1ee284e6520a73035d0cb52f28b1708e22b394577ad2df1" default)))
  '(diff-hl-margin-mode nil)
  '(evil-want-Y-yank-to-eol nil)
  '(global-diff-hl-mode t)
