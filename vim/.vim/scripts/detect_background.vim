@@ -7,11 +7,7 @@ let g:loaded_detect_background = 1
 
 if v:version < 700
   function! DetectBackground(s)
-    if exists('g:my_background')
-      let g:detected_background = g:my_background
-    else
-      let g:detected_background = &background
-    endif
+    let g:detected_background = &background
     return g:detected_background
   endfunction
   finish
@@ -37,11 +33,7 @@ endfunction
 function! DetectBackground(s)
   let g:detected_background = &background
 
-  if exists('g:my_background')
-    " user override
-    let g:detected_background = g:my_background
-
-  elseif &term =~ '^xterm'
+  if &term =~ '^xterm'
     let l:ml = matchlist(a:s, '^\[>\([01]\);\([0-9]\+\);')
     " l:ml[1]=1 for gnome-terminal
     " l:ml[2]=115 for konsole-3.5.9
