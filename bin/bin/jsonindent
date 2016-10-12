@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 
 import json
 import sys
@@ -7,15 +7,14 @@ inputs = sys.argv[1:] or [sys.stdin]
 status = 0
 
 for inp in inputs:
-    if not callable(getattr(inp, 'read', None)):
-        try:
+    try:
+        if not callable(getattr(inp, 'read', None)):
             inp = open(inp)
-        except Exception as e:
-            sys.stderr.write('%s: %s\n' % (e.__class__.__name__, e))
-            status |= 1
-            continue
-
-    content = inp.read()
+        content = inp.read()
+    except Exception as e:
+        sys.stderr.write('%s: %s\n' % (e.__class__.__name__, e))
+        status |= 1
+        continue
 
     try:
         data = json.loads(content)
@@ -24,6 +23,7 @@ for inp in inputs:
         status |= 2
         continue
 
-    json.dump(data, sys.stdout, indent=4, sort_keys=True)
+    json.dump(data, sys.stdout, indent=2, sort_keys=True)
+    sys.stdout.write('\n')
 
 sys.exit(status)
