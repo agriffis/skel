@@ -34,6 +34,7 @@
      markdown
      org
      python
+     react
      ruby
      vimscript
 
