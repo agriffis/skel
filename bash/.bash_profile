@@ -70,6 +70,9 @@ if [[ -z $JAVA_HOME || ! -d $JAVA_HOME ]]; then
     export JAVA_HOME=/usr/java/latest
 fi
 
+# make pinentry-curses work for gpg-agent
+export GPG_TTY=$(tty)
+
 # Load user-specific settings
 [[ ! -r ~/.bash_profile.mine ]] || source ~/.bash_profile.mine
 [[ ! -r ~/.bash_profile.local ]] || source ~/.bash_profile.local
