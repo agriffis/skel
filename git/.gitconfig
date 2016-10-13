@@ -1,6 +1,7 @@
 [user]
 	name = Aron Griffis
 	email = aron@scampersand.com
+	signingkey = 9052C6069B7D31A7
 
 [github]
 	user = agriffis
@@ -86,3 +87,5 @@
 [include]
 	path = ~/.gitconfig-lol
 	path = ~/.gitconfig-sekrit
+[commit]
+	gpgsign = true
