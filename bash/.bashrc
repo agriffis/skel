@@ -212,6 +212,20 @@ head() {
 }
 funcdup head tail 'x=${x/command head/command tail}'
 
+# git -- override what can't be aliased
+git() {
+    case $1 in
+        stash) set -- -c commit.gpgsign=false "$@" ;;
+    esac
+    command git "$@"
+}
+
+ghettopt-new() {
+    [[ -n $1 ]] || { echo "need script name" >&2; return 1; }
+    [[ ! -s $1 ]] || { echo "won't clobber $1, aborting" >&2; return 2; }
+    curl -s https://raw.githubusercontent.com/agriffis/ghettopt/master/example.bash > "$1"
+}
+
 # Load user-specific settings
 [[ ! -r ~/.bashrc.mine ]] || source ~/.bashrc.mine
 [[ ! -r ~/.bashrc.local ]] || source ~/.bashrc.local

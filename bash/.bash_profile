@@ -21,7 +21,9 @@ frontpath PATH \
   /usr/local/bin /usr/local/sbin \
   /usr/bin /bin /usr/sbin /sbin \
   /usr/X11R6/bin /usr/games /usr/games/bin
-[[ $HOME == / ]] || frontpath PATH ~/bin ~/.local/bin ~/node_modules/.bin
+
+[[ $HOME == / ]] || frontpath PATH \
+  ~/bin ~/.local/bin ~/node_modules/.bin ~/.cargo/bin ~/.cask/bin
 
 # ccache on Gentoo and Debian respectively
 frontpath PATH /usr/lib{64,}/ccache/bin /usr/lib{64,}/ccache
@@ -43,7 +45,7 @@ case $OSTYPE in
   *)      export LANG=en_US.ISO8859-1 LC_COLLATE=C ;;
 esac
 
-# Set the EDITOR to vim.  Override this in .bashrc.mine if you prefer
+# Set the EDITOR to vim. Override this in .bash_profile.mine if you prefer
 # something else.
 if type -P vim >/dev/null; then
   export EDITOR=vim
