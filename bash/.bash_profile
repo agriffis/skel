@@ -1,9 +1,19 @@
-# $Id: bash_profile 4902 2013-10-15 13:17:43Z aron $
-#
 # .bash_profile
-#       Environment settings that should only be reset for new logins
-#       (rather than all new shells).
+#
+# Environment settings that should only be reset for new logins
+# (rather than all new shells).
+#
+# Written in 2003-2016 by Aron Griffis <aron@arongriffis.com>
+#
+# To the extent possible under law, the author(s) have dedicated all copyright
+# and related and neighboring rights to this software to the public domain
+# worldwide. This software is distributed without any warranty.
+#
+# CC0 Public Domain Dedication at
+# http://creativecommons.org/publicdomain/zero/1.0/
+#======================================================================
 
+# indicate to bashrc that bash_profile has been sourced
 export _BASH_PROFILE=1
 
 # sometimes USER isn't set so just use LOGNAME

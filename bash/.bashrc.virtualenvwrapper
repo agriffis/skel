@@ -1,11 +1,17 @@
-# $Id: bashrc.virtualenvwrapper 4669 2012-04-24 16:35:15Z aron $
+# .bashrc.virtualenvwrapper
 #
 # Dynamically load virtualenvwrapper functions to reduce shell startup
 # time.
 #
-# Copyright 2012 Aron Griffis <aron@arongriffis.com>
-# Released under the GNU GPL v3
-####################################################################### 
+# Written in 2012 by Aron Griffis <aron@arongriffis.com>
+#
+# To the extent possible under law, the author(s) have dedicated all copyright
+# and related and neighboring rights to this software to the public domain
+# worldwide. This software is distributed without any warranty.
+#
+# CC0 Public Domain Dedication at
+# http://creativecommons.org/publicdomain/zero/1.0/
+#======================================================================
 
 # Python virtualenvwrapper loads really slowly, so load it on demand.
 if [[ $(type -t workon) != function ]]; then

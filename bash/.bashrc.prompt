@@ -1,11 +1,16 @@
-# $Id: bashrc.prompt 4833 2012-12-13 17:11:04Z aron $
+# .bashrc.prompt
 #
-# bashrc.prompt
-#       Multi-line modular prompt
+# Multi-line modular prompt
 #
-# Copyright 2003-2008 Aron Griffis <agriffis n01se.net>
-# Released under the GNU GPL v2
-####################################################################### 
+# Written in 2003-2016 by Aron Griffis <aron@arongriffis.com>
+#
+# To the extent possible under law, the author(s) have dedicated all copyright
+# and related and neighboring rights to this software to the public domain
+# worldwide. This software is distributed without any warranty.
+#
+# CC0 Public Domain Dedication at
+# http://creativecommons.org/publicdomain/zero/1.0/
+#======================================================================
 
 [[ -n $_BASHRC_PROMPT ]] && return
 _BASHRC_PROMPT=1

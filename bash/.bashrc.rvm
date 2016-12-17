@@ -1,10 +1,16 @@
-# $Id: bashrc.rvm 4744 2012-08-12 14:49:17Z aron $
+# .bashrc.rvm
 #
 # Dynamically load rvm function to reduce shell startup time.
 #
-# Copyright 2012 Aron Griffis <aron@arongriffis.com>
-# Released under the GNU GPL v3
-####################################################################### 
+# Written in 2012 by Aron Griffis <aron@arongriffis.com>
+#
+# To the extent possible under law, the author(s) have dedicated all copyright
+# and related and neighboring rights to this software to the public domain
+# worldwide. This software is distributed without any warranty.
+#
+# CC0 Public Domain Dedication at
+# http://creativecommons.org/publicdomain/zero/1.0/
+#======================================================================
 
 # Ruby rvm takes 0.2 seconds to load on my core i7, so load it on demand.
 if [[ $(type -t rvm) != function ]]; then
