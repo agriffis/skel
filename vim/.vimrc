@@ -428,7 +428,7 @@ augroup END
 
 augroup filetypedetect
   " don't use :setfiletype because we need to override previous detection
-  autocmd BufReadPost,BufNewFile *.md setlocal ft=ghmarkdown
+  autocmd BufReadPost,BufNewFile *.md,*.txt setlocal ft=ghmarkdown
   autocmd BufReadPost,BufNewFile *.wsgi setlocal ft=python
   autocmd BufNewFile,BufReadPost *.coffee setlocal ft=coffee
   autocmd BufNewFile,BufReadPost Vagrantfile* setlocal ft=ruby
