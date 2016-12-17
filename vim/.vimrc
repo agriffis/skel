@@ -1,4 +1,14 @@
-" $Id: vimrc 4892 2013-10-15 12:59:57Z aron $
+" .vimrc
+"
+" Written in 2003-2016 by Aron Griffis <aron@arongriffis.com>
+"
+" To the extent possible under law, the author(s) have dedicated all copyright
+" and related and neighboring rights to this software to the public domain
+" worldwide. This software is distributed without any warranty.
+"
+" CC0 Public Domain Dedication at
+" http://creativecommons.org/publicdomain/zero/1.0/
+"======================================================================
 
 " Keep this at the top of the file
 set nocompatible
@@ -39,9 +49,6 @@ set statusline+=%h%m%r%w                     " flags
 set statusline+=\[%{strlen(&ft)?&ft:'none'}, " filetype
 set statusline+=%{&encoding},                " encoding
 set statusline+=%{&fileformat}]              " file format
-if filereadable(expand("$VIM/vimfiles/plugin/vimbuddy.vim"))
-    set statusline+=\ %{VimBuddy()}          " vim buddy
-endif
 set statusline+=%=                           " right align
 set statusline+=0x%-8B\                      " current char
 set statusline+=%-14.(%l,%c%V%)\ %<%P        " offset
@@ -88,11 +95,6 @@ set winwidth=75         " width of current window
 
 " Terminal settings
 set vb t_vb=            " shut off bell entirely; see also .gvimrc
-
-" The rest of this file, except for inclusion of .vimrc.mine, is subject to vim
-" being compiled with +eval.  Normally this is the case, except on Gentoo when
-" USE=minimal
-if 1
 
 " Enable pathogen bundles, must be before filetype etc.
 call pathogen#infect()
@@ -241,12 +243,6 @@ function! TryTheme(theme, ...)
   endif
 endfunction
 
-"=================================== MAIL ==================================
-augroup ag_mail
-  autocmd!
-  autocmd FileType mail set textwidth=65 nohlsearch expandtab " formatoptions+=wa
-augroup END
-
 "==================================== C ====================================
 " Default options for C files
 function! LoadTypeC()
@@ -382,18 +378,7 @@ augroup ag_css
   autocmd FileType css call LoadTypeCSS()
 augroup END
 
-"================================ Markdown =================================
-function! LoadTypeMarkdown()
-  "set number wrap linebreak nolist textwidth=0 wrapmargin=0
-endfunction
-
-augroup ag_markdown
-  autocmd!
-  autocmd FileType markdown,ghmarkdown call LoadTypeMarkdown()
-augroup END
-
 "================================= GENERAL =================================
-
 " Detect settings of file being edited and change ours to match
 function! DetectSettings()
   " First check for tabs vs spaces
@@ -457,29 +442,8 @@ endif
 " Load plugins now to prevent conflict with those that modify &bin
 runtime! plugin/*.vim
 
-" DISABLED 05 May 2008 because this seems to conflict with the gnupg.vim plugin
-" Read and write binary files
-" augroup au_bin
-"   autocmd!
-"   autocmd BufReadPre   *.bin  let &bin=1
-"   call system("which xxd &>/dev/null")
-"   if shell_error == 0
-"     autocmd BufReadPost  * if &bin | %!xxd
-"     autocmd BufReadPost  * set ft=xxd | endif
-"     autocmd BufWritePre  * if &bin | %!xxd -r
-"     autocmd BufWritePre  * endif
-"     autocmd BufWritePost * if &bin | %!xxd
-"     autocmd BufWritePost * set nomod | endif
-"   endif
-" augroup END
-
 if filereadable(expand("~/.vimrc.mine"))
   source ~/.vimrc.mine
 endif
-
-finish  " to prevent sourcing vimrc.mine twice
-endif   " has("eval")
-
-" source ~/.vimrc.mine
 
 " vim:set shiftwidth=2:

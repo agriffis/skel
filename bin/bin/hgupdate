@@ -1,7 +1,0 @@
-#!/bin/bash
-
-set -- $(find . -type d -name .hg | xargs -n1 dirname)
-for h; do
-    hg -R "$h" pull -u & 
-done
-wait

@@ -1,4 +1,0 @@
-#!/bin/bash
-
-cd /usr/local/pycharm/bin
-exec ./pycharm.sh "$@"

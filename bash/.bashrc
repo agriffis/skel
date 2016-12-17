@@ -1,9 +1,18 @@
-# $Id: bashrc 4898 2013-10-15 13:03:54Z aron $
-#
 # .bashrc
-#       Non-interactive and interactive bash settings
+#
+# Interactive and non-interactive bash settings
+#
+# Written in 2003-2016 by Aron Griffis <aron@arongriffis.com>
+#
+# To the extent possible under law, the author(s) have dedicated all copyright
+# and related and neighboring rights to this software to the public domain
+# worldwide. This software is distributed without any warranty.
+#
+# CC0 Public Domain Dedication at
+# http://creativecommons.org/publicdomain/zero/1.0/
+#======================================================================
 
-# If this is a login shell or descendent, profile has already been sourced. 
+# If this is a login shell or descendent, profile has already been sourced.
 # Otherwise force reread of profile now to get updates.
 if [[ -z $_BASH_PROFILE ]]; then
   source /etc/profile
@@ -20,17 +29,13 @@ source ~/.bashrc.funcs
 # Bash settings
 # -------------
 
-if [[ ${BASH_VERSION%%.*} < 2 ]]; then
-  command_oriented_history=
-  HISTCONTROL=ignoreboth
-else
-  shopt -s cdspell cmdhist histappend histreedit
-  shopt -s checkwinsize
-  shopt -s extglob
-  # HISTIGNORE supercedes HISTCONTROL.  
-  # & matches the previous line in the history.
-  HISTIGNORE='\ *:&'
-fi
+shopt -s cdspell cmdhist histappend histreedit
+shopt -s checkwinsize
+shopt -s extglob
+
+# HISTIGNORE supercedes HISTCONTROL.
+# & matches the previous line in the history.
+HISTIGNORE='\ *:&'
 
 # don't bug me about mail
 unset MAILCHECK
@@ -40,111 +45,8 @@ HISTSIZE=2000
 HISTFILESIZE=2000
 
 # TERM
-# ----
-
-try_TERM() {
-  # toe on gentoo searches only /usr/share/terminfo.
-  # toe on debian/unbuntu searches only ~/.terminfo and /etc/terminfo.
-  # both appear to be broken.
-
-  declare term
-  declare -a tried
-
-  for term; do
-    [[ " ${tried[*]} " == *" $term "* ]] && continue
-    tried+=( "$term" )
-
-    if { toe ~/.terminfo
-         toe /etc/terminfo
-         toe /usr/share/terminfo
-        } 2>/dev/null | grep -q "^$term[[:blank:]]"; then
-      TERM=$term
-      return 0
-    fi
-  done
-
-  return 1
-}
-
-setup_TERM() {
-  # vte-256color messes up emacs with solarized, so use xterm-256color
-  # instead. This might be something hardcoded in emacs since the terminfo
-  # comparison doesn't show significant differences.
-  declare vte=xterm-256color
-  declare -a terms
-
-  case $TERM:$COLORTERM in
-    ansi:*)
-      # probably Windows telnet
-      TERM=vt100 ;;
-
-    screen*:*)
-      # leave it alone! don't trip on the following vte checks
-      ;;
-
-    *:roxterm|xterm:)
-      if [[ $ROXTERM_PID == "$PPID" ]]; then
-        TERM=$vte
-      fi
-
-      # gnome-terminal stopped setting COLORTERM=gnome-terminal
-      # https://github.com/GNOME/gnome-terminal/commit/1d5c1b6ca6373c1301494edbc9e43c3e6a9c9aaf
-      if [[ $(cat /proc/$PPID/cmdline 2>/dev/null) == *gnome-terminal* ]]; then
-        TERM=$vte
-      fi
-      ;;
-
-    *:Terminal|*:gnome-terminal)
-      TERM=$vte ;;
-  esac
-
-  case $TERM in
-    *[-+]256color|rxvt*)
-      # Check if the system groks 256color then degrade gracefully.
-      # Note that xterm+256color doesn't really work right, so don't
-      # attempt to use it unless it's already set.
-      # ("less" complains that the terminal isn't fully functional...)
-      terms+=(
-        "$TERM"               # e.g. xterm+256color
-        "${TERM/+/-}"         # e.g. xterm-256color
-        "${TERM/#xterm?256color/vte-256color}"
-        "${TERM/#rxvt-unicode/rxvt-88color}"
-        "${TERM%[-+]*}-16color"  # e.g. xterm-16color
-        "${TERM%[-+]*}"       # e.g. xterm or rxvt
-        xterm
-        dumb
-        ) ;;
-
-    screen*)
-      terms=(
-        # screen-256color-bce-s doesnt seem to work with weechat.
-        # The top status bar gets truncated.
-        #screen-256color-bce-s
-        screen-256color-s
-        screen-256color
-        screen-16color
-        "$TERM"
-        screen
-        ) ;;
-  esac
-
-  if [[ ${#terms[@]} -gt 0 ]]; then
-    try_TERM "${terms[@]}"
-  fi
-}
-
+source ~/.bashrc.term
 setup_TERM
-unset -f setup_TERM try_TERM
-
-if [[ -s ~/.bashrc.proxies ]]; then
-  unset no_proxy http_proxy https_proxy ftp_proxy
-  source ~/.bashrc.proxies
-  unset NO_PROXY HTTP_PROXY HTTPS_PROXY FTP_PROXY
-  [[ -n $no_proxy ]] && export NO_PROXY=$no_proxy
-  [[ -n $http_proxy ]] && export HTTP_PROXY=$http_proxy
-  [[ -n $https_proxy ]] && export HTTPS_PROXY=$https_proxy
-  [[ -n $ftp_proxy ]] && export FTP_PROXY=$ftp_proxy
-fi
 
 # set umask before interactive test; this helps scp.
 # shared hosting should use writeable group.
@@ -176,7 +78,6 @@ fi
 #######################################################################
 
 [[ -r ~/.bashrc.prompt ]] && source ~/.bashrc.prompt
-[[ -r ~/.bashrc.cd ]]     && source ~/.bashrc.cd
 [[ -r ~/.bashrc.fastls ]] && source ~/.bashrc.fastls
 
 # Ruby rvm -- load this after .bashrc.prompt
@@ -198,27 +99,21 @@ b() {
 }
 
 # h -- search for a given expression in the history
-h() { 
+h() {
   history | grep -e "${@:-}" | tail
 }
 
-# head/tail -- automatically scale based on $LINES
-head() {
-  if [[ -t 1 ]]; then
-    declare lines=$(( LINES - 2 * $(wc -l <<<"$PS1") ))
-    [[ $lines -gt 10 ]] && set -- -n$lines "$@"
-  fi
-  command head "$@"
+# git -- override what can't be aliased
+git() {
+  case $1 in
+    stash) set -- -c commit.gpgsign=false "$@" ;;
+  esac
+  command git "$@"
 }
-funcdup head tail 'x=${x/command head/command tail}'
 
 # Load user-specific settings
 [[ ! -r ~/.bashrc.mine ]] || source ~/.bashrc.mine
 [[ ! -r ~/.bashrc.local ]] || source ~/.bashrc.local
-
-# Fix for /tmp_mnt/...
-[[ . -ef ~/. ]] && cd
-true  # because PS1 might contain $?
 
 # The following line enforces a consistent indentation for this file
 # (in Vim at least).  Keep this at the end of file.

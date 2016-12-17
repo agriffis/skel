@@ -1,9 +1,19 @@
-# $Id: bash_profile 4902 2013-10-15 13:17:43Z aron $
-#
 # .bash_profile
-#       Environment settings that should only be reset for new logins
-#       (rather than all new shells).
+#
+# Environment settings that should only be reset for new logins
+# (rather than all new shells).
+#
+# Written in 2003-2016 by Aron Griffis <aron@arongriffis.com>
+#
+# To the extent possible under law, the author(s) have dedicated all copyright
+# and related and neighboring rights to this software to the public domain
+# worldwide. This software is distributed without any warranty.
+#
+# CC0 Public Domain Dedication at
+# http://creativecommons.org/publicdomain/zero/1.0/
+#======================================================================
 
+# indicate to bashrc that bash_profile has been sourced
 export _BASH_PROFILE=1
 
 # sometimes USER isn't set so just use LOGNAME
@@ -21,7 +31,9 @@ frontpath PATH \
   /usr/local/bin /usr/local/sbin \
   /usr/bin /bin /usr/sbin /sbin \
   /usr/X11R6/bin /usr/games /usr/games/bin
-[[ $HOME == / ]] || frontpath PATH ~/bin ~/.local/bin ~/node_modules/.bin
+
+[[ $HOME == / ]] || frontpath PATH \
+  ~/bin ~/.local/bin ~/node_modules/.bin ~/.cargo/bin ~/.cask/bin
 
 # ccache on Gentoo and Debian respectively
 frontpath PATH /usr/lib{64,}/ccache/bin /usr/lib{64,}/ccache
@@ -43,7 +55,7 @@ case $OSTYPE in
   *)      export LANG=en_US.ISO8859-1 LC_COLLATE=C ;;
 esac
 
-# Set the EDITOR to vim.  Override this in .bashrc.mine if you prefer
+# Set the EDITOR to vim. Override this in .bash_profile.mine if you prefer
 # something else.
 if type -P vim >/dev/null; then
   export EDITOR=vim

@@ -1,12 +1,17 @@
-# $Id: bashrc.fastls 4744 2012-08-12 14:49:17Z aron $
+# .bashrc.fastls
 #
-# bashrc.fastls
-#       Make ls faster by detecting the network-based filesystems, and by
-#       excluding orphan-coloring from LS_COLORS
+# Make ls faster by detecting the network-based filesystems, and by
+# excluding orphan-coloring from LS_COLORS
 #
-# Copyright 2003-2007 Aron Griffis <agriffis n01se.net>
-# Released under the GNU GPL v2
-####################################################################### 
+# Written in 2003-2016 by Aron Griffis <aron@arongriffis.com>
+#
+# To the extent possible under law, the author(s) have dedicated all copyright
+# and related and neighboring rights to this software to the public domain
+# worldwide. This software is distributed without any warranty.
+#
+# CC0 Public Domain Dedication at
+# http://creativecommons.org/publicdomain/zero/1.0/
+#======================================================================
 
 [[ -n $_BASHRC_FASTLS ]] && return
 _BASHRC_FASTLS=1

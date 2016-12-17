@@ -1,6 +1,0 @@
-#!/bin/bash
-
-case $1 in
-in) ktimetracker --starttask $(ktimetracker --taskidsfromname PagePart) ;;
-out) ktimetracker --stoptask $(ktimetracker --taskidsfromname PagePart) ;;
-esac

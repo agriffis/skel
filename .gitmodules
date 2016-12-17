@@ -16,6 +16,13 @@
 [submodule "vim/.vim/bundle/python-mode"]
 	path = vim/.vim/bundle/python-mode
 	url = git://github.com/klen/python-mode.git
+[submodule "vim/.vim/bundle/editorconfig-vim"]
+	path = vim/.vim/bundle/editorconfig-vim
+	url = https://github.com/editorconfig/editorconfig-vim.git
+[submodule "vim/.vim/bundle/tabular"]
+	path = vim/.vim/bundle/tabular
+	url = https://github.com/godlygeek/tabular.git
 [submodule "emacs/.emacs.d"]
 	path = emacs/.emacs.d
 	url = https://github.com/syl20bnr/spacemacs
+	branch = develop

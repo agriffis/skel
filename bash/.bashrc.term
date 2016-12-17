@@ -1,0 +1,104 @@
+# bashrc.term
+#
+# Functions for setting the TERM environment variable.
+#
+# Written in 2003-2016 by Aron Griffis <aron@arongriffis.com>
+#
+# To the extent possible under law, the author(s) have dedicated all copyright
+# and related and neighboring rights to this software to the public domain
+# worldwide. This software is distributed without any warranty.
+#
+# CC0 Public Domain Dedication at
+# http://creativecommons.org/publicdomain/zero/1.0/
+#======================================================================
+
+try_TERM() {
+  # toe on gentoo searches only /usr/share/terminfo.
+  # toe on debian/unbuntu searches only ~/.terminfo and /etc/terminfo.
+  # both appear to be broken.
+
+  declare term
+  declare -a tried
+
+  for term; do
+    [[ " ${tried[*]} " == *" $term "* ]] && continue
+    tried+=( "$term" )
+
+    if { toe ~/.terminfo
+         toe /etc/terminfo
+         toe /usr/share/terminfo
+        } 2>/dev/null | grep -q "^$term[[:blank:]]"; then
+      TERM=$term
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+setup_TERM() {
+  # vte-256color messes up emacs with solarized, so use xterm-256color
+  # instead. This might be something hardcoded in emacs since the terminfo
+  # comparison doesn't show significant differences.
+  declare vte=xterm-256color
+  declare -a terms
+
+  case $TERM:$COLORTERM in
+    ansi:*)
+      # probably Windows telnet
+      TERM=vt100 ;;
+
+    screen*:*)
+      # leave it alone! don't trip on the following vte checks
+      ;;
+
+    *:roxterm|xterm:)
+      if [[ $ROXTERM_PID == "$PPID" ]]; then
+        TERM=$vte
+      fi
+
+      # gnome-terminal stopped setting COLORTERM=gnome-terminal
+      # https://github.com/GNOME/gnome-terminal/commit/1d5c1b6ca6373c1301494edbc9e43c3e6a9c9aaf
+      if [[ $(cat /proc/$PPID/cmdline 2>/dev/null) == *gnome-terminal* ]]; then
+        TERM=$vte
+      fi
+      ;;
+
+    *:Terminal|*:gnome-terminal)
+      TERM=$vte ;;
+  esac
+
+  case $TERM in
+    *[-+]256color|rxvt*)
+      # Check if the system groks 256color then degrade gracefully.
+      # Note that xterm+256color doesn't really work right, so don't
+      # attempt to use it unless it's already set.
+      # ("less" complains that the terminal isn't fully functional...)
+      terms+=(
+        "$TERM"               # e.g. xterm+256color
+        "${TERM/+/-}"         # e.g. xterm-256color
+        "${TERM/#xterm?256color/vte-256color}"
+        "${TERM/#rxvt-unicode/rxvt-88color}"
+        "${TERM%[-+]*}-16color"  # e.g. xterm-16color
+        "${TERM%[-+]*}"       # e.g. xterm or rxvt
+        xterm
+        dumb
+        ) ;;
+
+    screen*)
+      terms=(
+        # screen-256color-bce-s doesnt seem to work with weechat.
+        # The top status bar gets truncated.
+        #screen-256color-bce-s
+        screen-256color-s
+        screen-256color
+        screen-16color
+        "$TERM"
+        screen
+        ) ;;
+  esac
+
+  if [[ ${#terms[@]} -gt 0 ]]; then
+    try_TERM "${terms[@]}"
+  fi
+}
