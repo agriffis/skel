@@ -14,11 +14,6 @@ main() {
 yum=$(wrapped "$0")
 yum() {
     sudo "$yum" "$@"
-#   if [[ $EUID == 0 || $1 == +(help|*list*|provides|search|version) ]]; then
-#       "$yum" "$@"
-#   else
-#       sudo "$yum" "$@"
-#   fi
 }
 
 yum-search() {
