@@ -40,6 +40,18 @@
 	# diff Cached
 	diffc = diff --cached
 
+	# Log, One Line
+	lol = log --graph --decorate --pretty=lol
+
+	# Log, One Line, All (refs) - shows the relationship of all refs in the repository
+	lola = !git lol --all
+
+	# Log, One Line, outbound - shows the commits on HEAD not on upstream
+	lolo = !git lol @{upstream}..HEAD
+
+	# Log, One Line "Y" format - compares HEAD vs upstream back to the merge point
+	loly = !git lol ^$(git merge-base HEAD @{upstream})^@ HEAD @{upstream}
+
 	# log Full (format)
 	logf = log -p --stat
 
@@ -53,6 +65,10 @@
 	sdiff = !git diff && git submodule foreach 'git diff'
 	spush = push --recurse-submodules=on-demand
 	supdate = submodule update --remote --rebase
+
+[pretty]
+	lol = "%C(yellow bold)%h%C(reset) %C(red)(%an)%C(reset)%C(blue bold)%d%C(reset) %s %C(cyan)(%ar)%C(reset)"
+	lolol = "%C(yellow bold)%h%Creset by %C(red)%an%Creset (%ar)%C(cyan bold)%d%Creset%n%s%n%n%b"
 
 [notes]
 	displayRef = refs/notes/[t]ickets
@@ -89,14 +105,17 @@
 	#untracked = yellow bold
 	nobranch = red bold
 
-[include]
-	path = ~/.gitconfig-lol
-	path = ~/.gitconfig-sekrit
 [commit]
 	gpgsign = true
+
 [gpg]
 	program = gpg2
+
 [diff]
 	submodule = log
+
 [status]
 	submodulesummary = 1
+
+[include]
+	path = ~/.gitconfig-sekrit
