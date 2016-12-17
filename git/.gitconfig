@@ -49,6 +49,11 @@
 	# Show list of contributors
 	contrib = !git log "--pretty=format:'%an %ae%n%cn %ce'" |sort |uniq -c |sort
 
+	# Working with submodules
+	sdiff = !git diff && git submodule foreach 'git diff'
+	spush = push --recurse-submodules=on-demand
+	supdate = submodule update --remote --rebase
+
 [notes]
 	displayRef = refs/notes/[t]ickets
 	displayRef = refs/notes/[t]esters
