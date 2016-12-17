@@ -44,7 +44,7 @@
    dotspacemacs-additional-packages
    '(
      editorconfig
-     org-journal
+     ;org-journal
      color-theme-solarized ;; https://github.com/syl20bnr/spacemacs/issues/1269#issuecomment-198309213
      )
 
@@ -220,11 +220,11 @@ layers configuration."
   (editorconfig-mode 1)
 
   ;; https://www.emacswiki.org/emacs/OrgJournal
-  (require 'org-journal)
-  (setq org-journal-dir "~/Dropbox/Journal"
-        org-journal-file-format "%Y%m%d.org")
-  (evil-leader/set-key
-    "jj" 'org-journal-new-entry)
+  ;(require 'org-journal)
+  ;(setq org-journal-dir "~/Dropbox/Journal"
+  ;      org-journal-file-format "%Y%m%d.org")
+  ;(evil-leader/set-key
+  ;  "jj" 'org-journal-new-entry)
 
   ;; Copy the Spacemacs bindings for org-mode to org-journal-mode. This has to
   ;; happen before adding new entries, since spacemacs//init-leader-mode-map
