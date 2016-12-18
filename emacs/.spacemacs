@@ -54,10 +54,8 @@
      eldoc        ; too slow
      smartparens
      toxi-theme   ; broken
-     evil-matchit
      rainbow-delimeters  ; gets confused by unbalanced parens in html
      org-bullets  ; prefer plain-jane asterisks
-     yasnippet
      )
 
    ;; If non-nil spacemacs will delete any orphan packages, i.e. packages that
