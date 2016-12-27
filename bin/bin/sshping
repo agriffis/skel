@@ -4,10 +4,29 @@
 #
 # syntax: sshping hostname [seconds]
 #
-# Copyright 2009 Aron Griffis <agriffis@n01se.net>
+# Copyright 2009-2016 Aron Griffis <aron@scampersand.com>
 # Released under the terms of the GNU General Public License v2
 #
 
-exec 2> >(grep -v Terminated >&2)
-exec 3< <(env -i HOME="$HOME" PATH="$PATH" setsid timeout -15 "${2:-5}" ssh -S none -v "$1" 2>&1)
-grep -q 'Remote protocol version' <&3
+TIMEFORMAT=$'\n%3R'
+
+output=$( (time \
+    env -i HOME="$HOME" PATH="$PATH" \
+    setsid \
+    timeout --signal=15 "${2:-5}" \
+    ssh -S none -v "$1" </dev/null) 2>&1)
+
+status=$?
+
+elapsed=$(tail -n1 <<<"$output")
+
+if [[ $output == *'Remote protocol version'* ]]; then
+    echo "Succeeded ($elapsed seconds)"
+    status=0
+elif [[ $status == 124 ]]; then
+    echo "Timed out ($elapsed seconds)"
+else
+    echo "Failed ($elapsed seconds)"
+fi
+
+exit $status
