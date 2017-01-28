@@ -26,3 +26,6 @@
 	path = emacs/.emacs.d
 	url = https://github.com/syl20bnr/spacemacs
 	branch = develop
+[submodule "vim/.vim/bundle/spacevim"]
+	path = vim/.vim/bundle/spacevim
+	url = https://github.com/ctjhoa/spacevim

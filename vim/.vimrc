@@ -96,6 +96,9 @@ set winwidth=75         " width of current window
 " Terminal settings
 set vb t_vb=            " shut off bell entirely; see also .gvimrc
 
+" Set the map leader to SPC, especially for spacevim
+let mapleader=" "
+
 " Enable pathogen bundles, must be before filetype etc.
 call pathogen#infect()
 call pathogen#helptags()
