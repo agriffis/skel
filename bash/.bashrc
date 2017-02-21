@@ -29,20 +29,17 @@ source ~/.bashrc.funcs
 # Bash settings
 # -------------
 
-shopt -s cdspell cmdhist histappend histreedit
+shopt -s cdspell
 shopt -s checkwinsize
 shopt -s extglob
 
-# HISTIGNORE supercedes HISTCONTROL.
-# & matches the previous line in the history.
+shopt -s cmdhist histappend histreedit
 HISTIGNORE='\ *:&'
+HISTSIZE=10000
+#HISTTIMEFORMAT='%Y%m%d-%H%M%S '
 
 # don't bug me about mail
 unset MAILCHECK
-
-# 2000 seems to be a bash compile-time limit
-HISTSIZE=2000
-HISTFILESIZE=2000
 
 # TERM
 source ~/.bashrc.term
