@@ -204,6 +204,11 @@ layers configuration."
   (setq evil-move-beyond-eol nil)
   ;; (global-diff-hl-mode -1)
 
+  ;; make evil-matchit suck less
+  ;; https://github.com/syl20bnr/spacemacs/issues/7982#issuecomment-267815038
+  ;; https://github.com/redguardtoo/evil-matchit/issues/75
+  (setq evilmi-always-simple-jump t)
+
   ;; customize company-mode to avoid idle completion, and start manual
   ;; completion with C-space
   (setq company-idle-delay nil)  ; no idle completion
