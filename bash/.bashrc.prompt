@@ -96,27 +96,6 @@ ps1_unregister_module() {
 # for example see PS1_CACHE_HG_* and PS1_CACHE_SVK below.
 unset ${!PS1_CACHE_*}
 
-# MODULE: chroot -- show the current chroot
-ps1_mod_chroot() {
-  if [[ ${PS1_CACHE_CHROOT-unset} == unset ]]; then
-    if [[ -n $CHROOTED ]]; then
-      PS1_CACHE_CHROOT=$CHROOTED
-    elif [[ -s /etc/chrootname ]]; then
-      PS1_CACHE_CHROOT=$(</etc/chrootname)
-    elif [[ -s /etc/hostname ]]; then
-      declare h=$(</etc/hostname)
-      if [[ ${h%%.*} != "${HOSTNAME%%.*}" ]]; then
-        PS1_CACHE_CHROOT=$h
-      else
-        PS1_CACHE_CHROOT=  # different from unset
-        return 1
-      fi
-    fi
-  fi
-  [[ -n $PS1_CACHE_CHROOT ]] && ps1_status "($PS1_CACHE_CHROOT)"
-}
-ps1_register_module chroot
-
 # MODULE: virtualenv -- show the current python virtualenv
 ps1_mod_virtualenv() {
   [[ -n $VIRTUAL_ENV ]] && \
