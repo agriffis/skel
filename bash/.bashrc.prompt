@@ -28,6 +28,17 @@ _BASHRC_PROMPT=1
 : ${PS1_COLOR_ERROR_GOOD:='bright green'}
 : ${PS1_COLOR_ERROR_BAD:='bright red'}
 
+# Modules that want to cache information between calls can use these
+# functions.
+unset PS1_CACHE
+declare -A PS1_CACHE
+ps1_cache_get() { echo "${PS1_CACHE[$1]:-$2}"; }
+ps1_cache_set() { PS1_CACHE[$1]=$2; }
+ps1_cache_del() { unset PS1_CACHE[$1]; }
+
+# Old-style cache
+unset ${!PS1_CACHE_*}
+
 # Utility functions to be called by modules:
 # ps1 ............... color but wrap in \[ \] for bash's PS1 parsing
 # ps1_quote ......... escape backslashes and dollar signs
@@ -100,9 +111,6 @@ ps1_unregister_module() {
   PS1_MODULES=("${mods[@]}")
 }
 
-# Modules that want to cache information between calls can use PS1_CACHE_FOO,
-# for example see PS1_CACHE_HG_* and PS1_CACHE_SVK below.
-unset ${!PS1_CACHE_*}
 
 # MODULE: virtualenv -- show the current python virtualenv
 ps1_mod_virtualenv() {
