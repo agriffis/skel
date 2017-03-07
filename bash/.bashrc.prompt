@@ -2,7 +2,7 @@
 #
 # Multi-line modular prompt
 #
-# Written in 2003-2016 by Aron Griffis <aron@arongriffis.com>
+# Written in 2003-2017 by Aron Griffis <aron@arongriffis.com>
 #
 # To the extent possible under law, the author(s) have dedicated all copyright
 # and related and neighboring rights to this software to the public domain
@@ -74,11 +74,23 @@ ps1_post_status() {
 #    ps1_unregister_module svk
 PS1_MODULES=()
 ps1_register_module() {
-  declare x
-  for x; do
-    [[ " ${PS1_MODULES[*]} " == *" $x "* ]] || \
-    PS1_MODULES=( "${PS1_MODULES[@]}" "$@" )
-  done
+  declare mod="$1" position="$2" relative="$3"
+  ps1_unregister_module "$mod"
+  case $position in
+    first)
+      PS1_MODULES=("$mod" "${PS1_MODULES[@]}")
+      return ;;
+    before|after)
+      declare i
+      for ((i=0; i<${#PS1_MODULES[@]}; i++)); do
+        if [[ "${PS1_MODULES[i]}" == "$relative" ]]; then
+          [[ $position == before ]] || (( i++ ))
+          PS1_MODULES=("${PS1_MODULES[@]::i}" "$mod" "${PS1_MODULES[@]:i}")
+          return
+        fi
+      done ;;
+  esac
+  PS1_MODULES+=("$mod")
 }
 ps1_unregister_module() {
   declare m n
@@ -87,9 +99,9 @@ ps1_unregister_module() {
     for n; do
       [[ $m == "$n" ]] && continue 2
     done
-    mods=( "${mods[@]}" "$m" )
+    mods=("${mods[@]}" "$m")
   done
-  PS1_MODULES=( "${mods[@]}" )
+  PS1_MODULES=("${mods[@]}")
 }
 
 # Modules that want to cache information between calls can use PS1_CACHE_FOO,
