@@ -2,7 +2,7 @@
 #
 # Generally useful bash functions
 #
-# Written in 2003-2016 by Aron Griffis <aron@arongriffis.com>
+# Written in 2003-2017 by Aron Griffis <aron@arongriffis.com>
 #
 # To the extent possible under law, the author(s) have dedicated all copyright
 # and related and neighboring rights to this software to the public domain
@@ -119,27 +119,43 @@ find_parent_with() {
   fi
 }
 
+not() {
+  [[ $1 == true ]] && echo false || echo true
+}
+
 # color -- emit ansi color codes
 color() {
-  declare bg=0
-  echo -ne "\033[0m"
+  declare bright=false bg=false inverse=false code color
+  set -- reset "$@"  # for inverse
   while [[ $# -gt 0 ]]; do
-    declare code
     case $1 in
-      black) code=30 ;;
-      red) code=31 ;;
-      green) code=32 ;;
-      yellow) code=33 ;;
-      blue) code=34 ;;
-      magenta) code=35 ;;
-      cyan) code=36 ;;
-      white) code=37 ;;
-      background|bg) bg=10 ;;
-      foreground|fg) bg=0 ;;
-      reset|off|default) code=0 ;;
-      bold|bright) code=1 ;;
+      fg) bg=$inverse ;;  # default
+      bg|on) bg=$(not $inverse) ;;
+      bright) bright=true ;;
+      reset|off) code=0 ;;
+      bold) code=1 ;;
+      inverse) inverse=true; bg=$(not $bg); code=7 ;;
+      default) $bg && code=49 || code=39 ;;
+      black) color=0 ;;
+      red) color=1 ;;
+      green) color=2 ;;
+      yellow) color=3 ;;
+      blue) color=4 ;;
+      magenta) color=5 ;;
+      cyan) color=6 ;;
+      white) color=7 ;;
+      *[!0-9]*) echo "unknown color: $1" >&2 ;;
+      ?*) color=$1 ;;
     esac
-    [[ $code == 0 ]] || echo -ne "\033[$(printf "%02d" $((code+bg)))m"
+    if [[ -n $color ]]; then
+      $bright && ((color < 8)) && ((color += 8))
+      $bg && code=48 || code=38
+      code="$code;5;$color"
+    fi
+    if [[ -n $code ]]; then
+      echo -ne "\033[${code}m"
+      bright=false bg=false code= color=
+    fi
     shift
   done
 }
