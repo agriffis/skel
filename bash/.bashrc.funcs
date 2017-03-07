@@ -126,7 +126,6 @@ not() {
 # color -- emit ansi color codes
 color() {
   declare bright=false bg=false inverse=false code color
-  set -- reset "$@"  # for inverse
   while [[ $# -gt 0 ]]; do
     case $1 in
       fg) bg=$inverse ;;  # default
