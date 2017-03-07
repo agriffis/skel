@@ -230,55 +230,6 @@ ps1_mod_svn() {
 }
 #ps1_register_module svn
 
-# MODULE: svk -- show the svk source and revision
-declare -a PS1_CACHE_SVK
-PS1_CACHE_SVK_DONE=false
-ps1_mod_svk() {
-  declare svkroot=${SVKROOT:-$HOME/.svk} x info
-  [[ -e $svkroot/local ]] && islocal "$svkroot" || return 1
-
-  # The pwd/home check here prevents PS1_CACHE_SVK from being filled prior to
-  # the first prompt.  Only after the user has changed directories will it
-  # bother to try.  That shaves maybe a quarter-second from the appearance of
-  # the first prompt.
-  if ! $PS1_CACHE_SVK_DONE && [[ ! $PWD/. -ef $HOME/. ]]; then
-    setarray PS1_CACHE_SVK "$(svk co -l </dev/null 2>/dev/null | sed '1,2d;s/.*\t//')" $"\n"
-    PS1_CACHE_SVK_DONE=true
-  fi
-  for x in "${PS1_CACHE_SVK[@]}"; do
-    if [[ $PWD/ == "$x"/* ]]; then
-      # svk info is an order of magnitude slower than svn info.
-      # This needs to be cached like hg (which perhaps calls for
-      # some shared code).
-      info=$(svk info "$x"/ | while read data; do
-          case $data in
-              (Depot\ Path:*) echo -n "${data#*: } " ;;
-              (Revision:*) echo -n "${data#*: } " ;;
-              (Mirrored\ From:*) data="${data#*: }"; echo -n "(${data/, Rev.})" ;;
-          esac
-        done
-      )
-      ps1_post_status "${info:0:COLUMNS-${#leader}-1}"
-      break
-    fi
-  done
-}
-#ps1_register_module svk
-
-# MODULE: cvs -- show the cvs root and repository (revision is too expensive)
-ps1_mod_cvs() {
-  $PS1_CACHE_ISSLOW_CWD && return 1
-  if [[ $PS1_CACHE_CVS_CWD != "$PWD" ]]; then
-    PS1_CACHE_CVS_TOP=$(find_parent_with --far CVS)
-    PS1_CACHE_CVS_CWD=$PWD
-  fi
-  declare top=$PS1_CACHE_CVS_TOP
-  [[ -z $top ]] && return 1
-  declare info="$(<$top/CVS/Root)/$(<$top/CVS/Repository)"
-  ps1_post_status "${info:0:COLUMNS-${#leader}-1}"
-}
-#ps1_register_module cvs
-
 # MODULE: distro -- show the current distro
 ps1_mod_distro() {
   if [[ -z $PS1_CACHE_DISTRO ]]; then
