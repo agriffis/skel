@@ -28,10 +28,6 @@ _BASHRC_PROMPT=1
 : ${PS1_COLOR_ERROR_GOOD:='bright green'}
 : ${PS1_COLOR_ERROR_BAD:='bright red'}
 
-# How often to refresh if it's not apparent a refresh is needed.
-# 0 for never
-PS1_REFRESH_SECONDS=5  # just enough for multiple strikes to the enter key
-
 # Utility functions to be called by modules:
 # ps1 ............... color but wrap in \[ \] for bash's PS1 parsing
 # ps1_quote ......... escape backslashes and dollar signs
@@ -233,27 +229,10 @@ ps1_mod_distro() {
 # The ps1_update function calls the modules defined above and in the user's
 # bashrc to construct the full prompt.
 unset PS1_PROMPT
-PS1_FORCE_REFRESH=true
 ps1_update() {
   declare cwd=${PWD/#$HOME/\~} user=$USER host=${HOSTNAME%%.*}
   declare leader=${PS1_LEADER:-'---'} trailer=${PS1_TRAILER:-'---'}
   declare line width x pad
-
-  # Short-circuit if possible, for really loaded systems
-  if ! $PS1_FORCE_REFRESH; then
-    (( PS1_REFRESH_SECONDS != 1 && \
-       COLUMNS == PS1_CACHE_COLUMNS && \
-       PS1_ERROR == PS1_CACHE_ERROR )) && \
-    [[ $PWD == "$PS1_CACHE_CWD" ]] && \
-    (( PS1_REFRESH_SECONDS == 0 || \
-       SECONDS - PS1_CACHE_LAST_REFRESH < PS1_REFRESH_SECONDS )) && \
-    [[ $PS1 == "$PS1_PREV" ]] && \
-    return 0
-  fi
-  PS1_FORCE_REFRESH=false
-  PS1_CACHE_COLUMNS=$COLUMNS
-  PS1_CACHE_ERROR=$PS1_ERROR
-  PS1_CACHE_LAST_REFRESH=$SECONDS
 
   # Set the base prompt. This default can be overridden by setting PS1_PROMPT.
   # To force runtime re-evaluation (for example changing a color choice) just
