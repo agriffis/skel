@@ -405,7 +405,7 @@ update_gnome_terminal_dconf() {
     for p in "${all_profiles[@]}"; do
         p="/org/gnome/terminal/legacy/profiles:/${p%/}"
         n=$(dconf read "$p/visible-name")
-        if [[ $n == *"-$profile'" ]]; then
+        if [[ $n == *"$profile"* ]]; then
             profiles+=( "$p" )
         fi
     done
