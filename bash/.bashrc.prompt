@@ -2,7 +2,7 @@
 #
 # Multi-line modular prompt
 #
-# Written in 2003-2016 by Aron Griffis <aron@arongriffis.com>
+# Written in 2003-2017 by Aron Griffis <aron@arongriffis.com>
 #
 # To the extent possible under law, the author(s) have dedicated all copyright
 # and related and neighboring rights to this software to the public domain
@@ -18,26 +18,49 @@ _BASHRC_PROMPT=1
 [[ -n $_BASHRC_FUNCS ]] || source ~/.bashrc.funcs
 
 # Default colors, overrideable in user .bashrc
-: ${PS1_COLOR_USER:='magenta'}
-: ${PS1_COLOR_ROOT:='bright red'}
-: ${PS1_COLOR_ALT:='blue'}
-: ${PS1_COLOR_LEADER:=''}     # use PS1_COLOR_USER
-: ${PS1_COLOR_TRAILER:=''}    # use PS1_COLOR_USER
-: ${PS1_COLOR_PROMPT:=''}     # use PS1_COLOR_USER
-: ${PS1_COLOR_MOD:='red'}
-: ${PS1_COLOR_ERROR_GOOD:='bright green'}
-: ${PS1_COLOR_ERROR_BAD:='bright red'}
+: ${PS1_COLOR_DEFAULT_FG:=white}
+: ${PS1_COLOR_DEFAULT_BG:=blue}
+: ${PS1_COLOR_SUCCESS_FG:=$PS1_COLOR_DEFAULT_FG}
+: ${PS1_COLOR_SUCCESS_BG:=green}
+: ${PS1_COLOR_WARNING_FG:=black}
+: ${PS1_COLOR_WARNING_BG:=yellow}
+: ${PS1_COLOR_ERROR_FG:=$PS1_COLOR_DEFAULT_FG}
+: ${PS1_COLOR_ERROR_BG:=red}
+: ${PS1_CHAR_OK:=$'\uf00c'}           #   (fontawesome)
+: ${PS1_CHAR_UGH:=$'\uf00d'}          #   (fontawesome)
+: ${PS1_CHAR_RARR:=$'\uE0B1'}         #   (powerline)
+: ${PS1_CHAR_RARR_FILLED:=$'\uE0B0'}  #   (powerline)
+: ${PS1_CHAR_BRANCH:=$'\uE725'}       #   (devicons)
+: ${PS1_CHAR_DIRTY:=$'\uF069'}        #   (fontawesome)
+: ${PS1_CHAR_STAGED:=$'\uF067'}       #   (fontawesome)
+: ${PS1_CHAR_BISECT:=$'\ue728'}       # (devicons)
+: ${PS1_CHAR_MERGE:=$'\ue726'}        # (devicons)
+: ${PS1_CHAR_REBASE:=$'\ue726'}       # (devicons)
+: ${PS1_CHAR_HG:=$'\u263F'}           # ☿  (unicode)
+: ${PS1_CHAR_SVN:=$'\U1D5E6'}         # 𝗦  (unicode)
+: ${PS1_CHAR_PYTHON:=$'\ue73c'}       #   (devicons)
+: ${PS1_CHAR_RUBY:=$'\ue739'}         #   (devicons)
 
-# How often to refresh if it's not apparent a refresh is needed.
-# 0 for never
-PS1_REFRESH_SECONDS=5  # just enough for multiple strikes to the enter key
+# Modules that want to cache information between calls can use these
+# functions.
+unset PS1_CACHE
+declare -A PS1_CACHE
+ps1_cache_get() { echo "${PS1_CACHE[$1]:-$2}"; }
+ps1_cache_set() { PS1_CACHE[$1]=$2; }
+ps1_cache_del() { unset PS1_CACHE[$1]; }
+
+# Old-style cache
+unset ${!PS1_CACHE_*}
 
 # Utility functions to be called by modules:
 # ps1 ............... color but wrap in \[ \] for bash's PS1 parsing
 # ps1_quote ......... escape backslashes and dollar signs
-# ps1_status ........ add to the main prompt line
-# ps1_post_status ... add a line to the prompt
-ps1() { echo -n '\['; color "$@"; echo -n '\]'; }
+# ps1_segment ....... add a segment to the prompt
+# ps1_status ........ call ps1_segment with default colors
+ps1() {
+  printf '\[%s\]' "$(color "$@")"
+}
+
 ps1_quote() {
   # this requires quoting specifically backquotes, backslashes and dollars,
   # not the full printf %q treatment
@@ -46,18 +69,54 @@ ps1_quote() {
   q=${q//\$/\\\$}
   q=${q//\`/\\\`}
   # don't take chances with echo...
-  printf "%s" "$q"
+  printf '%s' "$q"
 }
+
+ps1_segment() {
+  declare n="$1" fg="$2" bg="$3" s="$4"
+
+  # powerline transition
+  # NB: reset to kill inverse
+  if [[ -n $PS1 ]]; then
+    declare prevbg="$(ps1_cache_get _BG default)"
+    if [[ "$bg" != "$prevbg" ]]; then
+      PS1+=" $(ps1 reset $prevbg bg $bg)$PS1_CHAR_RARR_FILLED"
+    else
+      PS1+=" $(ps1 reset bg $bg)$PS1_CHAR_RARR"
+    fi
+  fi
+
+  # add this segment
+  PS1+="$(ps1 $fg bg $bg) $s"
+  
+  # reset colors in case $s has embedded
+  PS1+="$(ps1 $fg bg $bg)"
+
+  # update fgbg cache
+  _ps1_cache_fgbg $fg bg $bg
+}
+
+_ps1_cache_fgbg() {
+  # keep a cache of the current fg and bg colors
+  # by parsing the ps1/color command-line.
+  declare x g=fg s=()
+  for x in "$@" SENTINAL; do
+    if [[ $x == +(bg|fg|on|SENTINAL) ]]; then
+      [[ $x == on ]] && x=bg
+      [[ $x == $g ]] && continue
+      [[ -n $s ]] && ps1_cache_set _${g^^} "${s[*]}"
+      g=$x s=()
+    elif [[ $x == +(off|reset) ]]; then
+      ps1_cache_del _FG
+      ps1_cache_del _BG
+    else
+      s+=($x)
+    fi
+  done
+}
+
 ps1_status() {
-  # don't use append_sp because it will omit the first space which is needed
-  PS1_STATUS_MODL="$PS1_STATUS_MODL $1"
-  declare q=$(ps1_quote "$1")
-  PS1_STATUS_MODC="$PS1_STATUS_MODC $(ps1 ${PS1_COLOR_MOD:-$PS1_COLOR_USER})$q"
-}
-ps1_post_status() {
-  declare q=$(ps1_quote "$1")
-  append_line PS1_POST_STATUS \
-  "$(ps1 ${PS1_COLOR_LEADER:-$PS1_COLOR_USER})$leader $(ps1 ${PS1_COLOR_MOD:-$PS1_COLOR_USER})$q"
+  ps1_segment 0 "$PS1_COLOR_DEFAULT_FG" "$PS1_COLOR_DEFAULT_BG" "$(ps1_quote "$1")"
 }
 
 # The module system defines an array of modules which will be called in order by
@@ -74,11 +133,23 @@ ps1_post_status() {
 #    ps1_unregister_module svk
 PS1_MODULES=()
 ps1_register_module() {
-  declare x
-  for x; do
-    [[ " ${PS1_MODULES[*]} " == *" $x "* ]] || \
-    PS1_MODULES=( "${PS1_MODULES[@]}" "$@" )
-  done
+  declare mod="$1" position="$2" relative="$3"
+  ps1_unregister_module "$mod"
+  case $position in
+    first)
+      PS1_MODULES=("$mod" "${PS1_MODULES[@]}")
+      return ;;
+    before|after)
+      declare i
+      for ((i=0; i<${#PS1_MODULES[@]}; i++)); do
+        if [[ "${PS1_MODULES[i]}" == "$relative" ]]; then
+          [[ $position == before ]] || (( i++ ))
+          PS1_MODULES=("${PS1_MODULES[@]::i}" "$mod" "${PS1_MODULES[@]:i}")
+          return
+        fi
+      done ;;
+  esac
+  PS1_MODULES+=("$mod")
 }
 ps1_unregister_module() {
   declare m n
@@ -87,52 +158,64 @@ ps1_unregister_module() {
     for n; do
       [[ $m == "$n" ]] && continue 2
     done
-    mods=( "${mods[@]}" "$m" )
+    mods=("${mods[@]}" "$m")
   done
-  PS1_MODULES=( "${mods[@]}" )
+  PS1_MODULES=("${mods[@]}")
 }
 
-# Modules that want to cache information between calls can use PS1_CACHE_FOO,
-# for example see PS1_CACHE_HG_* and PS1_CACHE_SVK below.
-unset ${!PS1_CACHE_*}
+# MODULE: micro status
+ps1_micro() { true; }
+ps1_mod_micro() {
+  ps1_cache_set MICRO ''
+  # 243 is a grayscale in the 256-color space.
+  # https://en.wikipedia.org/wiki/ANSI_escape_code#Colors
+  ps1_segment 0 white 243 '__MICRO_PLACEHOLDER__'
+  ps1_micro() {
+    declare m=$(ps1_cache_get MICRO)
+    ps1_cache_set MICRO "$m${m:+ }$*"
+  }
+}
+ps1_mod_micro_postprocess() {
+  PS1=${PS1/__MICRO_PLACEHOLDER__/$(ps1_cache_get MICRO)}
+}
+ps1_register_module micro
 
-# MODULE: chroot -- show the current chroot
-ps1_mod_chroot() {
-  if [[ ${PS1_CACHE_CHROOT-unset} == unset ]]; then
-    if [[ -n $CHROOTED ]]; then
-      PS1_CACHE_CHROOT=$CHROOTED
-    elif [[ -s /etc/chrootname ]]; then
-      PS1_CACHE_CHROOT=$(</etc/chrootname)
-    elif [[ -s /etc/hostname ]]; then
-      declare h=$(</etc/hostname)
-      if [[ ${h%%.*} != "${HOSTNAME%%.*}" ]]; then
-        PS1_CACHE_CHROOT=$h
-      else
-        PS1_CACHE_CHROOT=  # different from unset
-        return 1
-      fi
-    fi
+# MODULE: error status
+ps1_mod_error() {
+  # call ps1_segment directly, rather than ps1_status, for unescaped \w
+  if [[ ${PS1_ERROR:-0} == 0 ]]; then
+    ps1_micro "$(ps1 bright green)$PS1_CHAR_OK"
+  else
+    ps1_micro "$(ps1 bright red)$PS1_CHAR_UGH"
   fi
-  [[ -n $PS1_CACHE_CHROOT ]] && ps1_status "($PS1_CACHE_CHROOT)"
 }
-ps1_register_module chroot
+ps1_register_module error
+
+# MODULE: user and host
+ps1_mod_user() {
+  ps1_segment 0 "$PS1_COLOR_DEFAULT_FG" "$PS1_COLOR_DEFAULT_BG" '\u@\h'
+}
+#ps1_register_module user
+
+# MODULE: current working directory
+ps1_mod_cwd() {
+  # call ps1_segment directly, rather than ps1_status, for unescaped \w
+  ps1_segment 0 "$PS1_COLOR_DEFAULT_FG" "$PS1_COLOR_DEFAULT_BG" '\w'
+}
+ps1_register_module cwd
 
 # MODULE: virtualenv -- show the current python virtualenv
 ps1_mod_virtualenv() {
-  [[ -n $VIRTUAL_ENV ]] && \
-    ps1_status "<${VIRTUAL_ENV##*/}${VIRTUAL_ENV_BRANCH:+/}$VIRTUAL_ENV_BRANCH>"
+  if [[ -n $VIRTUAL_ENV ]]; then
+    ps1_micro "$(ps1 bright blue)$PS1_CHAR_PYTHON"
+  fi
 }
 ps1_register_module virtualenv
 
 # MODULE: rvm -- show the current ruby environment
 ps1_mod_rvm() {
   if [[ -n $GEM_HOME ]]; then
-    if [[ -n $VIRTUAL_ENV && $GEM_HOME == "$VIRTUAL_ENV"/* ]]; then
-      declare venv_home=${VIRTUAL_ENV%/*}
-      ps1_status "<${GEM_HOME:${#venv_home}+1}>"
-    else
-      ps1_status "<${GEM_HOME##*/}>"
-    fi
+    ps1_micro "$(ps1 bright red)$PS1_CHAR_RUBY"
   fi
 }
 ps1_register_module rvm
@@ -145,56 +228,32 @@ ps1_mod_hg() {
     PS1_CACHE_HG_CWD=$PWD
   fi
   declare top=$PS1_CACHE_HG_TOP
-  [[ -z $top ]] && return 1
+  [[ -n $top ]] || return
 
-  declare topless cachevar cached newcached
-  declare default default_push template info me
+  declare topkey cachetime hgtime summary
 
   # consult our cache for hg info
-  topless=${top//[![A-Za-z0-9]/_}
-  cachevar=PS1_CACHE_HG_${topless}
-  cachetime=${!cachevar}
+  topkey=${top//[![A-Za-z0-9]/_}
+  cachetime=$(ps1_cache_get "HG_${topkey}_TIME")
   hgtime=$(TZ=UTC stat --format=%y "$top"/.hg/*)
-  if [[ $cachetime == "$hgtime" ]]; then
-    cachevar=PS1_CACHE_HG_${topless}_INFO
-    info=${!cachevar}
-  else
-    eval "$cachevar=\$hgtime"
-    template='{branch|basename} ({author|user}) {desc|firstline|strip}\n'
-    if [[ -d $top/.hg/svn ]]; then
-      template="r{svnrev|nonempty} $template"
-    else
-      template="{rev} $template"
-    fi
-    info=$(hg -R $top parents --template "$template")
-
-    # Drop author-is-me
-    me=$(hg -R $top showconfig ui.user)
-    read rev branch author rest <<<"$info"
-    [[ $author == "(${me%%@*})" ]] && info="$rev $branch $rest"
-
-    # Drop branch default
-    read rev branch rest <<<"$info"
-    [[ $branch == default ]] && info="$rev $rest"
-
-    cachevar=PS1_CACHE_HG_${topless}_INFO
-    eval "$cachevar=\$info"
+  if [[ "$cachetime" != "$hgtime" ]]; then
+    ps1_cache_set "HG_${topkey}_SUMMARY" "$(hg -R $top summary)"
+    ps1_cache_set "HG_${topkey}_TIME" "$hgtime"
   fi
+  summary=$(ps1_cache_get "HG_${topkey}_SUMMARY")
+  [[ -n $summary ]] || return
 
-  # line 1 ... TMI
-  #top=${top##*/}
-  #default=$(sed -ne 's/^default = //p' $top/.hg/hgrc 2>/dev/null)
-  #: ${default:=none}
-  #default=${default/%$top/...}
-  #default_push=$(sed -ne 's/^default-push = //p' $top/.hg/hgrc 2>/dev/null)
-  #: ${default_push:=none}
-  #default_push=${default_push/%$top/...}
-  #ps1_post_status "$top${default:+ < $default}${default_push:+ > $default_push}"
-
-  # line 2
-  [[ -n $info ]] && ps1_post_status "${info:0:COLUMNS - ${#leader} - 1}"
+  declare branch dirty fg bg
+  branch=$(awk '$1=="branch:"{print $2}' <<<"$summary")
+  dirty=$(hg -R $top status -q | grep -q . && echo "$PS1_CHAR_DIRTY ")
+  if [[ -n $dirty ]]; then
+    fg=$PS1_COLOR_WARNING_FG bg=$PS1_COLOR_WARNING_BG
+  else
+    fg=$PS1_COLOR_SUCCESS_FG bg=$PS1_COLOR_SUCCESS_BG
+  fi
+  ps1_segment 0 "$fg" "$bg" "$(ps1_quote "$PS1_CHAR_HG $branch$dirty")"
 }
-#ps1_register_module hg
+ps1_register_module hg
 
 # MODULE: git -- show the current git branch
 ps1_mod_git() {
@@ -204,11 +263,33 @@ ps1_mod_git() {
     PS1_CACHE_GIT_CWD=$PWD
   fi
   declare top="$PS1_CACHE_GIT_TOP"
-  [[ -z $top ]] && return 1
-  declare head=$(git -C "$top" branch | grep '^\*')
-  [[ -n $head ]] && ps1_status "[${head#? }]"
+  [[ -n $top ]] || return
+
+  declare status=$(git -C "$top" status --short --branch --untracked-files=no)
+  [[ -n $status ]] || return
+
+  declare branch dirty fg bg
+  branch=${status#?? }; branch=${branch%%[.$'\n']*}
+  [[ $status == *$'\n'* ]] && status=${status#*$'\n'} || status=''
+  if [[ -e $top/.git/BISECT_LOG ]]; then
+    dirty="$PS1_CHAR_BISECT "
+  elif [[ -e $top/.git/MERGE_HEAD ]]; then
+    dirty="$PS1_CHAR_MERGE "
+  elif [[ -e $top/.git/rebase-merge ]]; then
+    dirty="$PS1_CHAR_REBASE "
+  elif [[ $'\n'$status == *$'\n'?[!\ ]* ]]; then
+    dirty="$PS1_CHAR_DIRTY "
+  elif [[ $'\n'$status == *$'\n'[!\ ]* ]]; then
+    dirty="$PS1_CHAR_STAGED "
+  fi
+  if [[ -n $dirty ]]; then
+    fg=$PS1_COLOR_WARNING_FG bg=$PS1_COLOR_WARNING_BG
+  else
+    fg=$PS1_COLOR_SUCCESS_FG bg=$PS1_COLOR_SUCCESS_BG
+  fi
+  ps1_segment 0 "$fg" "$bg" "$(ps1_quote "$PS1_CHAR_BRANCH $branch$dirty")"
 }
-#ps1_register_module git
+ps1_register_module git
 
 # MODULE: svn -- show the subversion source and revision
 ps1_mod_svn() {
@@ -218,111 +299,33 @@ ps1_mod_svn() {
     PS1_CACHE_SVN_CWD=$PWD
   fi
   declare top=$PS1_CACHE_SVN_TOP
-  [[ -z $top ]] && return 1
-  declare info=$(svn info $top 2>/dev/null | while read data; do
+  [[ -n $top ]] || return
+
+  declare rev
+  declare rev=$(svn info $top 2>/dev/null | while read data; do
       case $data in
-        (URL:*) echo -n "${data#*: } " ;;
-        (Revision:*) echo -n "${data#*: }" ;;
+        (Revision:*) echo "${data#*: }" ;;
       esac
-    done
-  )
-  [[ -n $info ]] && ps1_post_status "${info:0:COLUMNS - ${#leader} - 1}"
-}
-#ps1_register_module svn
+    done)
+  [[ -n $rev ]] || return
 
-# MODULE: svk -- show the svk source and revision
-declare -a PS1_CACHE_SVK
-PS1_CACHE_SVK_DONE=false
-ps1_mod_svk() {
-  declare svkroot=${SVKROOT:-$HOME/.svk} x info
-  [[ -e $svkroot/local ]] && islocal "$svkroot" || return 1
-
-  # The pwd/home check here prevents PS1_CACHE_SVK from being filled prior to
-  # the first prompt.  Only after the user has changed directories will it
-  # bother to try.  That shaves maybe a quarter-second from the appearance of
-  # the first prompt.
-  if ! $PS1_CACHE_SVK_DONE && [[ ! $PWD/. -ef $HOME/. ]]; then
-    setarray PS1_CACHE_SVK "$(svk co -l </dev/null 2>/dev/null | sed '1,2d;s/.*\t//')" $"\n"
-    PS1_CACHE_SVK_DONE=true
+  declare dirty fg bg
+  dirty=$(svn status -q | grep -q . && echo "$PS1_CHAR_DIRTY ")
+  if [[ -n $dirty ]]; then
+    fg=$PS1_COLOR_WARNING_FG bg=$PS1_COLOR_WARNING_BG
+  else
+    fg=$PS1_COLOR_SUCCESS_FG bg=$PS1_COLOR_SUCCESS_BG
   fi
-  for x in "${PS1_CACHE_SVK[@]}"; do
-    if [[ $PWD/ == "$x"/* ]]; then
-      # svk info is an order of magnitude slower than svn info.
-      # This needs to be cached like hg (which perhaps calls for
-      # some shared code).
-      info=$(svk info "$x"/ | while read data; do
-          case $data in
-              (Depot\ Path:*) echo -n "${data#*: } " ;;
-              (Revision:*) echo -n "${data#*: } " ;;
-              (Mirrored\ From:*) data="${data#*: }"; echo -n "(${data/, Rev.})" ;;
-          esac
-        done
-      )
-      ps1_post_status "${info:0:COLUMNS-${#leader}-1}"
-      break
-    fi
-  done
+  ps1_segment 0 "$fg" "$bg" "$(ps1_quote "$PS1_CHAR_SVN $rev$dirty")"
 }
-#ps1_register_module svk
+ps1_register_module svn
 
-# MODULE: cvs -- show the cvs root and repository (revision is too expensive)
-ps1_mod_cvs() {
-  $PS1_CACHE_ISSLOW_CWD && return 1
-  if [[ $PS1_CACHE_CVS_CWD != "$PWD" ]]; then
-    PS1_CACHE_CVS_TOP=$(find_parent_with --far CVS)
-    PS1_CACHE_CVS_CWD=$PWD
-  fi
-  declare top=$PS1_CACHE_CVS_TOP
-  [[ -z $top ]] && return 1
-  declare info="$(<$top/CVS/Root)/$(<$top/CVS/Repository)"
-  ps1_post_status "${info:0:COLUMNS-${#leader}-1}"
-}
-#ps1_register_module cvs
-
-# MODULE: distro -- show the current distro
-ps1_mod_distro() {
-  if [[ -z $PS1_CACHE_DISTRO ]]; then
-    PS1_CACHE_DISTRO=$(distro)
-  fi
-  ps1_status "[$PS1_CACHE_DISTRO]"
-}
-[[ $EUID == 0 ]] && ps1_register_module distro
-
-# The ps1_update function calls the modules defined above and in the user's
+# The ps1_update function calls the modules defined above and in the user
 # bashrc to construct the full prompt.
-unset PS1_PROMPT
-PS1_FORCE_REFRESH=true
 ps1_update() {
   declare cwd=${PWD/#$HOME/\~} user=$USER host=${HOSTNAME%%.*}
   declare leader=${PS1_LEADER:-'---'} trailer=${PS1_TRAILER:-'---'}
   declare line width x pad
-
-  # Short-circuit if possible, for really loaded systems
-  if ! $PS1_FORCE_REFRESH; then
-    (( PS1_REFRESH_SECONDS != 1 && \
-       COLUMNS == PS1_CACHE_COLUMNS && \
-       PS1_ERROR == PS1_CACHE_ERROR )) && \
-    [[ $PWD == "$PS1_CACHE_CWD" ]] && \
-    (( PS1_REFRESH_SECONDS == 0 || \
-       SECONDS - PS1_CACHE_LAST_REFRESH < PS1_REFRESH_SECONDS )) && \
-    [[ $PS1 == "$PS1_PREV" ]] && \
-    return 0
-  fi
-  PS1_FORCE_REFRESH=false
-  PS1_CACHE_COLUMNS=$COLUMNS
-  PS1_CACHE_ERROR=$PS1_ERROR
-  PS1_CACHE_LAST_REFRESH=$SECONDS
-
-  # Set the base prompt. This default can be overridden by setting PS1_PROMPT.
-  # To force runtime re-evaluation (for example changing a color choice) just
-  # unset PS1_PROMPT
-  if [[ ${PS1_PROMPT-unset} == unset ]]; then
-    if [[ $EUID == 0 ]]; then
-      PS1_PROMPT="\\[$(color $PS1_COLOR_ROOT)\\]\\\$\\[$(color off)\\] "
-    else
-      PS1_PROMPT="\\[$(color ${PS1_COLOR_PROMPT:-$PS1_COLOR_USER})\\]\\\$\\[$(color off)\\] "
-    fi
-  fi
 
   # help out the modules by caching isslow for cwd
   if [[ -z $PS1_CACHE_ISSLOW_CWD || $PWD != "$PS1_CACHE_CWD" ]]; then
@@ -335,48 +338,35 @@ ps1_update() {
     PS1_CACHE_CWD=$PWD
   fi
 
-  # load the status line modules first since PS1_STATUS_MODL affects the width
-  unset PS1_STATUS_MODL PS1_STATUS_MODC PS1_PRE_STATUS PS1_STATUS_POST
-  unset PS1_PRE_STATUS PS1_POST_STATUS
+  # clean slate
+  PS1=
+
+  # run the status line modules
   PS1_CACHE_MODS_RAN=()
   for x in "${PS1_MODULES[@]}"; do
     ps1_mod_"$x" && PS1_CACHE_MODS_RAN=( "${PS1_CACHE_MODS_RAN[@]}" "$x" )
   done
 
-  # shrink cwd until the status line fits
-  while true; do
-    line="$leader $PS1_ERROR $user@$host$PS1_STATUS_MODL $cwd $trailer"
-    width=${#line}
-    if [[ ${#line} -le $COLUMNS ]]; then
-      break
-    elif [[ $cwd == */*/* ]]; then
-      cwd=.../${cwd#*/*/}
+  # cap it off
+  PS1+=$(
+    if [[ $(ps1_cache_get _BG default) != default ]]; then
+      ps1 reset $(ps1_cache_get _BG)  # reset to kill inverse
+      echo -n "$PS1_CHAR_RARR_FILLED "
+      ps1 off
     else
-      break
+      ps1 off
+      echo -n "${PS1:+ }$PS1_CHAR_RARR "
     fi
-  done
-
-  # now generate the colorized status line
-  line=$(
-    ps1 ${PS1_COLOR_LEADER:-$PS1_COLOR_USER}
-    echo -n "$leader "
-    [[ $PS1_ERROR == 0 ]] && ps1 $PS1_COLOR_ERROR_GOOD || ps1 $PS1_COLOR_ERROR_BAD
-    echo -n "$PS1_ERROR "
-    [[ $EUID == 0 ]] && ps1 $PS1_COLOR_ROOT || ps1 $PS1_COLOR_USER
-    echo -n "$user@$host$PS1_STATUS_MODC $(ps1 $PS1_COLOR_ALT)$cwd "
-    ps1 ${PS1_COLOR_TRAILER:-$PS1_COLOR_USER}
-    pad=$(printf "%$(( COLUMNS - width ))s" '')
-    echo -n "${pad//?/${trailer:0:1}}$trailer"
-    ps1 off
   )
 
-  PS1="$PS1_PRE_STATUS"
-  append_line PS1 "$line" ${PS1_POST_STATUS:+"$PS1_POST_STATUS"}
-  append_line PS1 "$PS1_PROMPT"
-  PS1_PREV="$PS1"
+  # postprocess
+  for x in "${PS1_CACHE_MODS_RAN[@]}"; do
+    x="ps1_mod_${x}_postprocess"
+    [[ $(type -t "$x") != function ]] || "$x"
+  done
 }
 
-# Okay, all functions are defined, now setup PROMPT_COMMAND to make sure things
+# Okay, all functions are defined, now set up PROMPT_COMMAND to make sure things
 # are called.  First capture the error status, second save and unset -x, third
 # call our ps1_update function, fourth set the xterm title, fifth reset -x.
 

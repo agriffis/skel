@@ -14,14 +14,22 @@ if [[ -z $* ]]; then
     set -- *.{JPG,jpg,CR2,cr2}
 fi
 
+# pattern for both grep and bash
+patt='(^|[^0-9])(20[0-9][0-9])[-:]([01][0-9])[-:]([0123][0-9])($|[^0-9])'
+
 for x; do
-    date=$(strings "$x" | grep -o -m1 '^20[0-9][0-9]:..:..') ||:
-    if [[ -z $date ]]; then
+    if [[ $x =~ $patt ]]; then
+        true
+    elif date=$(strings "$x" | grep -Eom1 "$patt"); then
+        [[ $date =~ $patt ]] || { echo "Whoa processing $x"; continue; }
+    else
         echo "Error processing $x"
         continue
     fi
-    year=${date%%:*}; monthday=${date#*:}; monthday=${monthday/:/}
-    dir=$year/$monthday
+    year=${BASH_REMATCH[2]}
+    month=${BASH_REMATCH[3]}
+    day=${BASH_REMATCH[4]}
+    dir=$year/$month$day
     mkdir -p $topdir/$dir
     if [[ ! $x -ef $topdir/$dir/${x##*/} ]]; then
         if [[ -w $(dirname "$x")/. ]]; then
