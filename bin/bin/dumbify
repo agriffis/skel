@@ -1,0 +1,7 @@
+#!/usr/bin/env python3
+
+import fileinput
+import unidecode
+
+for line in fileinput.input():
+    print(unidecode.unidecode(line), end='')
