@@ -119,8 +119,12 @@ find_parent_with() {
   fi
 }
 
+bool() {
+  "$@" && echo true || echo false
+}
+
 not() {
-  [[ $1 == true ]] && echo false || echo true
+  "$@" && echo false || echo true
 }
 
 # color -- emit ansi color codes
