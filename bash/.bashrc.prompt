@@ -321,17 +321,15 @@ ps1_register_module svn
 # The ps1_update function calls the modules defined above and in the user
 # bashrc to construct the full prompt.
 ps1_update() {
-  declare cwd=${PWD/#$HOME/\~} user=$USER host=${HOSTNAME%%.*}
-  declare leader=${PS1_LEADER:-'---'} trailer=${PS1_TRAILER:-'---'}
-  declare line width x pad
+  declare x
 
   # help out the modules by caching isslow for cwd
   if [[ -z $PS1_CACHE_ISSLOW_CWD || $PWD != "$PS1_CACHE_CWD" ]]; then
     if [[ $PWD == "$HOME" ]]; then
-      : ${PS1_CACHE_ISSLOW_HOME:=$(isslow . && echo true || echo false)}
+      : ${PS1_CACHE_ISSLOW_HOME:=$(bool isslow .)}
       PS1_CACHE_ISSLOW_CWD=$PS1_CACHE_ISSLOW_HOME
     else
-      PS1_CACHE_ISSLOW_CWD=$(isslow . && echo true || echo false)
+      PS1_CACHE_ISSLOW_CWD=$(bool isslow .)
     fi
     PS1_CACHE_CWD=$PWD
   fi
