@@ -30,7 +30,7 @@ isnfs() {
   # Check for existence of $1 prior to calling df.
   if [[ ! -e $1 ]]; then
     set -- "${1%/*}"            # remove trailing element
-    [[ ! -e $1 ]] && set -- .   # doesn't exist, use cwd instead
+    [[ ! -e $1 ]] && set -- .   # doesnt exist, use cwd instead
   fi
 
   # Branch depending on OS where df has different options.
