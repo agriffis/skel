@@ -53,11 +53,11 @@ ps1_cache_del() { unset PS1_CACHE[$1]; }
 unset ${!PS1_CACHE_*}
 
 # Utility functions to be called by modules:
-# ps1 ............... color but wrap in \[ \] for bash's PS1 parsing
+# ps1_color ......... color but wrap in \[ \] for bash's PS1 parsing
 # ps1_quote ......... escape backslashes and dollar signs
 # ps1_segment ....... add a segment to the prompt
 # ps1_status ........ call ps1_segment with default colors
-ps1() {
+ps1_color() {
   printf '\[%s\]' "$(color "$@")"
 }
 
@@ -80,25 +80,24 @@ ps1_segment() {
   if [[ -n $PS1 ]]; then
     declare prevbg="$(ps1_cache_get _BG default)"
     if [[ "$bg" != "$prevbg" ]]; then
-      PS1+=" $(ps1 reset $prevbg bg $bg)$PS1_CHAR_RARR_FILLED"
+      PS1+=" $(ps1_color reset $prevbg bg $bg)$PS1_CHAR_RARR_FILLED"
     else
-      PS1+=" $(ps1 reset bg $bg)$PS1_CHAR_RARR"
+      PS1+=" $(ps1_color reset bg $bg)$PS1_CHAR_RARR"
     fi
   fi
 
   # add this segment
-  PS1+="$(ps1 $fg bg $bg) $s"
-  
+  PS1+="$(ps1_color $fg bg $bg) $s"
+
   # reset colors in case $s has embedded
-  PS1+="$(ps1 $fg bg $bg)"
+  PS1+="$(ps1_color $fg bg $bg)"
 
   # update fgbg cache
   _ps1_cache_fgbg $fg bg $bg
 }
 
 _ps1_cache_fgbg() {
-  # keep a cache of the current fg and bg colors
-  # by parsing the ps1/color command-line.
+  # track the current fg and bg colors by parsing the ps1_color args.
   declare x g=fg s=()
   for x in "$@" SENTINAL; do
     if [[ $x == +(bg|fg|on|SENTINAL) ]]; then
@@ -184,9 +183,9 @@ ps1_register_module micro
 ps1_mod_error() {
   # call ps1_segment directly, rather than ps1_status, for unescaped \w
   if [[ ${PS1_ERROR:-0} == 0 ]]; then
-    ps1_micro "$(ps1 bright green)$PS1_CHAR_OK"
+    ps1_micro "$(ps1_color bright green)$PS1_CHAR_OK"
   else
-    ps1_micro "$(ps1 bright red)$PS1_CHAR_UGH"
+    ps1_micro "$(ps1_color bright red)$PS1_CHAR_UGH"
   fi
 }
 ps1_register_module error
@@ -207,7 +206,7 @@ ps1_register_module cwd
 # MODULE: virtualenv -- show the current python virtualenv
 ps1_mod_virtualenv() {
   if [[ -n $VIRTUAL_ENV ]]; then
-    ps1_micro "$(ps1 bright blue)$PS1_CHAR_PYTHON"
+    ps1_micro "$(ps1_color bright blue)$PS1_CHAR_PYTHON"
   fi
 }
 ps1_register_module virtualenv
@@ -215,7 +214,7 @@ ps1_register_module virtualenv
 # MODULE: rvm -- show the current ruby environment
 ps1_mod_rvm() {
   if [[ -n $GEM_HOME ]]; then
-    ps1_micro "$(ps1 bright red)$PS1_CHAR_RUBY"
+    ps1_micro "$(ps1_color bright red)$PS1_CHAR_RUBY"
   fi
 }
 ps1_register_module rvm
@@ -350,11 +349,11 @@ ps1_update() {
   # cap it off
   PS1+=$(
     if [[ $(ps1_cache_get _BG default) != default ]]; then
-      ps1 reset $(ps1_cache_get _BG)  # reset to kill inverse
+      ps1_color reset $(ps1_cache_get _BG)  # reset to kill inverse
       echo -n "$PS1_CHAR_RARR_FILLED "
-      ps1 off
+      ps1_color off
     else
-      ps1 off
+      ps1_color off
       echo -n "${PS1:+ }$PS1_CHAR_RARR "
     fi
   )
