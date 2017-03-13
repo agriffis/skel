@@ -129,7 +129,7 @@ not() {
 
 # color -- emit ansi color codes
 color() {
-  declare bright=false bg=false inverse=false code color
+  declare bright=false inverse=false bg=false color code
   while [[ $# -gt 0 ]]; do
     case $1 in
       fg) bg=$inverse ;;  # default
@@ -157,7 +157,7 @@ color() {
     fi
     if [[ -n $code ]]; then
       echo -ne "\033[${code}m"
-      bright=false bg=false code= color=
+      bright=false code= color=
     fi
     shift
   done
