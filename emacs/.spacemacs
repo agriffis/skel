@@ -191,6 +191,11 @@ before layers configuration."
   "Configuration function.
  This function is called at the very end of Spacemacs initialization after
 layers configuration."
+
+  (setq powerline-default-separator 'utf-8
+        powerline-utf-8-separator-left ?\ue0b4
+        powerline-utf-8-separator-right ?\ue0b6)
+
   ;; Don't use unicode symbols for diminished minor modes
   (setq dotspacemacs-mode-line-unicode-symbols nil)
 
