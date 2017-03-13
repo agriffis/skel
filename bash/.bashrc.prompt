@@ -229,17 +229,16 @@ ps1_mod_hg() {
   declare top=$PS1_CACHE_HG_TOP
   [[ -n $top ]] || return
 
-  declare topkey cachetime hgtime summary
+  declare cachetime hgtime summary
 
   # consult our cache for hg info
-  topkey=${top//[![A-Za-z0-9]/_}
-  cachetime=$(ps1_cache_get "HG_${topkey}_TIME")
+  cachetime=$(ps1_cache_get "HG_CACHE_TIME $top")
   hgtime=$(TZ=UTC stat --format=%y "$top"/.hg/*)
   if [[ "$cachetime" != "$hgtime" ]]; then
-    ps1_cache_set "HG_${topkey}_SUMMARY" "$(hg -R $top summary)"
-    ps1_cache_set "HG_${topkey}_TIME" "$hgtime"
+    ps1_cache_set "HG_SUMMARY $top" "$(hg -R $top summary)"
+    ps1_cache_set "HG_TIME $top" "$hgtime"
   fi
-  summary=$(ps1_cache_get "HG_${topkey}_SUMMARY")
+  summary=$(ps1_cache_get "HG_SUMMARY $top")
   [[ -n $summary ]] || return
 
   declare branch dirty fg bg
