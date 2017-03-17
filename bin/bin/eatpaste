@@ -42,7 +42,7 @@ end
 
 # XXX calls to xmessage should be overall exception handling
 def putx(s)
-  IO.popen("xclip -i", "r+") {|x| x.print s }
+  IO.popen("xclip -i -selection clipboard", "r+") {|x| x.print s }
   return s if $? == 0
   if not $stderr.tty?
     fork { exec 'xmessage', "#{zero}: error running xclip" }
@@ -93,8 +93,8 @@ if buf =~ /\n/
   # -----------------------------------------
   # Multi-line URL or text with trailing w/s
   # -----------------------------------------
-  when /\s$/m then
-    putx buf.gsub(/\s+$/m, '')
+  when /[^\S\n]\n/ then
+    putx buf.gsub(/[^\S\n]+\n/, "\n").gsub(/\n{3,}$/, "\n\n")
     exit
 
   # -----------------------------------------
@@ -105,7 +105,7 @@ if buf =~ /\n/
     if url =~ %r{\A\S+://}
       putx url
     else
-      putx buf.split(/\s+/).join(' ')
+      putx buf.gsub(/[^\S\n]+/, ' ').gsub(/\n{3,}$/, "\n\n")
     end
     exit
   end
