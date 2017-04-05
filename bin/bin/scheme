@@ -73,7 +73,8 @@ set_scheme() {
 
     update_state "$scheme"
 
-    update_gnome_terminal "$xterm_colors" &
+    update_gnome_terminal Flex "$xterm_colors" /org/gnome/terminal/legacy/profiles:/ &
+    update_gnome_terminal Flex "$xterm_colors" /com/gexperts/Tilix/profiles/ &
     #update_xfce_terminal "$xterm_colors" &  # XXX port to $xterm_colors
     #update_roxterm "$xterm_colors" &  # XXX port to $xterm_colors
     update_iterm2 "$iterm2_scheme" &
@@ -318,9 +319,6 @@ update_xterm() {
     return 0
 }
 
-update_gnome_terminal() {
-    update_gnome_terminal_dconf Flex "$@" # &
-}
 48bit() {
     rgb[0]=$(( 0x${1:1:2} * 0xffff / 0xff ))
     rgb[1]=$(( 0x${1:3:2} * 0xffff / 0xff ))
@@ -328,8 +326,8 @@ update_gnome_terminal() {
     printf '#%04x%04x%04x' "${rgb[@]}"
 }
 
-update_gnome_terminal_dconf() {
-    declare profile="$1" xterm_colors="$2"
+update_gnome_terminal() {
+    declare profile="$1" xterm_colors="$2" dconf_path="$3"
 
     type dconf &>/dev/null || return
 
@@ -349,9 +347,9 @@ update_gnome_terminal_dconf() {
     # profiles.
     declare -a all_profiles profiles
     declare p n
-    all_profiles=( $(dconf list /org/gnome/terminal/legacy/profiles:/) )
+    all_profiles=( $(dconf list "$dconf_path") )
     for p in "${all_profiles[@]}"; do
-        p="/org/gnome/terminal/legacy/profiles:/${p%/}"
+        p="$dconf_path${p%/}"
         n=$(dconf read "$p/visible-name")
         if [[ $n == *"$profile"* ]]; then
             profiles+=( "$p" )
