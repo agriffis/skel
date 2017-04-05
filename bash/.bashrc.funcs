@@ -58,7 +58,8 @@ islocal() {
 
 # designed to be overridden
 isslow() {
-  isnfs "$1"
+  declare d=$(readlink -f "$1")
+  [[ $d/ == /keybase/* ]] || isnfs "$d"
 }
 
 # readlink -- Emulate Linux's readlink binary.
