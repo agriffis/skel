@@ -108,6 +108,9 @@ git() {
   command git "$@"
 }
 
+# fedora /usr/bin/vi is vim-minimal
+alias vi=vim
+
 # Load user-specific settings
 [[ ! -r ~/.bashrc.mine ]] || source ~/.bashrc.mine
 [[ ! -r ~/.bashrc.local ]] || source ~/.bashrc.local
