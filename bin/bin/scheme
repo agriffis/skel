@@ -319,60 +319,8 @@ update_xterm() {
 }
 
 update_gnome_terminal() {
-    update_gnome_terminal_gconf Flex "$@" # &
     update_gnome_terminal_dconf Flex "$@" # &
 }
-
-update_gnome_terminal_gconf() {
-    declare profile="$1" xterm_colors="$2"
-
-    type gconftool-2 &>/dev/null || return
-
-    # what flex profiles have we?
-    declare -a profiles
-    profiles=( $(gconftool-2 -S visible_name | \
-        sed -rn "s,^ */apps/gnome-terminal/profiles/(.*)/visible_name = .*${profile}\$,\\1,p") )
-    [[ -n $profiles ]] || return
-
-    # unpack xterm_colors string
-    declare xterm_foreground xterm_background
-    xterm_colors=( $xterm_colors )
-    if [[ ${#xterm_colors[@]} != 18 ]]; then
-        echo "Invalid xterm_colors (${#xterm_colors[@]} elements)" >&2
-        return
-    fi
-    xterm_background="${xterm_colors[0]}"
-    xterm_foreground="${xterm_colors[1]}"
-    xterm_colors=( "${xterm_colors[@]:2}" )
-
-    # translate the colors to 48-bit
-    declare -a gnome_colors
-    declare gnome_foreground gnome_background x
-    for ((x=0; x<16; x++)); do
-        gnome_colors[x]=$(48bit "${xterm_colors[x]}")
-    done
-    gnome_foreground=$(48bit "$xterm_foreground")
-    gnome_background=$(48bit "$xterm_background")
-
-    # make this into a palette
-    declare gnome_palette="${gnome_colors[0]}$(printf ':%s' "${gnome_colors[@]:1}")"
-
-    # cycle over the profiles and settings
-    for x in "${profiles[@]}"; do
-        gconftool-2 -t string -s "/apps/gnome-terminal/profiles/$x/palette" "$gnome_palette"
-        gconftool-2 -t string -s "/apps/gnome-terminal/profiles/$x/background_color" "$gnome_background"
-        gconftool-2 -t string -s "/apps/gnome-terminal/profiles/$x/foreground_color" "$gnome_foreground"
-        if [[ -n $xterm_image ]]; then
-            gconftool-2 -t float -s "/apps/gnome-terminal/profiles/$x/background_darkness" 0
-            gconftool-2 -t string -s "/apps/gnome-terminal/profiles/$x/background_type" "image"
-            gconftool-2 -t string -s "/apps/gnome-terminal/profiles/$x/background_image" "$xterm_image"
-        else
-            gconftool-2 -t float -s "/apps/gnome-terminal/profiles/$x/background_darkness" 1
-            gconftool-2 -t string -s "/apps/gnome-terminal/profiles/$x/background_type" "solid"
-        fi
-    done
-}
-
 48bit() {
     rgb[0]=$(( 0x${1:1:2} * 0xffff / 0xff ))
     rgb[1]=$(( 0x${1:3:2} * 0xffff / 0xff ))
