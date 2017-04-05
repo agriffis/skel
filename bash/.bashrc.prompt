@@ -387,6 +387,10 @@ case "$TERM" in
     append_cmd PROMPT_COMMAND ps1_update_xterm_title
     ;;
 esac
+if [[ $(type -t __vte_prompt_command) == function ]]; then
+  # https://gnunn1.github.io/tilix-web/manual/vteconfig/
+  append_cmd PROMPT_COMMAND __vte_prompt_command
+fi
 append_cmd PROMPT_COMMAND '[[ -n $PS1_SAVE_SET_X ]] && set -x'
 
 # The following lines enforce a consistent indentation for this file.
