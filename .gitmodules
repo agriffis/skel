@@ -29,3 +29,6 @@
 [submodule "vim/.vim/bundle/spacevim"]
 	path = vim/.vim/bundle/spacevim
 	url = https://github.com/ctjhoa/spacevim
+[submodule "vim/.vim/bundle/vim-airline"]
+	path = vim/.vim/bundle/vim-airline
+	url = https://github.com/vim-airline/vim-airline
