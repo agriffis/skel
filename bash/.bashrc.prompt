@@ -222,10 +222,12 @@ ps1_register_module rvm
 # MODULE: hg -- show some mercurial information
 ps1_mod_hg() {
   $PS1_CACHE_ISSLOW_CWD && return 1
-  if [[ $PS1_CACHE_HG_CWD != "$PWD" ]]; then
+  if [[ -e .hg ]]; then
+    PS1_CACHE_HG_TOP=$PWD
+  elif [[ $PS1_CACHE_HG_CWD != "$PWD" ]]; then
     PS1_CACHE_HG_TOP=$(find_parent_with .hg)
-    PS1_CACHE_HG_CWD=$PWD
   fi
+  PS1_CACHE_HG_CWD=$PWD
   declare top=$PS1_CACHE_HG_TOP
   [[ -n $top ]] || return
 
@@ -256,10 +258,12 @@ ps1_register_module hg
 # MODULE: git -- show the current git branch
 ps1_mod_git() {
   $PS1_CACHE_ISSLOW_CWD && return 1
-  if [[ $PS1_CACHE_GIT_CWD != "$PWD" ]]; then
+  if [[ -e .git/HEAD ]]; then
+    PS1_CACHE_GIT_TOP=$PWD
+  elif [[ $PS1_CACHE_GIT_CWD != "$PWD" ]]; then
     PS1_CACHE_GIT_TOP=$(find_parent_with .git/HEAD)
-    PS1_CACHE_GIT_CWD=$PWD
   fi
+  PS1_CACHE_GIT_CWD=$PWD
   declare top="$PS1_CACHE_GIT_TOP"
   [[ -n $top ]] || return
 
