@@ -349,6 +349,7 @@ ps1_update() {
 
   # cap it off
   PS1+=$(
+    echo -n ' '
     if [[ $(ps1_cache_get _BG default) != default ]]; then
       ps1_color reset $(ps1_cache_get _BG)  # reset to kill inverse
       echo -n "$PS1_CHAR_RARR_FILLED "
