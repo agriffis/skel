@@ -199,7 +199,7 @@ ps1_mod_user() {
 # MODULE: current working directory
 ps1_mod_cwd() {
   # call ps1_segment directly, rather than ps1_status, for unescaped \w
-  ps1_segment 0 "$PS1_COLOR_DEFAULT_FG" "$PS1_COLOR_DEFAULT_BG" '\w'
+  ps1_segment 0 "$PS1_COLOR_DEFAULT_FG" "$PS1_COLOR_DEFAULT_BG" '\W'
 }
 ps1_register_module cwd
 
