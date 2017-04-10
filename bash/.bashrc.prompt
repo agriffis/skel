@@ -377,13 +377,9 @@ append_cmd PROMPT_COMMAND ps1_update
 case "$TERM" in
   xterm*|gnome|rxvt*|vte*)
     ps1_update_xterm_title() {
-      declare title=${1:-$XTERMTITLE}
+      declare title="${1:-$XTERMTITLE}"
       if [[ -z $title ]]; then
-        if [[ -n $CHROOTED ]]; then
-          title="($CHROOTED):${PWD/#$HOME/~}"
-        else
-          title="${HOSTNAME%%.*}:${PWD/#$HOME/~}"
-        fi
+        title="${HOSTNAME%%.*}:${PWD/#$HOME/~}"
       fi
       echo -ne '\033]0;'
       echo -n "$title"
