@@ -116,6 +116,3 @@
 
 [status]
 	submodulesummary = 1
-
-[include]
-	path = ~/.gitconfig-sekrit
