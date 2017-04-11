@@ -309,6 +309,61 @@ ps1_mod_svn() {
 }
 ps1_register_module svn
 
+ps1_mod_docker() {
+  $(ps1_cache_get _CWD_IS_SLOW) && return 1
+
+  if [[ -e docker-compose.yml ]]; then
+    ps1_cache_set 'docker top' "$PWD"
+  elif [[ $(ps1_cache_get 'docker cwd') != "$PWD" ]]; then
+    ps1_cache_set 'docker top' "$(find_parent_with docker-compose.yml)"
+  fi
+  ps1_cache_set 'docker cwd' "$PWD"
+  declare top="$(ps1_cache_get 'docker top')"
+  [[ -n $top ]] || return
+
+  if docker-compose -f "$top/docker-compose.yml" port web 8000 &>/dev/null; then
+    ps1_micro "$(ps1_color bright yellow)"$'\uf0e7'  # lightning bolt
+  fi
+}
+ps1_register_module docker
+
+ps1_mod_vagrant() {
+  $(ps1_cache_get _CWD_IS_SLOW) && return 1
+
+  if [[ -e Vagrantfile ]]; then
+    ps1_cache_set VAGRANT_TOP "$PWD"
+  elif [[ $(ps1_cache_get VAGRANT_CWD) != "$PWD" ]]; then
+    ps1_cache_set VAGRANT_TOP "$(find_parent_with Vagrantfile)"
+  fi
+  ps1_cache_set VAGRANT_CWD "$PWD"
+  declare top="$(ps1_cache_get VAGRANT_TOP)"
+  [[ -n $top ]] || return
+
+  # Lots of fast hacks here, avoid calling slow programs
+  declare docker_id_file=$top/.vagrant/machines/default/docker/id \
+    libvirt_id_file=$top/.vagrant/machines/default/libvirt/id
+  if [[ -e $docker_id_file ]]; then
+    declare docker_id=$(<$docker_id_file)
+    if [[ -n $docker_id ]]; then
+      declare docker_status=$(
+        docker ps --filter id="$docker_id" --format '{{.Status}}'
+      )
+      if [[ ${docker_status,,} == up* ]]; then
+        ps1_micro "$(ps1_color bright yellow)"$'\uf0e7'  # lightning bolt
+      fi
+    fi
+  elif [[ -e $libvirt_id_file ]]; then
+    declare libvirt_id=$(<$libvirt_id_file)
+    if [[ -n $libvirt_id ]]; then
+      declare virsh_domstate=$(virsh domstate "$libvirt_id" 2>/dev/null)
+      if [[ $virsh_domstate == running ]]; then
+        ps1_micro "$(ps1_color bright yellow)"$'\uf0e7'  # lightning bolt
+      fi
+    fi
+  fi
+}
+ps1_register_module vagrant
+
 # MODULE: user and host
 ps1_mod_user() {
   ps1_segment 0 "$PS1_COLOR_DEFAULT_FG" "$PS1_COLOR_DEFAULT_BG" '\u@\h'
