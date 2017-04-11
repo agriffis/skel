@@ -24,7 +24,7 @@ if [[ $(type -t rvm) != function ]]; then
   }
 
   rvm_check() {
-    $PS1_CACHE_ISSLOW_CWD && return 1
+    $(ps1_cache_get _CWD_IS_SLOW) && return 1
     if [[ -r .rvmrc ]] && ! $_BASHRC_RVM_LOADED; then
       rvm rvmrc load || return
       ps1_update
