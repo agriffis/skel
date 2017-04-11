@@ -325,7 +325,9 @@ ps1_mod_docker() {
   [[ -n $top ]] || return
 
   #if docker-compose -f "$top/docker-compose.yml" port web 8000 &>/dev/null; then
-  if (docker-compose ps -q; docker ps --filter=status=running -q --no-trunc) | sort | uniq -d | grep -q .; then
+  if (docker-compose ps -q; docker ps --filter status=running -q --no-trunc) | \
+    sort | uniq -d | grep -q .
+  then
     ps1_micro "$(ps1_color bright yellow)"$'\uf0e7'  # lightning bolt
   fi
 }
@@ -344,25 +346,23 @@ ps1_mod_vagrant() {
   [[ -n $top ]] || return
 
   # Lots of fast hacks here, avoid calling slow programs
-  declare docker_id_file=$top/.vagrant/machines/default/docker/id \
-    libvirt_id_file=$top/.vagrant/machines/default/libvirt/id
-  if [[ -e $docker_id_file ]]; then
-    declare docker_id=$(<$docker_id_file)
-    if [[ -n $docker_id ]]; then
-      declare docker_status=$(
-        docker ps --filter id="$docker_id" --format '{{.Status}}'
-      )
-      if [[ ${docker_status,,} == up* ]]; then
-        ps1_micro "$(ps1_color bright yellow)"$'\uf0e7'  # lightning bolt
-      fi
+  declare id \
+    docker_id_file=$top/.vagrant/machines/default/docker/id \
+    libvirt_id_file=$top/.vagrant/machines/default/libvirt/id \
+    vbox_id_file=$top/.vagrant/machines/default/virtualbox/id
+  if [[ -s $docker_id_file ]] && id=$(<$docker_id_file); then
+    declare status=$(docker ps --filter id="$id" --format '{{.Status}}')
+    if [[ ${status,,} == up* ]]; then
+      ps1_micro "$(ps1_color bright yellow)"$'\uf0e7'  # lightning bolt
     fi
-  elif [[ -e $libvirt_id_file ]]; then
-    declare libvirt_id=$(<$libvirt_id_file)
-    if [[ -n $libvirt_id ]]; then
-      declare virsh_domstate=$(virsh domstate "$libvirt_id" 2>/dev/null)
-      if [[ $virsh_domstate == running ]]; then
-        ps1_micro "$(ps1_color bright yellow)"$'\uf0e7'  # lightning bolt
-      fi
+  elif [[ -s $libvirt_id_file ]] && id=$(<$libvirt_id_file); then
+    declare status=$(virsh domstate "$libvirt_id" 2>/dev/null)
+    if [[ $status == running ]]; then
+      ps1_micro "$(ps1_color bright yellow)"$'\uf0e7'  # lightning bolt
+    fi
+  elif [[ -s $vbox_id_file ]] && id=$(<$vbox_id_file); then
+    if vboxmanage list runningvms | fgrep -q "$id"; then
+      ps1_micro "$(ps1_color bright yellow)"$'\uf0e7'  # lightning bolt
     fi
   fi
 }
