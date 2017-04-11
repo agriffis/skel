@@ -190,19 +190,6 @@ ps1_mod_error() {
 }
 ps1_register_module error
 
-# MODULE: user and host
-ps1_mod_user() {
-  ps1_segment 0 "$PS1_COLOR_DEFAULT_FG" "$PS1_COLOR_DEFAULT_BG" '\u@\h'
-}
-#ps1_register_module user
-
-# MODULE: current working directory
-ps1_mod_cwd() {
-  # call ps1_segment directly, rather than ps1_status, for unescaped \w
-  ps1_segment 0 "$PS1_COLOR_DEFAULT_FG" "$PS1_COLOR_DEFAULT_BG" '\W'
-}
-ps1_register_module cwd
-
 # MODULE: virtualenv -- show the current python virtualenv
 ps1_mod_virtualenv() {
   if [[ -n $VIRTUAL_ENV ]]; then
@@ -221,14 +208,14 @@ ps1_register_module rvm
 
 # MODULE: hg -- show some mercurial information
 ps1_mod_hg() {
-  $PS1_CACHE_ISSLOW_CWD && return 1
+  $(ps1_cache_get _CWD_IS_SLOW) && return 1
   if [[ -e .hg ]]; then
-    PS1_CACHE_HG_TOP=$PWD
-  elif [[ $PS1_CACHE_HG_CWD != "$PWD" ]]; then
-    PS1_CACHE_HG_TOP=$(find_parent_with .hg)
+    ps1_cache_set HG_TOP "$PWD"
+  elif [[ $(ps1_cache_get HG_CWD) != "$PWD" ]]; then
+    ps1_cache_set HG_TOP "$(find_parent_with .hg)"
   fi
-  PS1_CACHE_HG_CWD=$PWD
-  declare top=$PS1_CACHE_HG_TOP
+  ps1_cache_set HG_CWD "$PWD"
+  declare top=$(ps1_cache_get HG_TOP)
   [[ -n $top ]] || return
 
   declare cachetime hgtime summary
@@ -257,14 +244,14 @@ ps1_register_module hg
 
 # MODULE: git -- show the current git branch
 ps1_mod_git() {
-  $PS1_CACHE_ISSLOW_CWD && return 1
+  $(ps1_cache_get _CWD_IS_SLOW) && return 1
   if [[ -e .git/HEAD ]]; then
-    PS1_CACHE_GIT_TOP=$PWD
-  elif [[ $PS1_CACHE_GIT_CWD != "$PWD" ]]; then
-    PS1_CACHE_GIT_TOP=$(find_parent_with .git/HEAD)
+    ps1_cache_set GIT_TOP "$PWD"
+  elif [[ $(ps1_cache_get GIT_CWD) != "$PWD" ]]; then
+    ps1_cache_set GIT_TOP "$(find_parent_with .git/HEAD)"
   fi
-  PS1_CACHE_GIT_CWD=$PWD
-  declare top="$PS1_CACHE_GIT_TOP"
+  ps1_cache_set GIT_CWD "$PWD"
+  declare top="$(ps1_cache_get GIT_TOP)"
   [[ -n $top ]] || return
 
   declare status=$(git -C "$top" status --short --branch --untracked-files=no)
@@ -295,12 +282,12 @@ ps1_register_module git
 
 # MODULE: svn -- show the subversion source and revision
 ps1_mod_svn() {
-  $PS1_CACHE_ISSLOW_CWD && return 1
-  if [[ $PS1_CACHE_SVN_CWD != "$PWD" ]]; then
-    PS1_CACHE_SVN_TOP=$(find_parent_with --far .svn)
-    PS1_CACHE_SVN_CWD=$PWD
+  $(ps1_cache_get _CWD_IS_SLOW) && return 1
+  if [[ $(ps1_cache_get SVN_CWD) != "$PWD" ]]; then
+    ps1_cache_set SVN_TOP "$(find_parent_with --far .svn)"
+    ps1_cache_set SVN_CWD "$PWD"
   fi
-  declare top=$PS1_CACHE_SVN_TOP
+  declare top=$(ps1_cache_get SVN_TOP)
   [[ -n $top ]] || return
 
   declare rev
@@ -322,30 +309,47 @@ ps1_mod_svn() {
 }
 ps1_register_module svn
 
+# MODULE: user and host
+ps1_mod_user() {
+  ps1_segment 0 "$PS1_COLOR_DEFAULT_FG" "$PS1_COLOR_DEFAULT_BG" '\u@\h'
+}
+#ps1_register_module user
+
+# MODULE: current working directory
+ps1_mod_cwd() {
+  # call ps1_segment directly, rather than ps1_status, for unescaped \w
+  ps1_segment 0 "$PS1_COLOR_DEFAULT_FG" "$PS1_COLOR_DEFAULT_BG" '\W'
+}
+ps1_register_module cwd
+
 # The ps1_update function calls the modules defined above and in the user
 # bashrc to construct the full prompt.
 ps1_update() {
   declare x
 
   # help out the modules by caching isslow for cwd
-  if [[ -z $PS1_CACHE_ISSLOW_CWD || $PWD != "$PS1_CACHE_CWD" ]]; then
+  if [[ -z $(ps1_cache_get _CWD_IS_SLOW) || $PWD != "$(ps1_cache_get _CWD)" ]]; then
     if [[ $PWD == "$HOME" ]]; then
-      : ${PS1_CACHE_ISSLOW_HOME:=$(bool isslow .)}
-      PS1_CACHE_ISSLOW_CWD=$PS1_CACHE_ISSLOW_HOME
+      if [[ -z $(ps1_cache_get _HOME_IS_SLOW) ]]; then
+        ps1_cache_set _HOME_IS_SLOW $(bool isslow .)
+      fi
+      ps1_cache_set _CWD_IS_SLOW $_HOME_IS_SLOW
     else
-      PS1_CACHE_ISSLOW_CWD=$(bool isslow .)
+      ps1_cache_set _CWD_IS_SLOW $(bool isslow .)
     fi
-    PS1_CACHE_CWD=$PWD
+    ps1_cache_set _CWD "$PWD"
   fi
+  PS1_CACHE_ISSLOW_CWD=$(ps1_cache_get _CWD_IS_SLOW)  # backward compat
 
   # clean slate
   PS1=
 
   # run the status line modules
-  PS1_CACHE_MODS_RAN=()
+  PS1_MODS_RAN=()
   for x in "${PS1_MODULES[@]}"; do
-    ps1_mod_"$x" && PS1_CACHE_MODS_RAN=( "${PS1_CACHE_MODS_RAN[@]}" "$x" )
+    ps1_mod_"$x" && PS1_MODS_RAN+=("$x")
   done
+  PS1_CACHE_MODS_RAN=( "${PS1_MODS_RAN[@]}" )  # backward compat
 
   # cap it off
   PS1+=$(
@@ -361,7 +365,7 @@ ps1_update() {
   )
 
   # postprocess
-  for x in "${PS1_CACHE_MODS_RAN[@]}"; do
+  for x in "${PS1_MODS_RAN[@]}"; do
     x="ps1_mod_${x}_postprocess"
     [[ $(type -t "$x") != function ]] || "$x"
   done
