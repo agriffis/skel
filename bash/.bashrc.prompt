@@ -28,8 +28,8 @@ _BASHRC_PROMPT=1
 : ${PS1_COLOR_ERROR_BG:=red}
 : ${PS1_CHAR_OK:=$'\uf00c'}           #   (fontawesome)
 : ${PS1_CHAR_UGH:=$'\uf00d'}          #   (fontawesome)
-: ${PS1_CHAR_RARR:=$'\uE0B1'}         #   (powerline)
-: ${PS1_CHAR_RARR_FILLED:=$'\uE0B0'}  #   (powerline)
+: ${PS1_CHAR_SEP:=$'\uE0B1'}          #   (powerline)
+: ${PS1_CHAR_SEP_FILLED:=$'\uE0B0'}   #   (powerline)
 : ${PS1_CHAR_BRANCH:=$'\uE725'}       #   (devicons)
 : ${PS1_CHAR_DIRTY:=$'\uF069'}        #   (fontawesome)
 : ${PS1_CHAR_STAGED:=$'\uF067'}       #   (fontawesome)
@@ -73,16 +73,20 @@ ps1_quote() {
 }
 
 ps1_segment() {
-  declare n="$1" fg="$2" bg="$3" s="$4"
+  _ps1_segment "$1" "$2" "$(ps1_quote "$3")"
+}
+
+_ps1_segment() {
+  declare fg="$1" bg="$2" s="$3"
 
   # powerline transition
   # NB: reset to kill inverse
   if [[ -n $PS1 ]]; then
     declare prevbg="$(ps1_cache_get _BG default)"
     if [[ "$bg" != "$prevbg" ]]; then
-      PS1+=" $(ps1_color reset $prevbg bg $bg)$PS1_CHAR_RARR_FILLED"
+      PS1+=" $(ps1_color reset $prevbg bg $bg)$PS1_CHAR_SEP_FILLED"
     else
-      PS1+=" $(ps1_color reset bg $bg)$PS1_CHAR_RARR"
+      PS1+=" $(ps1_color reset bg $bg)$PS1_CHAR_SEP"
     fi
   fi
 
@@ -115,7 +119,7 @@ _ps1_cache_fgbg() {
 }
 
 ps1_status() {
-  ps1_segment 0 "$PS1_COLOR_DEFAULT_FG" "$PS1_COLOR_DEFAULT_BG" "$(ps1_quote "$1")"
+  ps1_segment "$PS1_COLOR_DEFAULT_FG" "$PS1_COLOR_DEFAULT_BG" "$1"
 }
 
 # The module system defines an array of modules which will be called in order by
@@ -163,12 +167,12 @@ ps1_unregister_module() {
 }
 
 # MODULE: micro status
-ps1_micro() { true; }
+ps1_micro() { true; }  # in case micro mod not registered
 ps1_mod_micro() {
   ps1_cache_set MICRO ''
   # 243 is a grayscale in the 256-color space.
   # https://en.wikipedia.org/wiki/ANSI_escape_code#Colors
-  ps1_segment 0 white 243 '__MICRO_PLACEHOLDER__'
+  _ps1_segment white 243 '__MICRO_PLACEHOLDER__'
   ps1_micro() {
     declare m=$(ps1_cache_get MICRO)
     ps1_cache_set MICRO "$m${m:+ }$*"
@@ -181,7 +185,6 @@ ps1_register_module micro
 
 # MODULE: error status
 ps1_mod_error() {
-  # call ps1_segment directly, rather than ps1_status, for unescaped \w
   if [[ ${PS1_ERROR:-0} == 0 ]]; then
     ps1_micro "$(ps1_color bright green)$PS1_CHAR_OK"
   else
@@ -238,7 +241,7 @@ ps1_mod_hg() {
   else
     fg=$PS1_COLOR_SUCCESS_FG bg=$PS1_COLOR_SUCCESS_BG
   fi
-  ps1_segment 0 "$fg" "$bg" "$(ps1_quote "$PS1_CHAR_HG $branch$dirty")"
+  ps1_segment "$fg" "$bg" "$PS1_CHAR_HG $branch$dirty"
 }
 ps1_register_module hg
 
@@ -276,7 +279,7 @@ ps1_mod_git() {
   else
     fg=$PS1_COLOR_SUCCESS_FG bg=$PS1_COLOR_SUCCESS_BG
   fi
-  ps1_segment 0 "$fg" "$bg" "$(ps1_quote "$PS1_CHAR_BRANCH $branch$dirty")"
+  ps1_segment "$fg" "$bg" "$PS1_CHAR_BRANCH $branch$dirty"
 }
 ps1_register_module git
 
@@ -305,7 +308,7 @@ ps1_mod_svn() {
   else
     fg=$PS1_COLOR_SUCCESS_FG bg=$PS1_COLOR_SUCCESS_BG
   fi
-  ps1_segment 0 "$fg" "$bg" "$(ps1_quote "$PS1_CHAR_SVN $rev$dirty")"
+  ps1_segment "$fg" "$bg" "$PS1_CHAR_SVN $rev$dirty"
 }
 ps1_register_module svn
 
@@ -367,14 +370,13 @@ ps1_register_module vagrant
 
 # MODULE: user and host
 ps1_mod_user() {
-  ps1_segment 0 "$PS1_COLOR_DEFAULT_FG" "$PS1_COLOR_DEFAULT_BG" '\u@\h'
+  _ps1_segment "$PS1_COLOR_DEFAULT_FG" "$PS1_COLOR_DEFAULT_BG" '\u@\h'
 }
-#ps1_register_module user
+#ps1_register_module user after micro
 
 # MODULE: current working directory
 ps1_mod_cwd() {
-  # call ps1_segment directly, rather than ps1_status, for unescaped \w
-  ps1_segment 0 "$PS1_COLOR_DEFAULT_FG" "$PS1_COLOR_DEFAULT_BG" '\W'
+  _ps1_segment "$PS1_COLOR_DEFAULT_FG" "$PS1_COLOR_DEFAULT_BG" '\W'
 }
 ps1_register_module cwd
 
@@ -412,11 +414,11 @@ ps1_update() {
     echo -n ' '
     if [[ $(ps1_cache_get _BG default) != default ]]; then
       ps1_color reset $(ps1_cache_get _BG)  # reset to kill inverse
-      echo -n "$PS1_CHAR_RARR_FILLED "
+      echo -n "$PS1_CHAR_SEP_FILLED "
       ps1_color off
     else
       ps1_color off
-      echo -n "${PS1:+ }$PS1_CHAR_RARR "
+      echo -n "${PS1:+ }$PS1_CHAR_SEP "
     fi
   )
 
