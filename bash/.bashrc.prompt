@@ -321,7 +321,8 @@ ps1_mod_docker() {
   declare top="$(ps1_cache_get 'docker top')"
   [[ -n $top ]] || return
 
-  if docker-compose -f "$top/docker-compose.yml" port web 8000 &>/dev/null; then
+  #if docker-compose -f "$top/docker-compose.yml" port web 8000 &>/dev/null; then
+  if (docker-compose ps -q; docker ps --filter=status=running -q --no-trunc) | sort | uniq -d | grep -q .; then
     ps1_micro "$(ps1_color bright yellow)"$'\uf0e7'  # lightning bolt
   fi
 }
