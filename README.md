@@ -14,12 +14,11 @@ Installing in a new homedir
 ---------------------------
 
 Clone from github, then use [GNU stow](https://www.gnu.org/software/stow/) to
-install these into a new home directory. You don't need to have installed stow
-in advance. It works like this:
+install these into a new home directory.
 
     git clone --recursive git@github.com:agriffis/skel.git .skel
     cd .skel
-    stow/bin/stow -S */
+    stow -S */
 
 What makes stow special is its ability to merge symlinks from
 [multiple source directories](https://www.gnu.org/software/stow/manual/stow.html#Multiple-Stow-Directories),
