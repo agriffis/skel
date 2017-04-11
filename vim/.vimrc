@@ -124,6 +124,9 @@ let g:is_bash=1
 " clojure syntax config
 let g:clj_highlight_builtins=1
 
+" we have powerline fonts, use them for airline
+let g:airline_powerline_fonts = 1
+
 " Syntax and filetypes
 if has("syntax")
   syntax on

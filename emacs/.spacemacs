@@ -450,7 +450,7 @@ This function is called at the very end of Spacemacs initialization."
  '(hl-fg-colors
    (quote
     ("#002b36" "#002b36" "#002b36" "#002b36" "#002b36" "#002b36" "#002b36" "#002b36")))
- '(js-switch-indent-offset 2 t)
+ '(js-switch-indent-offset 2)
  '(magit-diff-use-overlays nil)
  '(magit-use-overlays nil)
  '(package-selected-packages
@@ -462,6 +462,12 @@ This function is called at the very end of Spacemacs initialization."
  '(safe-local-variable-values
    (quote
     ((agriffis/env
+      ("PYTHONPATH" . "/home/aron/src/ss/clients/appsembler/edx2bq/edx2bigquery/.virtualenv/lib/python2.7/site-packages"))
+     (agriffis/env
+      ("PYTHONPATH" . "/home/aron/src/ss/clients/appsembler/edx2bq/agent/.virtualenv/lib/python2.7/site-packages"))
+     (agriffis/env
+      ("PYTHONPATH" . "/home/aron/src/ss/clients/appsembler/edx2bigquery/.virtualenv/lib/python2.7/site-packages"))
+     (agriffis/env
       ("PYTHONPATH" . "/home/aron/src/ss/furls/.virtualenv/lib/python3.6/site-packages"))
      (agriffis/env quote
                    (("PYTHONPATH" . "/home/aron/src/ss/furls/.virtualenv/lib/python3.6/site-packages")))
