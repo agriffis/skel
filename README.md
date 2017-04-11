@@ -16,8 +16,9 @@ Installing in a new homedir
 Clone from github, then use [GNU stow](https://www.gnu.org/software/stow/) to
 install these into a new home directory.
 
-    git clone --recursive git@github.com:agriffis/skel.git .skel
-    cd .skel
+    cd Sync  # syncthing
+    git clone --recursive git@github.com:agriffis/skel.git skel
+    cd skel
     stow -S */
 
 What makes stow special is its ability to merge symlinks from
@@ -25,7 +26,7 @@ What makes stow special is its ability to merge symlinks from
 so I have a second set of dotfiles (credentials and other personal
 stuff) that I manage with [Syncthing](https://syncthing.net/):
 
-    cd Sync/.skel
+    cd Sync/skel2
     stow -S */
     
 Git submodules
