@@ -201,7 +201,7 @@ EOT
   call FixPythonSysRealPrefix()
 endif
 
-"================================== COLORS =================================
+"================================= TERMINAL ================================
 function! InitTerm()
   if &term =~ '^xterm' && &t_Co <= 16
     set t_Co=16
@@ -217,15 +217,25 @@ function! InitTerm()
       endif
     endif
   endif
+
+  " Enable bracketed paste everywhere except Linux console.
+  " This would happen automatically on local terms, even with mosh using
+  " TERM=xterm*, but doesn't happen automatically in tmux with
+  " TERM=screen*. Setting it manually works fine though.
+  if &term != 'linux' && &t_BE == ''
+    let &t_BE = "\e[?2004h"
+    let &t_BD = "\e[?2004l"
+  endif
 endfunction
 
 if has("termresponse") && ! has("gui_running")
-  augroup ag_setcolors
+  augroup ag_initterm
     autocmd!
     autocmd TermResponse * call InitTerm()
   augroup END
 endif
 
+"================================== COLORS =================================
 function! TryTheme(theme, ...)
   let l:background = a:0 ? a:1 : ''
   if a:theme == 'solarized'
