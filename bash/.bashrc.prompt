@@ -379,8 +379,11 @@ ps1_mod_user() {
 #ps1_register_module user after micro
 
 # MODULE: current working directory
+ps1_get_cwd() {
+  echo "${PWD/#$HOME/\~}"
+}
 ps1_mod_cwd() {
-  ps1_status_noquote '\W'
+  ps1_status "$(ps1_get_cwd)"
 }
 ps1_register_module cwd
 
