@@ -115,6 +115,15 @@ alias vi=vim
 [[ ! -r ~/.bashrc.mine ]] || source ~/.bashrc.mine
 [[ ! -r ~/.bashrc.local ]] || source ~/.bashrc.local
 
-# The following line enforces a consistent indentation for this file
-# (in Vim at least).  Keep this at the end of file.
+# The following lines enforce a consistent indentation for this file.
+# Keep this comment at the end of file.
+#
+# Local Variables:
+# mode: shell-script
+# sh-basic-offset: 2
+# sh-indentation: 2
+# evil-shift-width: 2
+# indent-tabs-mode: nil
+# End:
+#
 # vim:shiftwidth=2 expandtab smarttab

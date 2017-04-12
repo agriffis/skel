@@ -239,6 +239,8 @@ distro() {
 # Local Variables:
 # mode: shell-script
 # sh-basic-offset: 2
+# sh-indentation: 2
+# evil-shift-width: 2
 # indent-tabs-mode: nil
 # End:
 #

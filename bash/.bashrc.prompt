@@ -469,6 +469,8 @@ append_cmd PROMPT_COMMAND '[[ -n $PS1_SAVE_SET_X ]] && set -x'
 # Local Variables:
 # mode: shell-script
 # sh-basic-offset: 2
+# sh-indentation: 2
+# evil-shift-width: 2
 # indent-tabs-mode: nil
 # End:
 #
