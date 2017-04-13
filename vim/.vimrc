@@ -202,7 +202,23 @@ EOT
 endif
 
 "================================= TERMINAL ================================
-function! InitTerm()
+function! EnableBracketedPaste()
+  " Enable bracketed paste everywhere except Linux console.
+  " This would happen automatically on local terms, even with mosh using
+  " TERM=xterm*, but doesn't happen automatically in tmux with
+  " TERM=screen*. Setting it manually works fine though.
+  if ! has("gui_running") && &term != 'linux' && &t_BE == ''
+    let &t_BE = "\e[?2004h"  " enable
+    let &t_BD = "\e[?2004l"  " disable
+    let &t_PS = "\e[200~"    " start
+    let &t_PE = "\e[201~"    " end
+  endif
+endfunction
+
+" call immediately, isn't effective after TermResponse
+call EnableBracketedPaste()
+
+function! SetXTermColors()
   if &term =~ '^xterm' && &t_Co <= 16
     set t_Co=16
     if exists('v:termresponse')
@@ -217,21 +233,12 @@ function! InitTerm()
       endif
     endif
   endif
-
-  " Enable bracketed paste everywhere except Linux console.
-  " This would happen automatically on local terms, even with mosh using
-  " TERM=xterm*, but doesn't happen automatically in tmux with
-  " TERM=screen*. Setting it manually works fine though.
-  if &term != 'linux' && &t_BE == ''
-    let &t_BE = "\e[?2004h"
-    let &t_BD = "\e[?2004l"
-  endif
 endfunction
 
-if has("termresponse") && ! has("gui_running")
-  augroup ag_initterm
+if ! has("gui_running") && has("termresponse")
+  augroup ag_terminal
     autocmd!
-    autocmd TermResponse * call InitTerm()
+    autocmd TermResponse * call SetXTermColors()
   augroup END
 endif
 
