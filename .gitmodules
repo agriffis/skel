@@ -22,10 +22,6 @@
 [submodule "vim/.vim/bundle/tabular"]
 	path = vim/.vim/bundle/tabular
 	url = https://github.com/godlygeek/tabular.git
-[submodule "emacs/.emacs.d"]
-	path = emacs/.emacs.d
-	url = https://github.com/syl20bnr/spacemacs
-	branch = develop
 [submodule "vim/.vim/bundle/spacevim"]
 	path = vim/.vim/bundle/spacevim
 	url = https://github.com/ctjhoa/spacevim
