@@ -243,6 +243,9 @@ if ! has("gui_running") && has("termresponse")
 endif
 
 "================================== COLORS =================================
+let g:jellybeans_background_color = ''
+let g:jellybeans_background_color_256 = 'NONE'
+
 function! TryTheme(theme, ...)
   let l:background = a:0 ? a:1 : ''
   if a:theme == 'solarized'
@@ -265,6 +268,37 @@ function! TryTheme(theme, ...)
     syn reset
   endif
 endfunction
+
+function! LoadTheme()
+  let l:background_file = expand('~/.vim/background')
+  let l:theme_file = expand('~/.vim/theme')
+  let l:background = filereadable(l:background_file) ?
+                   \ readfile(l:background_file)[0] : &background
+  let l:theme = filereadable(l:theme_file) ?
+              \ readfile(l:theme_file)[0] : 'default'
+  if l:background == &background &&
+      \ exists('g:colors_name') && l:theme == g:colors_name
+    return 0
+  endif
+  " echom l:theme . " " . l:background
+  call TryTheme(l:theme, l:background)
+endfunction
+
+call LoadTheme()
+
+if has("timers")
+  function! LoadThemeTimer(timer)
+    call LoadTheme()
+  endfunction
+  let theme_timer = timer_start(1000, 'LoadThemeTimer', {'repeat': -1})
+else
+  " http://vim.wikia.com/wiki/Timer_to_execute_commands_periodically
+  function! LoadThemeTimer()
+    call LoadTheme()
+    call feedkeys("f\e")
+  endfunction
+  autocmd CursorHold * call LoadThemeTimer()
+endif
 
 "==================================== C ====================================
 " Default options for C files
