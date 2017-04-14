@@ -374,9 +374,9 @@ ps1_register_module vagrant
 
 # MODULE: user and host
 ps1_mod_user() {
-  ps1_segment_noquote "$PS1_COLOR_DEFAULT_FG" "$PS1_COLOR_DEFAULT_BG" '\u@\h'
+  ps1_status_noquote '\u@\h'
 }
-#ps1_register_module user after micro
+ps1_register_module user after micro
 
 # MODULE: current working directory
 ps1_get_cwd() {
