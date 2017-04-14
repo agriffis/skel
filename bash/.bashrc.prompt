@@ -387,6 +387,13 @@ ps1_mod_cwd() {
 }
 ps1_register_module cwd
 
+ps1_mod_disable_bracketed_paste() {
+  PS1+=$'\[\033[?2004l\]'
+}
+if [[ $TERM == +(gnome|rxvt|screen|vte|xterm)* ]]; then
+  ps1_register_module disable_bracketed_paste
+fi
+
 # The ps1_update function calls the modules defined above and in the user
 # bashrc to construct the full prompt.
 ps1_update() {
