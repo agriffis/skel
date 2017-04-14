@@ -15,7 +15,7 @@
 [[ -n $_BASHRC_PROMPT ]] && return
 _BASHRC_PROMPT=1
 
-[[ -n $_BASHRC_FUNCS ]] || source ~/.bashrc.funcs
+source ~/.bashrc.funcs
 
 # Default colors, overrideable in user .bashrc
 : ${PS1_COLOR_DEFAULT_FG:=white}
