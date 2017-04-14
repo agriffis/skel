@@ -94,6 +94,14 @@ b() {
   fi
 }
 
+# if a file is given to cd, then use the parent dir
+cd() {
+  if [[ $# -gt 0 && -f ${!#} ]]; then
+    set -- "${@:1:$#-1}" "${!#%/*}"
+  fi
+  command cd "$@"
+}
+
 # h -- search for a given expression in the history
 h() {
   history | grep -e "${@:-}" | tail
