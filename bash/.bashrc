@@ -74,11 +74,10 @@ fi
 # Interactive settings
 #######################################################################
 
-[[ -r ~/.bashrc.prompt ]] && source ~/.bashrc.prompt
 [[ -r ~/.bashrc.fastls ]] && source ~/.bashrc.fastls
-
-# Ruby rvm -- load this after .bashrc.prompt
-[[ -r ~/.bashrc.rvm ]] && source ~/.bashrc.rvm
+[[ -r ~/.bashrc.prompt ]] && source ~/.bashrc.prompt
+[[ -r ~/.bashrc.rvm ]] && source ~/.bashrc.rvm    # after .bashrc.prompt
+[[ -r ~/.bashrc.tmux ]] && source ~/.bashrc.tmux  # after .bashrc.prompt
 
 export GPG_TTY=$(tty)
 
