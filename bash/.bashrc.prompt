@@ -394,6 +394,15 @@ if [[ $TERM == +(gnome|rxvt|screen|vte|xterm)* ]]; then
   ps1_register_module disable_bracketed_paste
 fi
 
+ps1_mod_xterm_title() {
+  PS1+=$'\[\033]0;'
+  PS1+="${HOSTNAME%%.*}:$(ps1_get_cwd)"
+  PS1+=$'\007\]'
+}
+if [[ $TERM == +(gnome|rxvt|screen|vte|xterm)* ]]; then
+  ps1_register_module xterm_title
+fi
+
 # The ps1_update function calls the modules defined above and in the user
 # bashrc to construct the full prompt.
 ps1_update() {
@@ -450,20 +459,6 @@ ps1_update() {
 PROMPT_COMMAND='PS1_ERROR=$?'
 append_cmd PROMPT_COMMAND 'PS1_SAVE_SET_X=${-//[^x]/}; [[ -n $PS1_DEBUG ]] || set +x'
 append_cmd PROMPT_COMMAND ps1_update
-case "$TERM" in
-  xterm*|gnome|rxvt*|vte*)
-    ps1_update_xterm_title() {
-      declare title="${1:-$XTERMTITLE}"
-      if [[ -z $title ]]; then
-        title="${HOSTNAME%%.*}:${PWD/#$HOME/~}"
-      fi
-      echo -ne '\033]0;'
-      echo -n "$title"
-      echo -ne '\007'
-    }
-    append_cmd PROMPT_COMMAND ps1_update_xterm_title
-    ;;
-esac
 if [[ $(type -t __vte_prompt_command) == function ]]; then
   # https://gnunn1.github.io/tilix-web/manual/vteconfig/
   append_cmd PROMPT_COMMAND __vte_prompt_command
