@@ -200,6 +200,18 @@ ps1_del() {
   PS1_MODULES=("${mods[@]}")
 }
 
+# MODULE: divider line
+ps1_mod_divider() {
+  declare pad=$(printf "%$((COLUMNS))s" '')
+  declare line=${pad//?/$'\U2500'}
+  PS1+='\['       # begin sequence of non-printing chars
+  PS1+=$'\033[G'  # cursor to start of row
+  PS1+="$(color $PS1_COLOR_DEFAULT_BG)$line"
+  PS1+=$'\033[G'  # cursor to start of row
+  PS1+='\]'       # we're done here
+}
+ps1_add divider first
+
 # MODULE: micro status
 ps1_mod_micro() {
   ps1_cache_set MICRO ''
@@ -216,6 +228,21 @@ ps1_micro() {
   ps1_cache_set MICRO "$m${m:+ }$*"
 }
 ps1_add micro
+
+# MODULE: user and host
+ps1_mod_user() {
+  ps1_status_noquote '\u@\h'
+}
+ps1_add user
+
+# MODULE: current working directory
+ps1_get_cwd() {
+  echo "${PWD/#$HOME/\~}"
+}
+ps1_mod_cwd() {
+  ps1_status "$(ps1_get_cwd)"
+}
+ps1_add cwd
 
 # MODULE: error status
 ps1_mod_error() {
@@ -402,21 +429,6 @@ ps1_mod_vagrant() {
 }
 ps1_add vagrant
 
-# MODULE: user and host
-ps1_mod_user() {
-  ps1_status_noquote '\u@\h'
-}
-ps1_add user after micro
-
-# MODULE: current working directory
-ps1_get_cwd() {
-  echo "${PWD/#$HOME/\~}"
-}
-ps1_mod_cwd() {
-  ps1_status "$(ps1_get_cwd)"
-}
-ps1_add cwd
-
 ps1_mod_disable_bracketed_paste() {
   PS1+=$'\[\033[?2004l\]'
 }
@@ -434,10 +446,17 @@ if [[ $TERM == +(gnome|rxvt|screen|vte|xterm)* ]]; then
 fi
 
 ps1_mod_endcap() {
-  ps1_sep default
-  ps1_color default default
+  ps1_sep default ' ' ''
+  PS1+=$'\n'
+  first_segment=true
 }
 ps1_add endcap
+
+ps1_mod_prompt() {
+  ps1_color default bg default
+  PS1+='\$ '
+}
+ps1_add prompt after endcap
 
 cwd_is_slow() {
   declare slow=$(ps1_cache_get _CWD_IS_SLOW)
