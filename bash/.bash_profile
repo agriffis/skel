@@ -52,7 +52,8 @@ export PATH
 unset LANG ${!LC_*}
 case $OSTYPE in
   linux*) export LANG=en_US.utf8 LC_COLLATE=C ;;
-  *)      export LANG=en_US.ISO8859-1 LC_COLLATE=C ;;
+  darwin*) export LANG=en_US.UTF-8 LC_COLLATE=C ;;
+  *) export LANG=en_US.ISO8859-1 LC_COLLATE=C ;;
 esac
 
 # Set the EDITOR to vim. Override this in .bash_profile.mine if you prefer
