@@ -269,13 +269,13 @@ ps1_mod_hg() {
 
   declare branch dirty fg bg
   branch=$(awk '$1=="branch:"{print $2}' <<<"$summary")
-  dirty=$(hg -R $top status -q | grep -q . && echo "$PS1_CHAR_DIRTY ")
+  dirty=$(hg -R $top status -q | grep -q . && echo "$PS1_CHAR_DIRTY")
   if [[ -n $dirty ]]; then
     fg=$PS1_COLOR_WARNING_FG bg=$PS1_COLOR_WARNING_BG
   else
     fg=$PS1_COLOR_SUCCESS_FG bg=$PS1_COLOR_SUCCESS_BG
   fi
-  ps1_segment "$fg" "$bg" "$PS1_CHAR_HG $branch$dirty"
+  ps1_segment "$fg" "$bg" "$PS1_CHAR_HG $branch${dirty:+ $dirty}"
 }
 ps1_add hg
 
@@ -298,22 +298,22 @@ ps1_mod_git() {
   branch=${status#?? }; branch=${branch%%[.$'\n']*}
   [[ $status == *$'\n'* ]] && status=${status#*$'\n'} || status=''
   if [[ -e $top/.git/BISECT_LOG ]]; then
-    dirty="$PS1_CHAR_BISECT "
+    dirty="$PS1_CHAR_BISECT"
   elif [[ -e $top/.git/MERGE_HEAD ]]; then
-    dirty="$PS1_CHAR_MERGE "
+    dirty="$PS1_CHAR_MERGE"
   elif [[ -e $top/.git/rebase-merge ]]; then
-    dirty="$PS1_CHAR_REBASE "
+    dirty="$PS1_CHAR_REBASE"
   elif [[ $'\n'$status == *$'\n'?[!\ ]* ]]; then
-    dirty="$PS1_CHAR_DIRTY "
+    dirty="$PS1_CHAR_DIRTY"
   elif [[ $'\n'$status == *$'\n'[!\ ]* ]]; then
-    dirty="$PS1_CHAR_STAGED "
+    dirty="$PS1_CHAR_STAGED"
   fi
   if [[ -n $dirty ]]; then
     fg=$PS1_COLOR_WARNING_FG bg=$PS1_COLOR_WARNING_BG
   else
     fg=$PS1_COLOR_SUCCESS_FG bg=$PS1_COLOR_SUCCESS_BG
   fi
-  ps1_segment "$fg" "$bg" "$PS1_CHAR_BRANCH $branch$dirty"
+  ps1_segment "$fg" "$bg" "$PS1_CHAR_BRANCH $branch${dirty:+ $dirty}"
 }
 ps1_add git
 
@@ -336,13 +336,13 @@ ps1_mod_svn() {
   [[ -n $rev ]] || return
 
   declare dirty fg bg
-  dirty=$(svn status -q | grep -q . && echo "$PS1_CHAR_DIRTY ")
+  dirty=$(svn status -q | grep -q . && echo "$PS1_CHAR_DIRTY")
   if [[ -n $dirty ]]; then
     fg=$PS1_COLOR_WARNING_FG bg=$PS1_COLOR_WARNING_BG
   else
     fg=$PS1_COLOR_SUCCESS_FG bg=$PS1_COLOR_SUCCESS_BG
   fi
-  ps1_segment "$fg" "$bg" "$PS1_CHAR_SVN $rev$dirty"
+  ps1_segment "$fg" "$bg" "$PS1_CHAR_SVN $rev${dirty:+ $dirty}"
 }
 ps1_add svn
 
