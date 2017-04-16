@@ -14,7 +14,7 @@
 
 [[ -z $TMUX ]] && return
 
-if [[ $(type -t ps1_register_module) != function ]]; then
+if [[ $(type -t ps1_add) != function ]]; then
   echo ".bashrc.tmux must load after .bashrc.prompt" >&2
   return
 fi
@@ -53,7 +53,7 @@ ps1_mod_tmux_env() {
   _gen_exports "${tmux_persistent_env[@]}" > ~/.tmux.env
 }
 
-ps1_register_module tmux_env
+ps1_add tmux_env
 
 # The following lines enforce a consistent indentation for this file.
 # Keep this comment at the end of file.
