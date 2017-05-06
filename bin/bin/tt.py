@@ -4,26 +4,31 @@ from __future__ import absolute_import, unicode_literals
 
 import datetime
 import itertools
+import os.path
 import sys
 
 actions = itertools.cycle(['START', 'STOP'])
 prev = datetime.datetime.fromtimestamp(0)
 days = {}
+tt_txt = os.path.expanduser('~/Dropbox/tt-{}.txt'.format(sys.argv[1]))
 
-def punch(stamp):
+def punch(stamp, activity=''):
     date = prev.date()
-    days.setdefault(date, datetime.timedelta(0))
-    days[date] += stamp - prev
+    key = (date, activity)
+    days.setdefault(key, datetime.timedelta(0))
+    days[key] += stamp - prev
 
-with open('/home/aron/Dropbox/tt.txt') as tt:
+with open(tt_txt) as tt:
     for expected, line in itertools.izip(actions, tt):
-        action, stamp = line.strip().split()
+        action, stamp = line.strip().split(' ', 1)
         assert action == expected
+        stamp, activity = (stamp.split(' ', 1) if ' ' in stamp
+                           else (stamp, ''))
         stamp = datetime.datetime.strptime(stamp, '%Y%m%d-%H%M%S')
         assert stamp > prev, stamp
 
         if action == 'STOP':
-            punch(stamp)
+            punch(stamp, activity)
 
         prev = stamp
 
@@ -41,7 +46,7 @@ def print_total(total):
         print "\nWeek total hours: {:.02f}\n".format(
             delta_hours(total))
 
-for date, delta in sorted(days.items()):
+for (date, activity), delta in sorted(days.items()):
     week = date.strftime('%U')
 
     if week != prev:
@@ -49,7 +54,7 @@ for date, delta in sorted(days.items()):
         total = datetime.timedelta(0)
         prev = week
 
-    print "{}: {:.02f}".format(date, delta_hours(delta))
+    print "{}: {:.02f} {}".format(date, delta_hours(delta), activity)
 
     total += delta
 

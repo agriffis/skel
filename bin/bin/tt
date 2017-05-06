@@ -1,31 +1,35 @@
 #!/bin/bash
 
-TT=$HOME/Dropbox/tt.txt
+TT=$HOME/Dropbox/tt-$1.txt
+shift
+
+if [[ ! -f $TT ]]; then
+    echo "Missing file: $TT" >&2
+    exit 1
+fi
 
 last() {
     tail -n1 $TT
 }
 
 darg=()
-if [[ $1 == *:* ]]; then
-    darg=( -d "$1" )
-elif [[ -n $1 && $1 != *[!0-9]* ]]; then
-    darg=( -d "$1 minutes ago" )
-elif [[ $1 == e ]]; then
-    exec vim $TT
-elif [[ $1 == l ]]; then
-    last; exit
-elif [[ $1 == r ]]; then
-    sed -i '$d' $TT
-    last; exit
-elif [[ -n $1 ]]; then
-    echo "I don't understand: $*" >&2
-    exit 1
-fi
+
+case $1 in
+    *:*) darg=( -d "$1" ); shift ;;
+    e) exec ${EDITOR:-vim} "$TT" ;;
+    l) last; exit ;;
+    r) sed -i '$d' "$TT"; last; exit ;;
+    *[!0-9]*) true ;;
+    ?) darg=( -d "$1 minutes ago" ); shift ;;
+esac
 
 action=START
 if [[ $(last) == START* ]]; then
     action=STOP
 fi
 
-printf '%s %s\n' "$action" "$(date "${darg[@]}" +%Y%m%d-%H%M%S)" | tee -a $TT
+printf '%s %s%s\n' \
+    "$action" \
+    "$(date "${darg[@]}" +%Y%m%d-%H%M%S)" \
+    "${*:+ $*}" \
+    | tee -a $TT
