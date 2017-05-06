@@ -28,8 +28,8 @@ source ~/.bashrc.funcs
 : ${PS1_COLOR_ERROR_BG:=red}
 : ${PS1_CHAR_OK:=$'\uf00c'}           #   (fontawesome)
 : ${PS1_CHAR_UGH:=$'\uf00d'}          #   (fontawesome)
-: ${PS1_CHAR_LARR:=$'\uE0B3'}         #   (powerline)
-: ${PS1_CHAR_LARR_FILLED:=$'\uE0B2'}  #   (powerline)
+: ${PS1_CHAR_LARR:=$'\uE0B3'}         #   (powerline)
+: ${PS1_CHAR_LARR_FILLED:=$'\uE0B2'}  #   (powerline)
 : ${PS1_CHAR_RARR:=$'\uE0B1'}         #   (powerline)
 : ${PS1_CHAR_RARR_FILLED:=$'\uE0B0'}  #   (powerline)
 : ${PS1_CHAR_BRANCH:=$'\uE725'}       #   (devicons)
