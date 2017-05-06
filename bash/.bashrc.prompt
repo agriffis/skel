@@ -26,8 +26,8 @@ source ~/.bashrc.funcs
 : ${PS1_COLOR_WARNING_BG:=yellow}
 : ${PS1_COLOR_ERROR_FG:=$PS1_COLOR_DEFAULT_FG}
 : ${PS1_COLOR_ERROR_BG:=red}
-: ${PS1_CHAR_OK:=$'\uf00c'}           #   (fontawesome)
-: ${PS1_CHAR_UGH:=$'\uf00d'}          #   (fontawesome)
+: ${PS1_CHAR_OK:=$'\u2714'}           # ✔  (unicode)
+: ${PS1_CHAR_UGH:=$'\u2718'}          # ✘  (unicode)
 : ${PS1_CHAR_LARR:=$'\uE0B3'}         #   (powerline)
 : ${PS1_CHAR_LARR_FILLED:=$'\uE0B2'}  #   (powerline)
 : ${PS1_CHAR_RARR:=$'\uE0B1'}         #   (powerline)
