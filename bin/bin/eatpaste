@@ -32,7 +32,7 @@ end
 
 # XXX calls to xmessage should be overall exception handling
 def getx
-  s = `xclip -o`
+  s = `xclip -o -selection clipboard`
   return s if $? == 0
   if not $stderr.tty?
     fork { system 'xmessage', "#{zero}: error running xclip" }
@@ -105,7 +105,7 @@ if buf =~ /\n/
     if url =~ %r{\A\S+://}
       putx url
     else
-      putx buf.gsub(/[^\S\n]+/, ' ').gsub(/\n{3,}$/, "\n\n")
+      putx buf.gsub(/(?!\s*\n\s*\n)\s+/, ' ').gsub(/\s*\n\s*\n\s*/, "\n\n")
     end
     exit
   end
