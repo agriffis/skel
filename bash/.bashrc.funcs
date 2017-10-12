@@ -166,6 +166,19 @@ color() {
   done
 }
 
+# cursorpos -- Echo the current cursor row and column
+cursorpos() {
+  (
+    exec < /dev/tty
+    oldstty=$(stty -g)
+    stty raw -echo min 0
+    echo -en '\033[6n' > /dev/tty
+    IFS='[;' read -r -d R -a pos
+    stty $oldstty
+    echo "${pos[@]:1}"
+  )
+}
+
 # funcdup -- Duplicate a function
 funcdup() {
   declare x="#$(type $1)"

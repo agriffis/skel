@@ -28,18 +28,18 @@ source ~/.bashrc.funcs
 : ${PS1_COLOR_ERROR_BG:=red}
 : ${PS1_CHAR_OK:=$'\u2714'}           # ✔  (unicode)
 : ${PS1_CHAR_UGH:=$'\u2718'}          # ✘  (unicode)
-: ${PS1_CHAR_LARR:=$'\uE0B3'}         #   (powerline)
-: ${PS1_CHAR_LARR_FILLED:=$'\uE0B2'}  #   (powerline)
-: ${PS1_CHAR_RARR:=$'\uE0B1'}         #   (powerline)
-: ${PS1_CHAR_RARR_FILLED:=$'\uE0B0'}  #   (powerline)
-: ${PS1_CHAR_BRANCH:=$'\uE725'}       #   (devicons)
-: ${PS1_CHAR_DIRTY:=$'\uF069'}        #   (fontawesome)
-: ${PS1_CHAR_STAGED:=$'\uF067'}       #   (fontawesome)
+: ${PS1_CHAR_LARR:=$'\ue0b3'}         #   (powerline)
+: ${PS1_CHAR_LARR_FILLED:=$'\ue0b2'}  #   (powerline)
+: ${PS1_CHAR_RARR:=$'\ue0b1'}         #   (powerline)
+: ${PS1_CHAR_RARR_FILLED:=$'\ue0b0'}  #   (powerline)
+: ${PS1_CHAR_BRANCH:=$'\ue725'}       #   (devicons)
+: ${PS1_CHAR_DIRTY:=$'\uf069'}        #   (fontawesome)
+: ${PS1_CHAR_STAGED:=$'\uf067'}       #   (fontawesome)
 : ${PS1_CHAR_BISECT:=$'\ue728'}       #   (devicons)
 : ${PS1_CHAR_MERGE:=$'\ue726'}        #   (devicons)
 : ${PS1_CHAR_REBASE:=$'\ue726'}       #   (devicons)
-: ${PS1_CHAR_HG:=$'\u263F'}           # ☿  (unicode)
-: ${PS1_CHAR_SVN:=$'\U1D5E6'}         # 𝗦  (unicode)
+: ${PS1_CHAR_HG:=$'\u263f'}           # ☿  (unicode)
+: ${PS1_CHAR_SVN:=$'\U1d5e6'}         # 𝗦  (unicode)
 : ${PS1_CHAR_PYTHON:=$'\ue73c'}       #   (devicons)
 : ${PS1_CHAR_RUBY:=$'\ue739'}         #   (devicons)
 : ${PS1_SEP:=$PS1_CHAR_RARR}
@@ -229,6 +229,31 @@ ps1_micro() {
 }
 ps1_add micro
 
+# MODULE: error status
+ps1_mod_error() {
+  if [[ ${PS1_ERROR:-0} == 0 ]]; then
+    ps1_micro "\[$(color bright green)\]$PS1_CHAR_OK"
+  else
+    ps1_micro "\[$(color bright red)\]$PS1_CHAR_UGH"
+  fi
+}
+ps1_add error
+
+# MODULE: newline
+ps1_mod_newline() {
+  # if the recent command left the cursor somewhere other than the start of
+  # the line, insert an immediate newline before outputting the prompt.
+  declare pos=$(cursorpos)
+  if [[ $pos != *\ 1 ]]; then
+    echo
+    ps1_micro $'\u21b5'
+  fi
+}
+# Unfortunately this module eats stdin while checking the cursor position,
+# so anything typed in advance while the previous command is running is
+# lost. Not a good tradeoff.
+#ps1_add newline
+
 # MODULE: user and host
 ps1_mod_user() {
   ps1_status_noquote '\u@\h'
@@ -243,16 +268,6 @@ ps1_mod_cwd() {
   ps1_status "$(ps1_get_cwd)"
 }
 ps1_add cwd
-
-# MODULE: error status
-ps1_mod_error() {
-  if [[ ${PS1_ERROR:-0} == 0 ]]; then
-    ps1_micro "\[$(color bright green)\]$PS1_CHAR_OK"
-  else
-    ps1_micro "\[$(color bright red)\]$PS1_CHAR_UGH"
-  fi
-}
-ps1_add error
 
 # MODULE: virtualenv -- show the current python virtualenv
 ps1_mod_virtualenv() {
@@ -309,10 +324,10 @@ ps1_add hg
 # MODULE: git -- show the current git branch
 ps1_mod_git() {
   cwd_is_slow && return 1
-  if [[ -e .git/HEAD ]]; then
+  if [[ -e .git ]]; then
     ps1_cache_set GIT_TOP "$PWD"
   elif [[ $(ps1_cache_get GIT_CWD) != "$PWD" ]]; then
-    ps1_cache_set GIT_TOP "$(find_parent_with .git/HEAD)"
+    ps1_cache_set GIT_TOP "$(find_parent_with .git)"
   fi
   ps1_cache_set GIT_CWD "$PWD"
   declare top="$(ps1_cache_get GIT_TOP)"
@@ -392,7 +407,7 @@ ps1_mod_docker() {
     ps1_micro "\[$(color bright yellow)\]"$'\uf0e7'  # lightning bolt
   fi
 }
-ps1_add docker
+#ps1_add docker
 
 ps1_mod_vagrant() {
   cwd_is_slow && return 1
