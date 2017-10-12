@@ -1,6 +1,6 @@
 " .vimrc
 "
-" Written in 2003-2016 by Aron Griffis <aron@arongriffis.com>
+" Written in 2003-2017 by Aron Griffis <aron@arongriffis.com>
 "
 " To the extent possible under law, the author(s) have dedicated all copyright
 " and related and neighboring rights to this software to the public domain
@@ -24,7 +24,8 @@ set cscopetag           " search cscope on ctrl-] and :tag
 set encoding=utf-8      " unicode me, baby
 set hidden              " don't unload buffer when it is abandoned
 set history=100         " keep 100 lines of command line history
-set listchars=tab:»·,trail:·    " how to display some special chars
+set laststatus=2        " always show a status line (with the current filename)
+set listchars=tab:Â»Â·,trail:Â·    " how to display some special chars
 set modeline modelines=5 " security peskurity
 set nojoinspaces        " two spaces after a period is for old fogeys
 set paragraphs=         " otherwise NROFF macros screw up CSS
@@ -35,23 +36,10 @@ set shortmess+=at       " list of flags, reduce length of messages
 set showcmd             " show (partial) command in status line
 set showmode            " message on status line to show current mode
 set showmatch           " briefly jump to matching bracket
-set swapsync=""         " don't call fsync() or sync(); let linux handle it
 set nowarn              " don't warn for shell command when buffer changed
 set updatetime=2000
 set wildmode=longest,list,full
-
-" Statusline thanks to Ciaran
-set laststatus=2        " always show a status line (with the current filename)
-set statusline=
-set statusline+=%{winnr()}:%-3.3n\           " window number:buffer number
-set statusline+=%f\                          " file name
-set statusline+=%h%m%r%w                     " flags
-set statusline+=\[%{strlen(&ft)?&ft:'none'}, " filetype
-set statusline+=%{&encoding},                " encoding
-set statusline+=%{&fileformat}]              " file format
-set statusline+=%=                           " right align
-set statusline+=0x%-8B\                      " current char
-set statusline+=%-14.(%l,%c%V%)\ %<%P        " offset
+set nowrap
 
 " Tabs and Indents
 set autoindent
@@ -90,6 +78,7 @@ set nohlsearch          " by default, don't highlight matches after they're foun
 set splitright splitbelow
 set equalalways         " keep windows equal when splitting (default)
 set eadirection=both    " ver/hor/both - where does equalalways apply
+set fillchars+=vert:â”‚
 set winheight=6         " height of current window
 set winwidth=75         " width of current window
 
@@ -97,35 +86,104 @@ set winwidth=75         " width of current window
 set vb t_vb=            " shut off bell entirely; see also .gvimrc
 
 " Set the map leader to SPC, especially for spacevim
-let mapleader=" "
+let mapleader=' '
+let maplocalleader=' m'
 
-" Enable pathogen bundles, must be before filetype etc.
-call pathogen#infect()
-call pathogen#helptags()
+if !has('nvim')
+  packadd! matchit
+endif
 
-" When using the taglist plugin, don't attempt to resize the terminal
-let Tlist_Inc_Winwidth=0
+" vim-plug
+call plug#begin('~/.vim/plugged')
 
-" Configure the CtrlP plugin
-let g:ctrlp_user_command = {
-  \ 'types': {
-    \ 1: ['.git', 'cd %s && git ls-files'],
-    \ 2: ['.hg', 'hg --cwd %s locate -I .'],
-    \ },
-  \ 'fallback': 'find %s -type f'
-  \ }
-let g:ctrlp_extensions = ['tag']
-let g:ctrlp_cmd = 'CtrlPMixed'
-let g:ctrlp_root_markers = ['.topdir']
+let g:spacevim_enabled_layers = [
+\ 'core/buffers',
+\ 'core/buffers/move',
+\ 'core/files',
+\ 'core/projects',
+\ 'core/quit',
+\ 'core/root',
+\ 'core/search-symbol',
+\ 'core/toggles',
+\ 'core/toggles/colors',
+\ 'core/toggles/highlight',
+\ 'core/windows',
+\ 'syntax-checking',
+\ ]
+Plug 'ctjhoa/spacevim'
+
+Plug 'editorconfig/editorconfig-vim'
+Plug 'godlygeek/tabular'
+
+Plug 'vim-airline/vim-airline'
+let g:airline_powerline_fonts = 1
+let g:airline#extensions#syntastic#enabled = 1
+
+Plug 'ctrlpvim/ctrlp.vim'
+if executable('rg')
+  let g:ctrlp_user_command = 'rg "" -l --color=never -- %s'
+  let g:ctrlp_use_caching = 0
+endif
+let g:ctrlp_cmd = 'CtrlP'
+let g:ctrlp_root_markers = ['.project', '.topdir']
+
+Plug 'leshill/vim-json'
+Plug 'mxw/vim-jsx'
+" Plug 'jelera/vim-javascript-syntax'
+Plug 'pangloss/vim-javascript'
+
+Plug 'mitermayer/vim-prettier'
+let g:prettier#config#semi = 'false'
+let g:prettier#config#single_quote = 'true'
+let g:prettier#config#bracket_spacing = 'false'
+let g:prettier#config#jsx_bracket_same_line = 'false'
+let g:prettier#config#trailing_comma = 'es5'
+
+" consider https://github.com/python-mode/python-mode instead
+Plug 'Vimjas/vim-python-pep8-indent'
+let g:jsx_ext_required = 0
+
+" https://juxt.pro/blog/posts/vim-1.html
+" http://blog.venanti.us/clojure-vim/
+let g:sexp_insert_after_wrap = 0
+let g:sexp_enable_insert_mode_mappings = 1
+Plug 'tpope/vim-fireplace'
+Plug 'tpope/vim-sexp-mappings-for-regular-people'
+Plug 'guns/vim-sexp'
+Plug 'tpope/vim-repeat'
+Plug 'tpope/vim-surround'
+Plug 'tpope/vim-classpath'
+
+Plug 'venantius/vim-cljfmt'
+let g:clj_fmt_autosave = 0
+
+" following required for eastwood
+" https://github.com/venantius/vim-eastwood/issues/8
+Plug 'tpope/vim-salve'
+Plug 'tpope/vim-projectionist'
+Plug 'tpope/vim-dispatch'
+
+Plug 'venantius/vim-eastwood'
+" https://github.com/venantius/vim-eastwood/issues/9
+"let g:syntastic_clojure_checkers = ['eastwood']
+
+"Plug 'vim-syntastic/syntastic'
+let g:syntastic_always_populate_loc_list = 1
+let g:syntastic_auto_loc_list = 1
+let g:syntastic_check_on_open = 1
+let g:syntastic_check_on_wq = 0
+
+Plug 'andreshazard/vim-freemarker' 
+
+Plug 'posva/vim-vue'
+
+call plug#end()
 
 " shell is bash
 let g:is_bash=1
 
 " clojure syntax config
 let g:clj_highlight_builtins=1
-
-" we have powerline fonts, use them for airline
-let g:airline_powerline_fonts = 1
 
 " Syntax and filetypes
 if has("syntax")
@@ -284,6 +342,7 @@ function! LoadTheme()
   call TryTheme(l:theme, l:background)
 endfunction
 
+colorscheme default  " ensure g:colors_name is set
 call LoadTheme()
 
 if has("timers")
@@ -435,6 +494,10 @@ augroup ag_css
   autocmd FileType css call LoadTypeCSS()
 augroup END
 
+"================================= Markdown ================================
+let g:markdown_fenced_languages = ['html', 'python', 'bash=sh', 'clojure', 'sql']
+let g:markdown_minlines = 3000
+
 "================================= GENERAL =================================
 " Detect settings of file being edited and change ours to match
 function! DetectSettings()
@@ -485,10 +548,12 @@ augroup END
 
 augroup filetypedetect
   " don't use :setfiletype because we need to override previous detection
-  autocmd BufReadPost,BufNewFile *.md,*.txt setlocal ft=ghmarkdown
+  autocmd BufReadPost,BufNewFile *.md setlocal ft=markdown
   autocmd BufReadPost,BufNewFile *.wsgi setlocal ft=python
   autocmd BufNewFile,BufReadPost *.coffee setlocal ft=coffee
   autocmd BufNewFile,BufReadPost Vagrantfile* setlocal ft=ruby
+  autocmd BufNewFile,BufReadPost *.overrides,*.variables setlocal ft=less
+  autocmd BufNewFile,BufReadPost *.ftl setlocal ft=freemarker
 augroup END
 
 " Don't load VCSCommand plugin if it is not supported

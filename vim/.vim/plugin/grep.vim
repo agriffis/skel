@@ -1,7 +1,7 @@
 " $Id: grep.vim 4671 2012-05-01 23:44:11Z aron $
 " Vim plugin for full project search with output to quickfix window.
 "
-" Copyright 2010-2012 Aron Griffis <aron@arongriffis.com>
+" Copyright 2010-2017 Aron Griffis <aron@arongriffis.com>
 " Released under the GNU GPL v3
 
 if exists('g:greploaded')
@@ -9,38 +9,8 @@ if exists('g:greploaded')
 endif
 let g:greploaded = 1
 
-function! GrepInit()
-  if exists('g:grepargs')
-    return
-  endif
-
-  " Determine whether the system grep supports GNU options
-  if ! exists('g:grepgnu')
-    let g:grepgnu = system('grep --help 2>&1') =~ '.*--exclude-dir=.*'
-  endif
-
-  if ! exists('g:grepinc')
-    let g:grepinc = ['*']
-  endif
-
-  if ! exists('g:grepexc')
-    let g:grepexc = split('_darcs .git .hg .svn .tox CVS migrations')
-    let g:grepexc += split('*~ *.bak *.o *.pyc *.mo')
-    if exists('g:grepexc2')
-      let g:grepexc += g:grepexc2
-    endif
-  endif
-
-  let g:grepargs = map(copy(g:grepinc), '"--include=".v:val')
-  let g:grepargs += map(copy(g:grepexc), '"--exclude=".v:val')
-  if g:grepgnu
-    let g:grepargs += map(copy(g:grepexc), '"--exclude-dir=".v:val')
-    let g:grepargs += ['--binary-files=without-match']
-  endif
-endfunction
-
 function! GrepAdd(patt)
-  call GrepInit()
+  set grepprg=rg\ --line-number\ --smart-case\ --sort-files
 
   if exists('g:grepdir')
     let l:grepdir = g:grepdir
@@ -74,7 +44,7 @@ function! GrepAdd(patt)
   " Shell escapes, applied first:
   "   * The arguments need to be quoted to prevent globbing, preserve
   "     spaces, prevent | from being treated as a pipe, etc.
-  let l:grepargs = g:grepargs + ['-r', '.', '-Ee', a:patt]
+  let l:grepargs = ['-e', a:patt]
   call map(l:grepargs, 'shellescape(v:val)')  " modifies in-place
   let l:grep = 'grepadd! ' . join(l:grepargs, ' ')
 
@@ -89,6 +59,8 @@ function! GrepAdd(patt)
   let l:grep = substitute(l:grep, '[%#|]', '\\\0', 'g')
   exe "silent ".l:grep
   botright cwindow
+  let @/ = a:patt  " for hlsearch in quickfix
+  setlocal hlsearch
   redraw! " external grep seems to mess up the screen
 
   " Restore cwd and remove our temporary autocmd
@@ -97,13 +69,21 @@ function! GrepAdd(patt)
 endfunction
 command! -nargs=1 GrepAdd :silent call GrepAdd(<f-args>)
 
-function! Grep(patt)
-  call setqflist([])
-  call GrepAdd(a:patt)
+function! Grep(...)
+  call inputsave()
+  let l:patt = a:0 ? a:1 : input('Pattern: ')
+  call inputrestore()
+  if ! empty(l:patt)
+    call setqflist([])
+    call GrepAdd(l:patt)
+  endif
 endfunction
-command! -nargs=1 Grep :silent call Grep(<f-args>)
+command! -nargs=? Grep :call Grep(<f-args>)
 nnoremap <silent> ,g :call Grep(expand('<cword>'))<cr>
 vnoremap <silent> ,g "ry:call Grep(@r)<cr>
+
+" Compat with spacevim
+command! -nargs=? Ag :call Grep(<f-args>)
 
 " Enable numbering and nowrap in the quickfix list
 augroup number_quickfix
