@@ -8,7 +8,7 @@ for line in sys.stdin:
     lines[line] += 1
     total += 1
 
-for line, count in sorted(lines.items(), key=operator.itemgetter(1), reverse=True):
+for line, count in sorted(lines.items(), key=lambda item: (-item[1], item[0])):
     if len(sys.argv) >= 2 and sys.argv[1] == '-p':
         count = 1.0 * count * 100 / total
         count = '%0.1f' % count
