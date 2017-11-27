@@ -177,6 +177,12 @@ Plug 'andreshazard/vim-freemarker'
 
 Plug 'posva/vim-vue'
 
+" colorschemes
+Plug 'rakr/vim-one'
+Plug 'nanotech/jellybeans.vim'
+Plug 'NLKNguyen/papercolor-theme'
+Plug 'reedes/vim-colors-pencil'
+
 call plug#end()
 
 " shell is bash
