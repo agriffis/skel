@@ -28,31 +28,6 @@ stuff) that I manage with [Syncthing](https://syncthing.net/):
 
     cd Sync/skel2
     stow -S */
-    
-Git submodules
---------------
-
-This repo uses git submodules for emacs (spacemacs) and vim pathogen modules,
-that's why the initial clone uses `--recursive`.
-
-To update an individual module, change to the dir and pull, then commit the
-result in this repo. For example:
-
-    cd emacs/.emacs.d
-    git -C emacs/.emacs.d pull
-    git commit -am "update spacemacs"
-
-To update all the modules to what's available upstream:
-
-    git submodule update --remote
-    git commit -am "update submodules"
-
-To update to the revs specified by another checkout of this repo:
-
-    git submodule sync
-    git submodule update
-
-Or something like that. GIYF.
 
 Stow folding hack
 -----------------
