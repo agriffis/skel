@@ -1,6 +1,6 @@
 #!/bin/bash
 
-gateway=jupiter.arongriffis.com
+gateway=pvd.scampersand.com
 
 ssh-add -l &>/dev/null
 if [[ $? == 2 ]]; then
