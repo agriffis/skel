@@ -286,30 +286,6 @@ endfunction
 " call immediately, isn't effective after TermResponse
 call EnableBracketedPaste()
 
-function! SetXTermColors()
-  if &term =~ '^xterm' && &t_Co <= 16
-    set t_Co=16
-    if exists('v:termresponse')
-      if match(v:termresponse, '^\[>[01];[0-9]\+;') == 0
-        let l:termtype = matchstr(v:termresponse, '[01]', 3)
-        let l:termpatch = matchstr(v:termresponse, '[0-9]\+', 5)
-        if l:termtype == 1 && l:termpatch >= 1600
-          " don't know exactly when 256-color support was introduced
-          " to gnome-terminal, but at least this version and later has it.
-          set t_Co=256
-        endif
-      endif
-    endif
-  endif
-endfunction
-
-if ! has("gui_running") && has("termresponse")
-  augroup ag_terminal
-    autocmd!
-    autocmd TermResponse * call SetXTermColors()
-  augroup END
-endif
-
 "================================== COLORS =================================
 let g:jellybeans_background_color = ''
 let g:jellybeans_background_color_256 = 'NONE'
