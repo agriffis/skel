@@ -337,7 +337,7 @@ ps1_mod_git() {
   [[ -n $status ]] || return
 
   declare branch dirty fg bg
-  branch=${status#?? }; branch=${branch%%[.$'\n']*}
+  branch=${status#?? }; branch=${branch%%$'\n'*}; branch=${branch%%...*}
   [[ $status == *$'\n'* ]] && status=${status#*$'\n'} || status=''
   if [[ -e $top/.git/BISECT_LOG ]]; then
     dirty="$PS1_CHAR_BISECT"
