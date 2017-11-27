@@ -19,7 +19,9 @@ set backspace=2         " allow backspacing over everything in insert mode
 if v:version >= 603 || (v:version == 602 && has('patch481'))
     set backupcopy+=breakhardlink " good for working on git/merc/etc. repos
 endif
-" set clipboard=autoselectml,unnamedplus
+if has('unnamedplus')   " especially for tmux and/or xclip integration
+  set clipboard=unnamedplus
+endif
 set cscopetag           " search cscope on ctrl-] and :tag
 set encoding=utf-8      " unicode me, baby
 set hidden              " don't unload buffer when it is abandoned
