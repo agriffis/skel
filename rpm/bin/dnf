@@ -13,7 +13,8 @@ main() {
 
 yum=$(wrapped "$0")
 yum() {
-    sudo "$yum" "$@"
+    #sudo "$yum" "$@"
+    "$yum" "$@"
 }
 
 yum-search() {
