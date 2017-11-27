@@ -262,7 +262,7 @@ ps1_add user
 
 # MODULE: current working directory
 ps1_get_cwd() {
-  echo "${PWD/#$HOME/\~}"
+  echo "${PWD/#$HOME/~}"
 }
 ps1_mod_cwd() {
   ps1_status "$(ps1_get_cwd)"
