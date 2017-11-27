@@ -272,11 +272,10 @@ endif
 
 "================================= TERMINAL ================================
 function! EnableBracketedPaste()
-  " Enable bracketed paste everywhere except Linux console.
-  " This would happen automatically on local terms, even with mosh using
-  " TERM=xterm*, but doesn't happen automatically in tmux with
-  " TERM=screen*. Setting it manually works fine though.
-  if ! has("gui_running") && &term != 'linux' && &t_BE == ''
+  " Enable bracketed paste everywhere. This would happen automatically on
+  " local terms, even with mosh using TERM=xterm*, but doesn't happen
+  " automatically in tmux with TERM=screen*. Setting it manually works fine.
+  if ! has("gui_running") && exists('&t_BE') && &t_BE == ''
     let &t_BE = "\e[?2004h"  " enable
     let &t_BD = "\e[?2004l"  " disable
     let &t_PS = "\e[200~"    " start
