@@ -109,8 +109,9 @@ die() {
 rpmbuild() {
     declare x topdir
     for x; do
-        if [[ $x == *.spec ]]; then
-            topdir=$(cd $(dirname $x)/..; pwd)
+        x=$(readlink -f "$x")
+        if [[ $x == */SPECS/*.spec ]]; then
+            topdir=$(dirname "$(dirname "$x")")
             break
         elif [[ $1 == -t* ]]; then
             case $x in
