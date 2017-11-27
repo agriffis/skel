@@ -552,6 +552,16 @@ endif
 " Load plugins now to prevent conflict with those that modify &bin
 runtime! plugin/*.vim
 
+" Disable movement keys that I hit accidentally sometimes.
+inoremap <Up> <nop>
+inoremap <Down> <nop>
+inoremap <Left> <nop>
+inoremap <Right> <nop>
+inoremap <PageUp> <nop>
+inoremap <PageDown> <nop>
+inoremap <Home> <nop>
+inoremap <End> <nop>
+
 if filereadable(expand("~/.vimrc.mine"))
   source ~/.vimrc.mine
 endif
