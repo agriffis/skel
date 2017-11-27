@@ -94,10 +94,15 @@ b() {
   fi
 }
 
-# if a file is given to cd, then use the parent dir
 cd() {
-  if [[ $# -gt 0 && -f ${!#} ]]; then
-    set -- "${@:1:$#-1}" "${!#%/*}"
+  if [[ $# -gt 0 ]]; then
+    if [[ ${!#} == = ]]; then
+      declare t="$(topdir 2>/dev/null)"
+      [[ -z $t ]] || set -- "${@:1:$#-1}" "$t"
+    elif [[ -f ${!#} ]]; then
+      # If a file is given to cd, then use the parent dir.
+      set -- "${@:1:$#-1}" "${!#%/*}"
+    fi
   fi
   command cd "$@"
 }
