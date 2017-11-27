@@ -91,7 +91,7 @@ set vb t_vb=            " shut off bell entirely; see also .gvimrc
 let mapleader=' '
 let maplocalleader=' m'
 
-if !has('nvim')
+if !has('nvim') && exists(':packadd')
   packadd! matchit
 endif
 
@@ -129,8 +129,11 @@ endif
 let g:ctrlp_cmd = 'CtrlP'
 let g:ctrlp_root_markers = ['.project', '.topdir']
 
+Plug 'scrooloose/nerdtree'
+
 Plug 'leshill/vim-json'
 Plug 'mxw/vim-jsx'
+let g:jsx_ext_required = 0
 " Plug 'jelera/vim-javascript-syntax'
 Plug 'pangloss/vim-javascript'
 
@@ -143,7 +146,7 @@ let g:prettier#config#trailing_comma = 'es5'
 
 " consider https://github.com/python-mode/python-mode instead
 Plug 'Vimjas/vim-python-pep8-indent'
-let g:jsx_ext_required = 0
+Plug 'tmhedberg/SimpylFold'
 
 " https://juxt.pro/blog/posts/vim-1.html
 " http://blog.venanti.us/clojure-vim/
