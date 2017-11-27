@@ -297,7 +297,7 @@ function! TryTheme(theme, ...)
     let l:background = 'dark'
   endif
   if exists('g:colors_name') && g:colors_name == a:theme &&
-      \ empty(l:background) || &background == l:background
+      \ (empty(l:background) || &background == l:background)
     return 1
   endif
   try
@@ -311,6 +311,7 @@ function! TryTheme(theme, ...)
   if exists('syntax_on')
     syn reset
   endif
+  let g:colors_name_loaded = a:theme
 endfunction
 
 function! LoadTheme()
@@ -321,7 +322,8 @@ function! LoadTheme()
   let l:theme = filereadable(l:theme_file) ?
               \ readfile(l:theme_file)[0] : 'default'
   if l:background == &background &&
-      \ exists('g:colors_name') && l:theme == g:colors_name
+        \ ((exists('g:colors_name_loaded') && l:theme == g:colors_name_loaded) ||
+        \  (exists('g:colors_name') && l:theme == g:colors_name))
     return 0
   endif
   " echom l:theme . " " . l:background
