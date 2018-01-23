@@ -10,8 +10,6 @@ endif
 let g:greploaded = 1
 
 function! GrepAdd(patt)
-  set grepprg=rg\ --line-number\ --smart-case\ --sort-files
-
   if exists('g:grepdir')
     let l:grepdir = g:grepdir
   else

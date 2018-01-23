@@ -75,6 +75,7 @@ set ignorecase          " "foo" matches "Foo", etc
 set infercase           " adjust the case of the match with ctrl-p/ctrl-n
 set smartcase           " ignorecase only when the pattern is all lower
 set nohlsearch          " by default, don't highlight matches after they're found
+set grepprg=rg\ --line-number\ --smart-case\ --sort-files   " see plugin/grep.vim
 
 " Windowing settings
 set splitright splitbelow
