@@ -19,9 +19,18 @@ set backspace=2         " allow backspacing over everything in insert mode
 if v:version >= 603 || (v:version == 602 && has('patch481'))
     set backupcopy+=breakhardlink " good for working on git/merc/etc. repos
 endif
-if has('unnamedplus')   " especially for tmux and/or xclip integration
-  set clipboard=unnamedplus
-endif
+let g:clipboard = {
+      \ 'name': 'myClipboard',
+      \     'copy': {
+      \         '+': 'clipboard-provider copy',
+      \         '*': 'env COPY_PROVIDERS=tmux clipboard-provider copy',
+      \     },
+      \     'paste': {
+      \         '+': 'clipboard-provider paste',
+      \         '*': 'env COPY_PROVIDERS=tmux clipboard-provider paste',
+      \     },
+      \ }
+set clipboard=unnamed
 set cscopetag           " search cscope on ctrl-] and :tag
 set encoding=utf-8      " unicode me, baby
 set hidden              " don't unload buffer when it is abandoned
@@ -116,11 +125,27 @@ let g:spacevim_enabled_layers = [
 Plug 'ctjhoa/spacevim'
 
 Plug 'editorconfig/editorconfig-vim'
-Plug 'godlygeek/tabular'
+
+Plug 'junegunn/vim-easy-align'
+xmap ga <Plug>(EasyAlign)
+xmap ga <Plug>(EasyAlign)
 
 Plug 'vim-airline/vim-airline'
-let g:airline_powerline_fonts = 1
-let g:airline#extensions#syntastic#enabled = 1
+Plug 'vim-airline/vim-airline-themes'
+let g:airline_symbols = {}
+let g:airline_left_sep = ''
+let g:airline_left_alt_sep = ''
+let g:airline_right_sep = ''
+let g:airline_right_alt_sep = ''
+let g:airline_symbols.branch = ''
+let g:airline_symbols.keymap = 'Keymap:'
+let g:airline_symbols.linenr = '¶'
+let g:airline_symbols.modified = '+'
+let g:airline_symbols.paste = 'PASTE'
+let g:airline_symbols.readonly = ''
+let g:airline_symbols.space = ' '
+let g:airline_symbols.spell = 'SPELL'
+let g:airline_symbols.whitespace = ''
 
 Plug 'ctrlpvim/ctrlp.vim'
 if executable('rg')
@@ -137,8 +162,9 @@ Plug 'mxw/vim-jsx'
 let g:jsx_ext_required = 0
 " Plug 'jelera/vim-javascript-syntax'
 Plug 'pangloss/vim-javascript'
+Plug 'leafgarland/typescript-vim'
 
-Plug 'mitermayer/vim-prettier'
+Plug 'prettier/vim-prettier'
 let g:prettier#config#semi = 'false'
 let g:prettier#config#single_quote = 'true'
 let g:prettier#config#bracket_spacing = 'false'
@@ -152,10 +178,10 @@ Plug 'tmhedberg/SimpylFold'
 " https://juxt.pro/blog/posts/vim-1.html
 " http://blog.venanti.us/clojure-vim/
 let g:sexp_insert_after_wrap = 0
-let g:sexp_enable_insert_mode_mappings = 1
+let g:sexp_enable_insert_mode_mappings = 0
+Plug 'guns/vim-sexp'
 Plug 'tpope/vim-fireplace'
 Plug 'tpope/vim-sexp-mappings-for-regular-people'
-Plug 'guns/vim-sexp'
 Plug 'tpope/vim-repeat'
 Plug 'tpope/vim-surround'
 Plug 'tpope/vim-classpath'
@@ -190,9 +216,6 @@ Plug 'NLKNguyen/papercolor-theme'
 Plug 'reedes/vim-colors-pencil'
 
 call plug#end()
-
-" shell is bash
-let g:is_bash=1
 
 " clojure syntax config
 let g:clj_highlight_builtins=1
@@ -247,6 +270,11 @@ map ,C :set cursorcolumn!<CR>
 nmap Q }{gq}
 vmap Q gq 
 
+" Copy to clipboard
+nmap YY "+yy
+nmap Y "+y
+vmap Y "+y
+
 " Add support for html tidy
 map ,t  :%!tidy -q --indent auto --output-xhtml yes<CR>
 map ,T  :%!tidy -q --indent auto -xml<CR>
@@ -288,6 +316,10 @@ endfunction
 call EnableBracketedPaste()
 
 "================================== COLORS =================================
+if has('nvim') && exists('&termguicolors')
+  set termguicolors
+endif
+
 let g:jellybeans_background_color = ''
 let g:jellybeans_background_color_256 = 'NONE'
 
@@ -487,6 +519,22 @@ augroup END
 let g:markdown_fenced_languages = ['html', 'python', 'bash=sh', 'clojure', 'sql']
 let g:markdown_minlines = 3000
 
+"================================== Shell ==================================
+let g:is_bash=1
+
+function! LoadTypeShell()
+  " clear silly highlighting for words like "stop" that aren't bash
+  " keywords at all.
+  syn clear bashStatement
+  syn clear bashAdminStatement
+  syn clear shStatement
+endfunction
+
+augroup ag_sh
+  autocmd!
+  autocmd FileType sh call LoadTypeShell()
+augroup END
+
 "================================= GENERAL =================================
 " Detect settings of file being edited and change ours to match
 function! DetectSettings()
@@ -517,6 +565,7 @@ augroup ag_general
         \ if line("'\"") > 0 && line ("'\"") <= line("$") |
         \   exe "normal! g'\"" |
         \ endif
+  autocmd BufReadPost COMMIT_EDITMSG exe "normal! gg"
 
   " Load specific settings for various filetypes
   autocmd FileType     help     map <buffer> <tab> /\|[^\|]\+\|<CR>
@@ -543,6 +592,7 @@ augroup filetypedetect
   autocmd BufNewFile,BufReadPost Vagrantfile* setlocal ft=ruby
   autocmd BufNewFile,BufReadPost *.overrides,*.variables setlocal ft=less
   autocmd BufNewFile,BufReadPost *.ftl setlocal ft=freemarker
+  autocmd BufNewFile,BufReadPost *.html setlocal ft=htmldjango
 augroup END
 
 " Don't load VCSCommand plugin if it is not supported
