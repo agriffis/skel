@@ -16,6 +16,8 @@
 	update = checkout
 	uncommit = reset --soft HEAD~1
 	amend = commit --amend -C HEAD
+	purge = clean -fdx
+	pushf = push --force-with-lease
 
 	# Runs diff using vimdiff to compare versions
 	vimdiff = difftool -t vimdiff
@@ -108,3 +110,9 @@
 
 [include]
 	path = .gitconfig.mine
+[merge]
+	tool = vimmerge
+[mergetool "vimmerge"]
+	cmd = vimmerge \"$MERGED\"
+[mergetool]
+	keepBackup = false
