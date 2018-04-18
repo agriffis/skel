@@ -1,0 +1,19 @@
+#!/bin/bash
+
+ssh-add -l &>/dev/null
+if [[ $? == 2 ]]; then
+    exec ssh-agent "$(type -P "$0")" "$@"
+fi
+
+ssh-add -l &>/dev/null
+if [[ $? != 0 ]]; then
+    ssh-add || exit
+fi
+
+while true; do
+    # don't use -N because it prevents ForwardX11.
+    # just sleep for 100 years
+    ssh $1-tunnel sleep 36500d
+    sleep 2
+done
+
