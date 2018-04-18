@@ -33,7 +33,7 @@ frontpath PATH \
   /usr/X11R6/bin /usr/games /usr/games/bin
 
 [[ $HOME == / ]] || frontpath PATH \
-  ~/bin ~/.local/bin ~/node_modules/.bin ~/.cargo/bin ~/.cask/bin
+  ~/bin ~/.local/bin ~/node_modules/.bin ~/.cargo/bin ~/.cask/bin ~/go/bin
 
 # ccache on Gentoo and Debian respectively
 frontpath PATH /usr/lib{64,}/ccache/bin /usr/lib{64,}/ccache

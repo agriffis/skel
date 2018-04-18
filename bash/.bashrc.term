@@ -48,18 +48,19 @@ setup_TERM() {
       # probably Windows telnet
       TERM=vt100 ;;
 
-    screen*:*)
+    screen*|tmux*:*)
       # leave it alone! don't trip on the following vte checks
       ;;
 
     *:roxterm|xterm:)
       if [[ $ROXTERM_PID == "$PPID" ]]; then
         TERM=$vte
-      fi
-
-      # gnome-terminal stopped setting COLORTERM=gnome-terminal
-      # https://github.com/GNOME/gnome-terminal/commit/1d5c1b6ca6373c1301494edbc9e43c3e6a9c9aaf
-      if [[ $(cat /proc/$PPID/cmdline 2>/dev/null) == *gnome-terminal* ]]; then
+      elif [[ -e /etc/crouton ]]; then
+        # https://groups.google.com/a/chromium.org/forum/#!topic/chromium-hterm/2EmfR2Mac88
+        TERM=xterm-256color
+      elif [[ $(xargs -0 < /proc/$PPID/cmdline 2>/dev/null) == *gnome-terminal* ]]; then
+        # gnome-terminal stopped setting COLORTERM=gnome-terminal
+        # https://github.com/GNOME/gnome-terminal/commit/1d5c1b6ca6373c1301494edbc9e43c3e6a9c9aaf
         TERM=$vte
       fi
       ;;

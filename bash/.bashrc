@@ -96,7 +96,7 @@ b() {
 
 cd() {
   if [[ $# -gt 0 ]]; then
-    if [[ ${!#} == = ]]; then
+    if [[ ${!#} == '^' ]]; then
       declare t="$(topdir 2>/dev/null)"
       [[ -z $t ]] || set -- "${@:1:$#-1}" "$t"
     elif [[ -f ${!#} ]]; then

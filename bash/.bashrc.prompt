@@ -26,8 +26,8 @@ source ~/.bashrc.funcs
 : ${PS1_COLOR_WARNING_BG:=yellow}
 : ${PS1_COLOR_ERROR_FG:=$PS1_COLOR_DEFAULT_FG}
 : ${PS1_COLOR_ERROR_BG:=red}
-: ${PS1_CHAR_OK:=$'\uf00c'}           #   (fontawesome)
-: ${PS1_CHAR_UGH:=$'\uf00d'}          #   (fontawesome)
+: ${PS1_CHAR_OK:=$'\uf00c'}           #   (powerline)
+: ${PS1_CHAR_UGH:=$'\uf00d'}          #   (powerline)
 : ${PS1_CHAR_LARR:=$'\ue0b3'}         #   (powerline)
 : ${PS1_CHAR_LARR_FILLED:=$'\ue0b2'}  #   (powerline)
 : ${PS1_CHAR_RARR:=$'\ue0b1'}         #   (powerline)
@@ -255,9 +255,15 @@ ps1_mod_newline() {
 #ps1_add newline
 
 # MODULE: user and host
-ps1_mod_user() {
-  ps1_status_noquote '\u@\h'
-}
+if [[ -e /etc/crouton ]]; then
+  ps1_mod_user() {
+    ps1_status_noquote '\u@$(</etc/crouton/name)'
+  }
+else
+  ps1_mod_user() {
+    ps1_status_noquote '\u@\h'
+  }
+fi
 ps1_add user
 
 # MODULE: current working directory
