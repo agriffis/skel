@@ -55,7 +55,12 @@ for path in paths:
     os.chdir(cwd)
 
     # Append tags for vim and TAGS for emacs.
-    ctags_options = ['--append', '--recurse', '--python-kinds=-i']
+    ctags_options = [
+        '--append',
+        '--recurse',
+        '--langmap=lisp:+.clj.cljs',
+        '--python-kinds=-i',
+    ]
     ctags_options.extend('--exclude=' + x for x in exclude_globs)
     ctags_options.extend('--exclude=' + x for x in exclude_files)
     subprocess.call(['ctags'] + ctags_options + [path])
