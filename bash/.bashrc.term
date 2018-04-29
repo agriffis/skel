@@ -26,6 +26,7 @@ try_TERM() {
 
     if { toe ~/.terminfo
          toe /etc/terminfo
+         toe /lib/terminfo
          toe /usr/share/terminfo
         } 2>/dev/null | grep -q "^$term[[:blank:]]"; then
       TERM=$term
@@ -37,6 +38,7 @@ try_TERM() {
 }
 
 setup_TERM() {
+
   # vte-256color messes up emacs with solarized, so use xterm-256color
   # instead. This might be something hardcoded in emacs since the terminfo
   # comparison doesn't show significant differences.

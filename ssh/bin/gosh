@@ -13,4 +13,8 @@ if [[ $? != 0 ]]; then
 fi
 
 ssh -fA $gateway 'ln -sfn $SSH_AUTH_SOCK foo; sleep 30'
-mosh $gateway -- env SSH_AUTH_SOCK=foo ssh -t "$@"
+case /$0 in
+    */gosh) mosh $gateway -- env SSH_AUTH_SOCK=foo ssh -t "$@" ;;
+    */sssh) ssh -t $gateway -- env SSH_AUTH_SOCK=foo ssh -t "$@" ;;
+    *) echo "what is $0?" >&2; exit 1 ;;
+esac
