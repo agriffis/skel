@@ -16,9 +16,7 @@ set nocompatible
 " General Settings
 set autowrite           " write before a make
 set backspace=2         " allow backspacing over everything in insert mode
-if v:version >= 603 || (v:version == 602 && has('patch481'))
-    set backupcopy+=breakhardlink " good for working on git/merc/etc. repos
-endif
+set backupcopy=yes      " best for inotify
 let g:clipboard = {
       \ 'name': 'myClipboard',
       \     'copy': {
