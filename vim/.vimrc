@@ -124,6 +124,10 @@ Plug 'ctjhoa/spacevim'
 
 Plug 'editorconfig/editorconfig-vim'
 
+Plug 'tpope/vim-unimpaired'
+Plug 'tpope/vim-repeat'
+Plug 'tpope/vim-surround'
+
 Plug 'junegunn/vim-easy-align'
 xmap ga <Plug>(EasyAlign)
 xmap ga <Plug>(EasyAlign)
@@ -146,19 +150,29 @@ let g:airline_symbols.spell = 'SPELL'
 let g:airline_symbols.whitespace = ''
 
 Plug 'ctrlpvim/ctrlp.vim'
+Plug 'jasoncodes/ctrlp-modified.vim'
 if executable('rg')
   let g:ctrlp_user_command = 'rg "" -l --color=never -- %s'
   let g:ctrlp_use_caching = 0
 endif
 let g:ctrlp_cmd = 'CtrlP'
 let g:ctrlp_root_markers = ['.project', '.topdir']
+let g:ctrlp_types = ['fil', 'mru', 'buf', 'modified', 'branch_modified']
+noremap <leader>pm :CtrlPModified<cr>
+noremap <leader>pb :CtrlPBranchModified<cr>
+
+Plug 'tpope/vim-fugitive'
 
 Plug 'scrooloose/nerdtree'
+Plug 'Xuyuanp/nerdtree-git-plugin'
+noremap <c-n> :NERDTreeToggle<cr>
+
+"Plug '/usr/bin/fzf'
+"Plug 'junegunn/fzf.vim'
 
 Plug 'leshill/vim-json'
 Plug 'mxw/vim-jsx'
 let g:jsx_ext_required = 0
-" Plug 'jelera/vim-javascript-syntax'
 Plug 'pangloss/vim-javascript'
 Plug 'leafgarland/typescript-vim'
 
@@ -180,8 +194,6 @@ let g:sexp_enable_insert_mode_mappings = 0
 Plug 'guns/vim-sexp'
 Plug 'tpope/vim-fireplace'
 Plug 'tpope/vim-sexp-mappings-for-regular-people'
-Plug 'tpope/vim-repeat'
-Plug 'tpope/vim-surround'
 Plug 'tpope/vim-classpath'
 
 Plug 'venantius/vim-cljfmt'
@@ -204,6 +216,7 @@ let g:syntastic_check_on_open = 1
 let g:syntastic_check_on_wq = 0
 
 Plug 'andreshazard/vim-freemarker' 
+Plug 'lepture/vim-jinja'
 
 Plug 'posva/vim-vue'
 
@@ -212,6 +225,10 @@ Plug 'rakr/vim-one'
 Plug 'nanotech/jellybeans.vim'
 Plug 'NLKNguyen/papercolor-theme'
 Plug 'reedes/vim-colors-pencil'
+
+if filereadable(expand("~/.vimrc.plugs"))
+  source ~/.vimrc.plugs
+endif
 
 call plug#end()
 
@@ -277,10 +294,6 @@ vmap Y "+y
 map ,t  :%!tidy -q --indent auto --output-xhtml yes<CR>
 map ,T  :%!tidy -q --indent auto -xml<CR>
 map ,tc :%!tidy -q --clean --indent auto -xml<CR>
-
-" Tab mappings
-noremap <silent> <C-N> :tabn<CR>
-noremap <silent> <C-P> :tabN<CR>
 
 " Certain Python modules rely on sys.real_prefix and will fail to import if
 " it doesn't exist. Monkey-patch the sys module if sys.real_prefix doesn't
@@ -492,7 +505,6 @@ augroup END
 
 "=================================== XML ===================================
 function! LoadTypeXML()
-  set shiftwidth=4 expandtab
   runtime scripts/closetag.vim
   inoremap <C-/> <C-R>=GetCloseTag()<CR>
   syntax cluster xmlRegionHook add=SpellErrors,SpellCorrected
@@ -500,7 +512,7 @@ endfunction
 
 augroup ag_xml
   autocmd!
-  autocmd FileType html,xml,xslt,htmldjango call LoadTypeXML()
+  autocmd FileType html,xml,xslt,htmldjango,jinja call LoadTypeXML()
 augroup END
 
 "=================================== CSS ===================================
@@ -590,7 +602,7 @@ augroup filetypedetect
   autocmd BufNewFile,BufReadPost Vagrantfile* setlocal ft=ruby
   autocmd BufNewFile,BufReadPost *.overrides,*.variables setlocal ft=less
   autocmd BufNewFile,BufReadPost *.ftl setlocal ft=freemarker
-  autocmd BufNewFile,BufReadPost *.html setlocal ft=htmldjango
+  "autocmd BufNewFile,BufReadPost *.html setlocal ft=jinja
 augroup END
 
 " Don't load VCSCommand plugin if it is not supported
