@@ -25,6 +25,7 @@ export SHELL=$BASH
 # PATH
 # ----
 
+source ~/.bashrc.funcs
 source ~/.bashrc.pathfuncs
 
 frontpath PATH \
@@ -79,9 +80,7 @@ export RSYNC_RSH=ssh
 export CVS_RSH=ssh
 export SVN_SSH="ssh -l $USER"
 
-if [[ -z $JAVA_HOME || ! -d $JAVA_HOME ]]; then
-    export JAVA_HOME=/usr/java/latest
-fi
+export JAVA_HOME=$(first_test -d "$JAVA_HOME" /usr/java/latest /usr/lib/jvm/java)
 
 # make pinentry-curses work for gpg-agent
 export GPG_TTY=$(tty)

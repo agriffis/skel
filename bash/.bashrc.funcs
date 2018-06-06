@@ -246,6 +246,18 @@ distro() {
   echo "$distro"
 }
 
+first_test() {
+  declare t x
+  t=$1; shift
+  for x; do
+    if test $t "$x"; then
+      echo "$x"
+      return 0
+    fi
+  done
+  return 1
+}
+
 # The following lines enforce a consistent indentation for this file.
 # Keep this comment at the end of file.
 #
