@@ -158,7 +158,9 @@ endif
 " loads them all in order at plug#end
 call plug#begin('~/.vim/plugged')
 
+"───────────────────────────────────────────────────────────────────────────────
 " Global plugins {{{
+"───────────────────────────────────────────────────────────────────────────────
 Plug 'tpope/vim-fugitive'
 Plug 'tpope/vim-repeat'
 Plug 'tpope/vim-surround'
@@ -225,6 +227,7 @@ function! ConfigDenite()
 endfunction
 
 " TODO modify spacevim to use denite
+" rather than overriding with mappings.
 let g:spacevim_enabled_layers = [
 \ 'core/buffers',
 \ 'core/buffers/move',
@@ -254,20 +257,20 @@ Plug 'reedes/vim-colors-pencil'
 " If more are needed, this should be a comma-separated list.
 let g:html_indent_inctags = 'p,main'
 
-Plug 'andreshazard/vim-freemarker'
 Plug 'lepture/vim-jinja'
+
+Plug 'andreshazard/vim-freemarker'
+autocmd BufNewFile,BufReadPost *.ftl set ft=freemarker
 
 Plug 'agriffis/vim-vue', {'branch': 'develop'}
 autocmd FileType vue let &l:cinoptions = g:javascript_cinoptions
 autocmd FileType vue setl comments=s:<!--,m:\ \ \ \ \ ,e:-->,s1:/*,mb:*,ex:*/,://
 
 Plug 'vim-scripts/closetag.vim'
-
 " The closetag.vim script is kinda broken... it requires b:unaryTagsStack
 " per buffer but only sets it once, on script load.
 autocmd BufNewFile,BufReadPre * let b:unaryTagsStack="area base br dd dt hr img input link meta param"
 autocmd FileType xml,jsx let b:unaryTagsStack=""
-
 " Replace the default closetag maps with c-/ in insert mode only.
 autocmd FileType html,jsx,vue,xml inoremap <buffer> <C-/> <C-R>=GetCloseTag()<CR>
 
@@ -280,7 +283,7 @@ let g:EclimCssIndentDisabled = 1
 function! ReHtml(type, ...)
   let cmd = "rehtml -i" . &shiftwidth
   if a:0
-    " invoked from visual mode, use gv command XXX
+    " invoked from visual mode, use gv command XXX not working
     silent exe "normal gv"
     silent exe "'<,'>!" . cmd
   else
@@ -288,7 +291,6 @@ function! ReHtml(type, ...)
     silent exe "'[,']!" . cmd
   endif
 endfunction
-
 " see :help :map-operator
 autocmd FileType html,vue nnoremap <buffer> <leader>= :set opfunc=ReHtml<CR>g@
 autocmd FileType html,vue vnoremap <buffer> <leader>= :<C-u>call ReHtml(visualmode(), 1)<CR>
@@ -298,7 +300,6 @@ autocmd BufNewFile,BufReadPost *.md set filetype=markdown
 let g:markdown_fenced_languages = ['html', 'python', 'bash=sh', 'clojure', 'sql']
 let g:markdown_minlines = 500
 
-autocmd BufNewFile,BufReadPost *.ftl set ft=freemarker
 autocmd BufNewFile,BufReadPost *.overrides,*.variables set ft=less
 "}}}
 
