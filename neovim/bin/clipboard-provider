@@ -17,7 +17,7 @@ main() {
     case $1 in
         copy)
             buffer=$(base64)
-            internal() { base64 -d <<<"$buffer"; }
+            internal() { base64 --decode <<<"$buffer"; }
             for p in $COPY_PROVIDERS; do
                 internal | $p-provider copy && status=0
             done ;;
