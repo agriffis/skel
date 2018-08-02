@@ -9,6 +9,7 @@
 
 : ${COPY_PROVIDERS:=tmux osc52}
 : ${PASTE_PROVIDERS:=tmux}
+: ${TTY:=`(tty || tty </proc/$PPID/fd/0) 2>/dev/null | grep /dev/`}
 
 main() {
     declare buffer status=1
@@ -40,7 +41,7 @@ tmux-provider() {
 osc52-provider() {
     # HACK: this ignores stdin and looks directly at the base64 buffer
     case $1 in
-        copy) printf $'\e]52;c;%s\a' "$buffer" > /dev/tty ;;
+        copy) [[ -n "$TTY" ]] && printf $'\e]52;c;%s\a' "$buffer" > "$TTY" ;;
         paste) return 1 ;;
     esac
 }
