@@ -18,6 +18,7 @@
 	amend = commit --amend -C HEAD
 	purge = clean -fdx
 	pushf = push --force-with-lease
+        changed = diff --name-only
 
 	# Runs diff using vimdiff to compare versions
 	vimdiff = difftool -t vimdiff
