@@ -1,6 +1,6 @@
 " .vimrc
 "
-" Written in 2003-2017 by Aron Griffis <aron@arongriffis.com>
+" Written in 2003-2018 by Aron Griffis <aron@arongriffis.com>
 "
 " To the extent possible under law, the author(s) have dedicated all copyright
 " and related and neighboring rights to this software to the public domain
@@ -8,12 +8,16 @@
 "
 " CC0 Public Domain Dedication at
 " http://creativecommons.org/publicdomain/zero/1.0/
-"======================================================================
+"═══════════════════════════════════════════════════════════════════════════════
+
+"═══════════════════════════════════════════════════════════════════════════════
+" Settings {{{
+"═══════════════════════════════════════════════════════════════════════════════
 
 " Keep this at the top of the file
 set nocompatible
 
-" General Settings
+" General Settings {{{
 set autowrite           " write before a make
 set backspace=2         " allow backspacing over everything in insert mode
 set backupcopy=yes      " best for inotify
@@ -28,7 +32,7 @@ let g:clipboard = {
       \         '*': 'env COPY_PROVIDERS=tmux clipboard-provider paste',
       \     },
       \ }
-set clipboard=unnamed
+set clipboard=unnamed   " to/from * by default (tmux only, not system)
 set cscopetag           " search cscope on ctrl-] and :tag
 set encoding=utf-8      " unicode me, baby
 set hidden              " don't unload buffer when it is abandoned
@@ -50,7 +54,16 @@ set updatetime=2000
 set wildmode=longest,list,full
 set nowrap
 
-" Tabs and Indents
+" Use .vim/swap for swapfiles
+if ! isdirectory($HOME."/.vim/swap") && exists("*system")
+  call system("mkdir -p $HOME/.vim/swap")
+endif
+if isdirectory($HOME."/.vim/swap")
+  set directory=~/.vim/swap,.
+endif
+"}}}
+
+" Tabs and Indents {{{
 set autoindent
 set comments=b:#,b:##,n:>,fb:-,fb:*
 set expandtab           " default but see autocmds
@@ -74,59 +87,94 @@ set shiftwidth=4        " but see override in c_linux-kernel.vim
 set smarttab            " use shiftwidth when inserting <Tab>
 set tabstop=8           " number of spaces that <Tab> in file uses
 set textwidth=75        " by default, although plugins or autocmds can modify
+"}}}
 
-" Search and completion settings
+" Search and completion settings {{{
 set complete-=t         " don't search tags files by default
 set complete-=i         " don't search included files -- takes too long
 set ignorecase          " "foo" matches "Foo", etc
 set infercase           " adjust the case of the match with ctrl-p/ctrl-n
 set smartcase           " ignorecase only when the pattern is all lower
 set nohlsearch          " by default, don't highlight matches after they're found
-set grepprg=rg\ --line-number\ --smart-case\ --sort-files   " see plugin/grep.vim
+set grepprg=rg\ --line-number\ --smart-case\ --sort-files
+"}}}
 
-" Windowing settings
+" Windowing settings {{{
 set splitright splitbelow
 set equalalways         " keep windows equal when splitting (default)
 set eadirection=both    " ver/hor/both - where does equalalways apply
 set fillchars+=vert:│
 set winheight=6         " height of current window
 set winwidth=75         " width of current window
+"}}}
 
-" Terminal settings
+" Terminal settings {{{
 set vb t_vb=            " shut off bell entirely; see also .gvimrc
 
-" Set the map leader to SPC, especially for spacevim
+" Enable bracketed paste everywhere. This would happen automatically on
+" local terms, even with mosh using TERM=xterm*, but doesn't happen
+" automatically in tmux with TERM=screen*. Setting it manually works fine.
+if ! has("gui_running") && exists('&t_BE') && &t_BE == ''
+  let &t_BE = "\e[?2004h"  " enable
+  let &t_BD = "\e[?2004l"  " disable
+  let &t_PS = "\e[200~"    " start
+  let &t_PE = "\e[201~"    " end
+endif
+"}}}
+
+" Set the map leaders to SPC and SPC-m similar to Spacemacs.
+" These must be set before referring to <leader> in maps
 let mapleader=' '
 let maplocalleader=' m'
+"}}}
+
+"═══════════════════════════════════════════════════════════════════════════════
+" Plugins {{{
+"═══════════════════════════════════════════════════════════════════════════════
+
+augroup user  " captures all autocmds in plugins section
+autocmd!
+
+" Certain Python modules rely on sys.real_prefix and will fail to import if
+" it doesn't exist. Monkey-patch the sys module if sys.real_prefix doesn't
+" exist...
+if has('python')
+  function FixPythonSysRealPrefix()
+    python << EOT
+import os, sys
+if not hasattr(sys, 'real_prefix'):
+  from distutils.sysconfig import get_python_lib
+  sys.real_prefix = os.path.dirname(get_python_lib())
+EOT
+  endfunction
+  call FixPythonSysRealPrefix()
+endif
 
 if !has('nvim') && exists(':packadd')
   packadd! matchit
 endif
 
-" vim-plug
+" vim-plug collects a list of plugins with :Plug, then sets runtimepath and
+" loads them all in order at plug#end
 call plug#begin('~/.vim/plugged')
 
-let g:spacevim_enabled_layers = [
-\ 'core/buffers',
-\ 'core/buffers/move',
-\ 'core/files',
-\ 'core/projects',
-\ 'core/quit',
-\ 'core/root',
-\ 'core/search-symbol',
-\ 'core/toggles',
-\ 'core/toggles/colors',
-\ 'core/toggles/highlight',
-\ 'core/windows',
-\ 'syntax-checking',
-\ ]
-Plug 'ctjhoa/spacevim'
-
-Plug 'editorconfig/editorconfig-vim'
-
-Plug 'tpope/vim-unimpaired'
+" Global plugins {{{
+Plug 'tpope/vim-fugitive'
 Plug 'tpope/vim-repeat'
 Plug 'tpope/vim-surround'
+Plug 'tpope/vim-unimpaired'
+
+" There are two competing editorconfig plugins, this one and the official
+" editorconfig/editorconfig-vim. This one is entirely VimL (doesn't depend
+" on if_python) and has better blacklisting support.
+Plug 'sgur/vim-editorconfig'
+let g:editorconfig_blacklist = {
+    \   'filetype': ['diff', 'fugitive', 'git.*'],
+    \ }
+
+" Provides projectroot#guess()
+Plug 'dbakker/vim-projectroot'
+let g:rootmarkers = ['.project', '.git', '.hg', '.svn', '.bzr', '_darcs', 'build.xml']
 
 Plug 'junegunn/vim-easy-align'
 xmap ga <Plug>(EasyAlign)
@@ -149,32 +197,137 @@ let g:airline_symbols.space = ' '
 let g:airline_symbols.spell = 'SPELL'
 let g:airline_symbols.whitespace = ''
 
-Plug 'ctrlpvim/ctrlp.vim'
-Plug 'jasoncodes/ctrlp-modified.vim'
-if executable('rg')
-  let g:ctrlp_user_command = 'rg "" -l --color=never -- %s'
-  let g:ctrlp_use_caching = 0
-endif
-let g:ctrlp_cmd = 'CtrlP'
-let g:ctrlp_root_markers = ['.project', '.topdir']
-let g:ctrlp_types = ['fil', 'mru', 'buf', 'modified', 'branch_modified']
-noremap <leader>pm :CtrlPModified<cr>
-noremap <leader>pb :CtrlPBranchModified<cr>
+Plug 'Shougo/denite.nvim'
+Plug 'Shougo/neomru.vim'
+autocmd User PlugConfig call ConfigDenite()
+function! ConfigDenite()
+  call denite#custom#map('insert', '<Up>', '<denite:move_to_previous_line>', 'noremap')
+  call denite#custom#map('insert', '<Down>', '<denite:move_to_next_line>', 'noremap')
+  if executable('rg')
+    call denite#custom#var('file/rec', 'command', ['rg', '--files'])
+    call denite#custom#var('grep', 'command', ['rg'])
+    call denite#custom#var('grep', 'default_opts', ['--vimgrep', '--no-heading', '--smart-case', '--sort-files'])
+    call denite#custom#var('grep', 'recursive_opts', [])
+    call denite#custom#var('grep', 'pattern_opt', ['--regexp'])
+    call denite#custom#var('grep', 'separator', ['--'])
+    call denite#custom#var('grep', 'final_opts', [])
+  endif
+  nnoremap <leader>bb :Denite buffer<CR>
+  nnoremap <leader>ff :DeniteBufferDir file<CR>
+  nnoremap <leader>fm :Denite file_mru<CR>
+  nnoremap <leader>pf :Denite file/rec:`projectroot#guess()`<CR>
+  nnoremap <C-p>      :Denite file/rec:`projectroot#guess()`<CR>
+  nnoremap <leader>sP :DeniteCursorWord grep:`projectroot#guess()`::!<CR>
+  nnoremap <leader>*  :DeniteCursorWord grep:`projectroot#guess()`::!<CR>
+  nnoremap <leader>sp :Denite grep:`projectroot#guess()`::!<CR>
+  nnoremap <leader>/  :Denite grep:`projectroot#guess()`::!<CR>
+  nnoremap <leader>sl :Denite -resume<CR>
+endfunction
 
-Plug 'tpope/vim-fugitive'
+" TODO modify spacevim to use denite
+let g:spacevim_enabled_layers = [
+\ 'core/buffers',
+\ 'core/buffers/move',
+\ 'core/quit',
+\ 'core/root',
+\ 'core/toggles',
+\ 'core/toggles/colors',
+\ 'core/toggles/highlight',
+\ 'core/windows',
+\ 'syntax-checking',
+\ ]
+Plug 'ctjhoa/spacevim'
 
-Plug 'scrooloose/nerdtree'
-Plug 'Xuyuanp/nerdtree-git-plugin'
-noremap <c-n> :NERDTreeToggle<cr>
+" Color schemes
+Plug 'NLKNguyen/papercolor-theme'
+Plug 'nanotech/jellybeans.vim'
+let g:jellybeans_background_color = ''
+let g:jellybeans_background_color_256 = 'NONE'
+Plug 'rakr/vim-one'
+Plug 'reedes/vim-colors-pencil'
+"}}}
 
-"Plug '/usr/bin/fzf'
-"Plug 'junegunn/fzf.vim'
+"───────────────────────────────────────────────────────────────────────────────
+" HTML {{{
+"───────────────────────────────────────────────────────────────────────────────
+" Assume <p> will include closing </p> and content should be indented.
+" If more are needed, this should be a comma-separated list.
+let g:html_indent_inctags = 'p,main'
 
-Plug 'leshill/vim-json'
+Plug 'andreshazard/vim-freemarker'
+Plug 'lepture/vim-jinja'
+
+Plug 'agriffis/vim-vue', {'branch': 'develop'}
+autocmd FileType vue let &l:cinoptions = g:javascript_cinoptions
+autocmd FileType vue setl comments=s:<!--,m:\ \ \ \ \ ,e:-->,s1:/*,mb:*,ex:*/,://
+
+Plug 'vim-scripts/closetag.vim'
+
+" The closetag.vim script is kinda broken... it requires b:unaryTagsStack
+" per buffer but only sets it once, on script load.
+autocmd BufNewFile,BufReadPre * let b:unaryTagsStack="area base br dd dt hr img input link meta param"
+autocmd FileType xml,jsx let b:unaryTagsStack=""
+
+" Replace the default closetag maps with c-/ in insert mode only.
+autocmd FileType html,jsx,vue,xml inoremap <buffer> <C-/> <C-R>=GetCloseTag()<CR>
+
+autocmd FileType xml syntax cluster xmlRegionHook add=SpellErrors,SpellCorrected
+
+" Disable Eclim's HTML/CSS indentation which overrides html.vim
+let g:EclimHtmlIndentDisabled = 1
+let g:EclimCssIndentDisabled = 1
+
+function! ReHtml(type, ...)
+  let cmd = "rehtml -i" . &shiftwidth
+  if a:0
+    " invoked from visual mode, use gv command XXX
+    silent exe "normal gv"
+    silent exe "'<,'>!" . cmd
+  else
+    " a:type is line/char/block but always treat as line
+    silent exe "'[,']!" . cmd
+  endif
+endfunction
+
+" see :help :map-operator
+autocmd FileType html,vue nnoremap <buffer> <leader>= :set opfunc=ReHtml<CR>g@
+autocmd FileType html,vue vnoremap <buffer> <leader>= :<C-u>call ReHtml(visualmode(), 1)<CR>
+
+" vim bundles vim-markdown (by tpope)
+autocmd BufNewFile,BufReadPost *.md set filetype=markdown
+let g:markdown_fenced_languages = ['html', 'python', 'bash=sh', 'clojure', 'sql']
+let g:markdown_minlines = 500
+
+autocmd BufNewFile,BufReadPost *.ftl set ft=freemarker
+autocmd BufNewFile,BufReadPost *.overrides,*.variables set ft=less
+"}}}
+
+"───────────────────────────────────────────────────────────────────────────────
+" JavaScript {{{
+"───────────────────────────────────────────────────────────────────────────────
+" vim-javascript is the best available javascript indenter/hilighter.
+" Actively maintained, poorly commented, also a dependency for vim-jsx.
+" Note that once vim-javascript is loaded, it is automatically used by
+" the built-in html.vim for <script> sections via g:html_indent_script1
+Plug 'pangloss/vim-javascript'
+
+" vim-javascript is configured with cinoptions, see
+" https://github.com/pangloss/vim-javascript#indentation-specific
+" This also applies to FileType vue above.
+let g:javascript_cinoptions = '(0,Ws'
+let g:javascript_indent_W_pat = '[^[:blank:]{[]'  " https://github.com/pangloss/vim-javascript/issues/1114
+autocmd FileType javascript let &l:cinoptions = g:javascript_cinoptions
+autocmd FileType javascript setl comments=s1:/*,mb:*,ex:*/,://
+
+" vim-jsx provides the glue between vim-javascript and xml. It only affects
+" files with js or jsx extensions, and does not affect <script> sections.
 Plug 'mxw/vim-jsx'
 let g:jsx_ext_required = 0
-Plug 'pangloss/vim-javascript'
-Plug 'leafgarland/typescript-vim'
+
+" vim-json highlights keys/values separately, conceals quotes except on the
+" cursor line, and highlights errors loudly.
+Plug 'elzr/vim-json'
+let g:vim_json_syntax_conceal = 0
 
 Plug 'prettier/vim-prettier'
 let g:prettier#config#semi = 'false'
@@ -183,264 +336,19 @@ let g:prettier#config#bracket_spacing = 'false'
 let g:prettier#config#jsx_bracket_same_line = 'false'
 let g:prettier#config#trailing_comma = 'es5'
 
-" consider https://github.com/python-mode/python-mode instead
+" Disable Eclim's JS indentation which overrides vim-javascript.
+let g:EclimJavascriptIndentDisabled = 1
+"}}}
+
+"───────────────────────────────────────────────────────────────────────────────
+" Python {{{
+"───────────────────────────────────────────────────────────────────────────────
 Plug 'Vimjas/vim-python-pep8-indent'
 Plug 'tmhedberg/SimpylFold'
 
-" https://juxt.pro/blog/posts/vim-1.html
-" http://blog.venanti.us/clojure-vim/
-let g:sexp_insert_after_wrap = 0
-let g:sexp_enable_insert_mode_mappings = 0
-Plug 'guns/vim-sexp'
-Plug 'tpope/vim-fireplace'
-Plug 'tpope/vim-sexp-mappings-for-regular-people'
-Plug 'tpope/vim-classpath'
+" Consider https://github.com/python-mode/python-mode
+" with configuration below
 
-Plug 'venantius/vim-cljfmt'
-let g:clj_fmt_autosave = 0
-
-" following required for eastwood
-" https://github.com/venantius/vim-eastwood/issues/8
-Plug 'tpope/vim-salve'
-Plug 'tpope/vim-projectionist'
-Plug 'tpope/vim-dispatch'
-
-Plug 'venantius/vim-eastwood'
-" https://github.com/venantius/vim-eastwood/issues/9
-"let g:syntastic_clojure_checkers = ['eastwood']
-
-"Plug 'vim-syntastic/syntastic'
-let g:syntastic_always_populate_loc_list = 1
-let g:syntastic_auto_loc_list = 1
-let g:syntastic_check_on_open = 1
-let g:syntastic_check_on_wq = 0
-
-Plug 'andreshazard/vim-freemarker' 
-Plug 'lepture/vim-jinja'
-
-Plug 'posva/vim-vue'
-
-" colorschemes
-Plug 'rakr/vim-one'
-Plug 'nanotech/jellybeans.vim'
-Plug 'NLKNguyen/papercolor-theme'
-Plug 'reedes/vim-colors-pencil'
-
-if filereadable(expand("~/.vimrc.plugs"))
-  source ~/.vimrc.plugs
-endif
-
-call plug#end()
-
-" clojure syntax config
-let g:clj_highlight_builtins=1
-
-" Syntax and filetypes
-if has("syntax")
-  syntax on
-endif
-filetype plugin indent on
-
-" Use .vim/bak for backups
-if ! isdirectory($HOME."/.vim/bak") && exists("*system")
-  call system("mkdir -p $HOME/.vim/bak")
-endif
-if isdirectory($HOME."/.vim/bak")
-  set backup
-  set backupdir=~/.vim/bak,.
-endif
-
-" Use .vim/swap for swapfiles
-if ! isdirectory($HOME."/.vim/swap") && exists("*system")
-  call system("mkdir -p $HOME/.vim/swap")
-endif
-if isdirectory($HOME."/.vim/swap")
-  set directory=~/.vim/swap,.
-endif
-
-" Use .vim for viminfo; directory will be made above
-if isdirectory($HOME."/.vim")
-  if has("viminfo")
-    set viminfo='50,s100,n~/.vim/viminfo
-  endif
-  let $CVIMSYN='~/.vim/'
-endif
-
-" Command line editing, emacs style (See ":help <>")
-cnoremap <C-A> <Home>
-cnoremap <C-F> <Right>
-cnoremap <C-B> <Left>
-cnoremap <ESC>b <S-Left>
-cnoremap <ESC>f <S-Right>
-cnoremap <ESC><C-H> <C-W>
-cnoremap %/ <C-R>=expand("%:p:h")."/"<CR>
-
-" Toggle list mode
-map ,L :set list!<CR>
-
-" Toggle cursorcolumn
-map ,C :set cursorcolumn!<CR>
-
-" Reformat current paragraph
-nmap Q }{gq}
-vmap Q gq 
-
-" Copy to clipboard
-nmap YY "+yy
-nmap Y "+y
-vmap Y "+y
-
-" Add support for html tidy
-map ,t  :%!tidy -q --indent auto --output-xhtml yes<CR>
-map ,T  :%!tidy -q --indent auto -xml<CR>
-map ,tc :%!tidy -q --clean --indent auto -xml<CR>
-
-" Certain Python modules rely on sys.real_prefix and will fail to import if
-" it doesn't exist. Monkey-patch the sys module if sys.real_prefix doesn't
-" exist...
-if has('python')
-  function FixPythonSysRealPrefix()
-    python << EOT
-import os, sys
-if not hasattr(sys, 'real_prefix'):
-  from distutils.sysconfig import get_python_lib
-  sys.real_prefix = os.path.dirname(get_python_lib())
-EOT
-  endfunction
-  call FixPythonSysRealPrefix()
-endif
-
-"================================= TERMINAL ================================
-function! EnableBracketedPaste()
-  " Enable bracketed paste everywhere. This would happen automatically on
-  " local terms, even with mosh using TERM=xterm*, but doesn't happen
-  " automatically in tmux with TERM=screen*. Setting it manually works fine.
-  if ! has("gui_running") && exists('&t_BE') && &t_BE == ''
-    let &t_BE = "\e[?2004h"  " enable
-    let &t_BD = "\e[?2004l"  " disable
-    let &t_PS = "\e[200~"    " start
-    let &t_PE = "\e[201~"    " end
-  endif
-endfunction
-
-" call immediately, isn't effective after TermResponse
-call EnableBracketedPaste()
-
-"================================== COLORS =================================
-if has('nvim') && exists('&termguicolors')
-  set termguicolors
-endif
-
-let g:jellybeans_background_color = ''
-let g:jellybeans_background_color_256 = 'NONE'
-
-function! TryTheme(theme, ...)
-  let l:background = a:0 ? a:1 : ''
-  if a:theme == 'solarized'
-    " force dark bg to prevent double toggle with term scheme
-    let l:background = 'dark'
-  endif
-  if exists('g:colors_name') && g:colors_name == a:theme &&
-      \ (empty(l:background) || &background == l:background)
-    return 1
-  endif
-  try
-    exec 'colorscheme' a:theme
-  catch /^Vim\%((\a\+)\)\=:E185/
-    return 0
-  endtry
-  if ! empty(l:background)
-    let &background = l:background
-  endif
-  if exists('syntax_on')
-    syn reset
-  endif
-  let g:colors_name_loaded = a:theme
-endfunction
-
-function! LoadTheme()
-  let l:background_file = expand('~/.vim/background')
-  let l:theme_file = expand('~/.vim/theme')
-  let l:background = filereadable(l:background_file) ?
-                   \ readfile(l:background_file)[0] : &background
-  let l:theme = filereadable(l:theme_file) ?
-              \ readfile(l:theme_file)[0] : 'default'
-  if l:background == &background &&
-        \ ((exists('g:colors_name_loaded') && l:theme == g:colors_name_loaded) ||
-        \  (exists('g:colors_name') && l:theme == g:colors_name))
-    return 0
-  endif
-  " echom l:theme . " " . l:background
-  call TryTheme(l:theme, l:background)
-endfunction
-
-colorscheme default  " ensure g:colors_name is set
-call LoadTheme()
-
-if has("timers")
-  function! LoadThemeTimer(timer)
-    call LoadTheme()
-  endfunction
-  let theme_timer = timer_start(1000, 'LoadThemeTimer', {'repeat': -1})
-else
-  " http://vim.wikia.com/wiki/Timer_to_execute_commands_periodically
-  function! LoadThemeTimer()
-    call LoadTheme()
-    call feedkeys("f\e")
-  endfunction
-  autocmd CursorHold * call LoadThemeTimer()
-endif
-
-"==================================== C ====================================
-" Default options for C files
-function! LoadTypeC()
-  setlocal formatoptions-=tc " don't wrap text or comments automatically
-  setlocal comments=s1:/*,mb:*,ex:*/,://
-
-  let b:c_gnu=1                 " highlight gcc specific items
-  let b:c_space_errors=1        " highlight trailing w/s and spaces before tab
-  let b:c_no_curly_error=1      " don't highlight {} inside ()
-  if &filetype == 'c'
-    let b:c_syntax_for_h=1
-  endif
-
-  " Check for apparent shiftwidth=8; my default is 4
-  let l:foundbrace = v:version >= 700 ?
-        \ search('{\s*$', 'cnw', 1000) : search('{\s*$', 'cnw')
-  if l:foundbrace != 0
-    if match(getline(l:foundbrace+1), '^ *\t\|^ \{8\}') > -1
-      setlocal shiftwidth=8
-    endif
-  endif
-
-  if has("cindent")
-    setlocal cindent cinoptions+=(0,u0,t0,l1
-  endif
-
-  if has("perl")
-    " Line up continuations on long #defines
-    vnoremap ,D :perldo s/(.*?)\s*\\*$/$1.(' 'x(79-length $1)).'\\'/e<CR>
-  endif
-
-  " Add support for various types of cscope searches based on the current word
-  if has("cscope")
-    noremap ,cc :cs find c <C-R>=expand("<cword>")<CR><CR>
-    noremap ,cd :cs find d <C-R>=expand("<cword>")<CR><CR>
-    noremap ,ce :cs find e <C-R>=expand("<cword>")<CR><CR>
-    noremap ,cf :cs find f <C-R>=expand("<cword>")<CR><CR>
-    noremap ,cg :cs find g <C-R>=expand("<cword>")<CR><CR>
-    noremap ,ci :cs find i <C-R>=expand("<cword>")<CR><CR>
-    noremap ,cs :cs find s <C-R>=expand("<cword>")<CR><CR>
-    noremap ,ct :cs find t <C-R>=expand("<cword>")<CR><CR>
-  endif
-endfunction
-
-augroup ag_c
-  autocmd!
-  autocmd FileType c,cpp call LoadTypeC()
-augroup END
-
-"================================== Python =================================
 " If this option is set to 1, pymode will enable the following options
 " for python buffers:
 "
@@ -498,120 +406,125 @@ function! LoadTypePython()
   normal zR
 endfunction
 
-augroup ag_python
-  autocmd!
-  autocmd FileType python call LoadTypePython()
-augroup END
+autocmd BufReadPost,BufNewFile *.wsgi set ft=python
+autocmd FileType python call LoadTypePython()
+"}}}
 
-"=================================== XML ===================================
-function! LoadTypeXML()
-  runtime scripts/closetag.vim
-  inoremap <C-/> <C-R>=GetCloseTag()<CR>
-  syntax cluster xmlRegionHook add=SpellErrors,SpellCorrected
-endfunction
+"───────────────────────────────────────────────────────────────────────────────
+" Ruby {{{
+"───────────────────────────────────────────────────────────────────────────────
+autocmd BufNewFile,BufReadPost Vagrantfile* set ft=ruby
+"}}}
 
-augroup ag_xml
-  autocmd!
-  autocmd FileType html,xml,xslt,htmldjango,jinja call LoadTypeXML()
-augroup END
+"───────────────────────────────────────────────────────────────────────────────
+" Java, Clojure {{{
+"───────────────────────────────────────────────────────────────────────────────
+" https://juxt.pro/blog/posts/vim-1.html
+" http://blog.venanti.us/clojure-vim/
+let g:sexp_insert_after_wrap = 0
+let g:sexp_enable_insert_mode_mappings = 0
+Plug 'guns/vim-sexp'
+Plug 'tpope/vim-fireplace'
+Plug 'tpope/vim-sexp-mappings-for-regular-people'
+Plug 'tpope/vim-classpath'
 
-"=================================== CSS ===================================
-function! LoadTypeCSS()
-  set shiftwidth=4
-endfunction
+Plug 'venantius/vim-cljfmt'
+let g:clj_fmt_autosave = 0
 
-augroup ag_css
-  autocmd!
-  autocmd FileType css call LoadTypeCSS()
-augroup END
+" clojure syntax config
+let g:clj_highlight_builtins=1
 
-"================================= Markdown ================================
-let g:markdown_fenced_languages = ['html', 'python', 'bash=sh', 'clojure', 'sql']
-let g:markdown_minlines = 3000
+Plug '/home/aron/.vim/bundle/eclim'
 
-"================================== Shell ==================================
-let g:is_bash=1
+" following required for eastwood
+" https://github.com/venantius/vim-eastwood/issues/8
+Plug 'tpope/vim-salve'
+Plug 'tpope/vim-projectionist'
+Plug 'tpope/vim-dispatch'
 
-function! LoadTypeShell()
-  " clear silly highlighting for words like "stop" that aren't bash
-  " keywords at all.
-  syn clear bashStatement
-  syn clear bashAdminStatement
-  syn clear shStatement
-endfunction
+Plug 'venantius/vim-eastwood'
+" https://github.com/venantius/vim-eastwood/issues/9
+"let g:syntastic_clojure_checkers = ['eastwood']
 
-augroup ag_sh
-  autocmd!
-  autocmd FileType sh call LoadTypeShell()
-augroup END
+"Plug 'vim-syntastic/syntastic'
+let g:syntastic_always_populate_loc_list = 1
+let g:syntastic_auto_loc_list = 1
+let g:syntastic_check_on_open = 1
+let g:syntastic_check_on_wq = 0
 
-"================================= GENERAL =================================
-" Detect settings of file being edited and change ours to match
-function! DetectSettings()
-  " First check for tabs vs spaces
-  let l:tabre = '^\t\|^\( \{8}\)'
-  let l:foundtab = v:version >= 700 ?
-        \ search(l:tabre, 'cnpw', 1000) : search(l:tabre, 'cnpw')
-  if l:foundtab == 1
-    setlocal noexpandtab
-  elseif l:foundtab == 2
-    setlocal expandtab
+autocmd FileType clojure setlocal lisp
+"}}}
+
+"───────────────────────────────────────────────────────────────────────────────
+" C {{{
+"───────────────────────────────────────────────────────────────────────────────
+
+function! LoadTypeC()
+  setlocal formatoptions-=tc " don't wrap text or comments automatically
+  setlocal comments=s1:/*,mb:*,ex:*/,://
+  setlocal cindent cinoptions+=(0,u0,t0,l1 ")
+
+  let b:c_gnu=1                 " highlight gcc specific items
+  let b:c_space_errors=1        " highlight trailing w/s and spaces before tab
+  let b:c_no_curly_error=1      " don't highlight {} inside ()
+  if &filetype == 'c'
+    let b:c_syntax_for_h=1
   endif
 
-  " placeholder to respond to emacs-style file format tags
-  "--EMACS--
+  " Add support for various types of cscope searches based on the current word
+  if has("cscope")
+    noremap <buffer> <leader>mgc :cs find c <C-R>=expand("<cword>")<CR><CR>
+    noremap <buffer> <leader>mgd :cs find d <C-R>=expand("<cword>")<CR><CR>
+    noremap <buffer> <leader>mge :cs find e <C-R>=expand("<cword>")<CR><CR>
+    noremap <buffer> <leader>mgf :cs find f <C-R>=expand("<cword>")<CR><CR>
+    noremap <buffer> <leader>mgg :cs find g <C-R>=expand("<cword>")<CR><CR>
+    noremap <buffer> <leader>mgi :cs find i <C-R>=expand("<cword>")<CR><CR>
+    noremap <buffer> <leader>mgs :cs find s <C-R>=expand("<cword>")<CR><CR>
+    noremap <buffer> <leader>mgt :cs find t <C-R>=expand("<cword>")<CR><CR>
+  endif
 endfunction
 
-augroup ag_general
-  autocmd!
+autocmd FileType c,cpp call LoadTypeC()
+"}}}
 
-  " detect settings of file being edited and change ours to match
-  autocmd BufReadPost  *      call DetectSettings()
+"───────────────────────────────────────────────────────────────────────────────
+" Shell {{{
+"───────────────────────────────────────────────────────────────────────────────
+let g:is_bash=1
 
-  " When editing a file, always jump to the last cursor position.
-  " This duplicates an autocmd provided by fedora, so clear that.
-  augroup fedora!
-  autocmd BufReadPost *
-        \ if line("'\"") > 0 && line ("'\"") <= line("$") |
-        \   exe "normal! g'\"" |
-        \ endif
-  autocmd BufReadPost COMMIT_EDITMSG exe "normal! gg"
+" Clear silly highlighting for words like "stop" that aren't bash
+" keywords at all.
+autocmd FileType sh syn clear bashStatement bashAdminStatement shStatement
+"}}}
 
-  " Load specific settings for various filetypes
-  autocmd FileType     help     map <buffer> <tab> /\|[^\|]\+\|<CR>
-  autocmd FileType     dokuwiki AlignCtrl =-l+ | \^
+call plug#end()
 
-  " for crontab -e
-  autocmd BufWritePre  */tmp/* set backupcopy=yes
-  autocmd BufWritePost */tmp/* set backupcopy=auto
+augroup END  " ends augroup user
+doautocmd User PlugConfig
+"}}}
 
-  " other programming settings
-  "autocmd FileType sh,perl,python,ruby set hlsearch
-  autocmd FileType vim,ruby set shiftwidth=2 formatoptions-=tc
-  autocmd FileType perl set formatoptions-=tc
-  autocmd FileType clojure setlocal lisp
-  autocmd FileType coffee setlocal shiftwidth=2
-  autocmd BufReadPost bookmarks*.html set nowrap
-augroup END
+"═══════════════════════════════════════════════════════════════════════════════
+" Mappings {{{
+"═══════════════════════════════════════════════════════════════════════════════
 
-augroup filetypedetect
-  " don't use :setfiletype because we need to override previous detection
-  autocmd BufReadPost,BufNewFile *.md setlocal ft=markdown
-  autocmd BufReadPost,BufNewFile *.wsgi setlocal ft=python
-  autocmd BufNewFile,BufReadPost *.coffee setlocal ft=coffee
-  autocmd BufNewFile,BufReadPost Vagrantfile* setlocal ft=ruby
-  autocmd BufNewFile,BufReadPost *.overrides,*.variables setlocal ft=less
-  autocmd BufNewFile,BufReadPost *.ftl setlocal ft=freemarker
-  "autocmd BufNewFile,BufReadPost *.html setlocal ft=jinja
-augroup END
+" Insert path of current file on command-line with %/
+cnoremap %/ <C-R>=expand("%:p:h")."/"<CR>
 
-" Don't load VCSCommand plugin if it is not supported
-if v:version < 700
-  let g:VCSCommandDisableAll = 1
-endif
+" Toggle list mode (spacemacs-style binding)
+nnoremap <leader>tw :set list!<CR>
 
-" Load plugins now to prevent conflict with those that modify &bin
-runtime! plugin/*.vim
+" Reformat current paragraph
+nmap Q }{gq}
+vmap Q gq 
+
+" Copy to system clipboard
+nmap YY "+yy
+nmap Y "+y
+vmap Y "+y
+
+" Spacemacs bindings
+nmap <leader><tab> :b#<CR>
+nmap <leader>w <C-w>
 
 " Disable movement keys that I hit accidentally sometimes.
 inoremap <Up> <nop>
@@ -622,9 +535,94 @@ inoremap <PageUp> <nop>
 inoremap <PageDown> <nop>
 inoremap <Home> <nop>
 inoremap <End> <nop>
+"}}}
+
+"═══════════════════════════════════════════════════════════════════════════════
+" Colors {{{
+"═══════════════════════════════════════════════════════════════════════════════
+
+if has('nvim') && exists('&termguicolors')
+  set termguicolors
+endif
+
+function! TryTheme(theme, ...)
+  let l:background = a:0 ? a:1 : ''
+  if a:theme == 'solarized'
+    " force dark bg to prevent double toggle with term scheme
+    let l:background = 'dark'
+  endif
+  if exists('g:colors_name') && g:colors_name == a:theme &&
+      \ (empty(l:background) || &background == l:background)
+    return 1
+  endif
+  try
+    exec 'colorscheme' a:theme
+  catch /^Vim\%((\a\+)\)\=:E185/
+    return 0
+  endtry
+  if ! empty(l:background)
+    let &background = l:background
+  endif
+  if exists('syntax_on')
+    syn reset
+  endif
+  let g:colors_name_loaded = a:theme
+endfunction
+
+function! LoadTheme()
+  let l:background_file = expand('~/.vim/background')
+  let l:theme_file = expand('~/.vim/theme')
+  let l:background = filereadable(l:background_file) ?
+                   \ readfile(l:background_file)[0] : &background
+  let l:theme = filereadable(l:theme_file) ?
+              \ readfile(l:theme_file)[0] : 'default'
+  if l:background == &background &&
+        \ ((exists('g:colors_name_loaded') && l:theme == g:colors_name_loaded) ||
+        \  (exists('g:colors_name') && l:theme == g:colors_name))
+    return 0
+  endif
+  " echom l:theme . " " . l:background
+  call TryTheme(l:theme, l:background)
+endfunction
+
+colorscheme default  " ensure g:colors_name is set
+call LoadTheme()
+
+if has("timers")
+  function! LoadThemeTimer(timer)
+    call LoadTheme()
+  endfunction
+  let theme_timer = timer_start(1000, 'LoadThemeTimer', {'repeat': -1})
+else
+  " http://vim.wikia.com/wiki/Timer_to_execute_commands_periodically
+  function! LoadThemeTimer()
+    call LoadTheme()
+    call feedkeys("f\e")
+  endfunction
+  autocmd CursorHold * call LoadThemeTimer()
+endif
+"}}}
+
+"═══════════════════════════════════════════════════════════════════════════════
+" Final {{{
+"═══════════════════════════════════════════════════════════════════════════════
+" When editing a file, always jump to the last cursor position.
+" This duplicates an autocmd provided by fedora, so clear that.
+augroup user
+  augroup fedora!
+  autocmd BufReadPost *
+        \ if line("'\"") > 0 && line ("'\"") <= line("$") |
+        \   exe "normal! g'\"" |
+        \ endif
+  autocmd BufReadPost COMMIT_EDITMSG exe "normal! gg"
+augroup END
+
+" Load plugins now to prevent conflict with those that modify &bin
+runtime! plugin/*.vim
 
 if filereadable(expand("~/.vimrc.mine"))
   source ~/.vimrc.mine
 endif
+"}}}
 
-" vim:set shiftwidth=2:
+" vim:set shiftwidth=2 foldmethod=marker:
