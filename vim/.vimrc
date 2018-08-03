@@ -460,7 +460,6 @@ autocmd FileType clojure setlocal lisp
 "───────────────────────────────────────────────────────────────────────────────
 " C {{{
 "───────────────────────────────────────────────────────────────────────────────
-
 function! LoadTypeC()
   setlocal formatoptions-=tc " don't wrap text or comments automatically
   setlocal comments=s1:/*,mb:*,ex:*/,://
@@ -604,6 +603,7 @@ endif
 "═══════════════════════════════════════════════════════════════════════════════
 " Final {{{
 "═══════════════════════════════════════════════════════════════════════════════
+
 " When editing a file, always jump to the last cursor position.
 " This duplicates an autocmd provided by fedora, so clear that.
 augroup user
