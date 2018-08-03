@@ -213,6 +213,7 @@ function! ConfigDenite()
     call denite#custom#var('grep', 'pattern_opt', ['--regexp'])
     call denite#custom#var('grep', 'separator', ['--'])
     call denite#custom#var('grep', 'final_opts', [])
+    call denite#custom#source('grep', 'sorters', [])  " use rg-provided sort
   endif
   nnoremap <leader>bb :Denite buffer<CR>
   nnoremap <leader>ff :DeniteBufferDir file<CR>
@@ -522,10 +523,6 @@ vmap Q gq
 nmap YY "+yy
 nmap Y "+y
 vmap Y "+y
-
-" Spacemacs bindings
-nmap <leader><tab> :b#<CR>
-nmap <leader>w <C-w>
 
 " Disable movement keys that I hit accidentally sometimes.
 inoremap <Up> <nop>
