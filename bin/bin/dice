@@ -598,5 +598,5 @@ zs zt zu zurich zv zw zx zy zz zzz zzzz 0 1 2 3 4 5 6 7 8 9 10 11 12
 END_OF_WORDS
 
 words = words.split
-pass = (0..4).map{ words[ rand( words.length ) ] }.join(',')
+pass = (0..4).map{ words[ rand( words.length ) ] }.join('')
 puts pass
