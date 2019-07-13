@@ -13,6 +13,12 @@ if [[ $? != 0 ]]; then
 fi
 
 ssh -fA $gateway 'ln -sfn $SSH_AUTH_SOCK foo; sleep 30'
+
+if [[ $# == 0 ]]; then
+    # -E to avoid wiping out DISPLAY set by tunnel
+    set -- gg 'tmux new-session -ADEs 0'
+fi
+
 case /$0 in
     */gosh) mosh $gateway -- env SSH_AUTH_SOCK=foo ssh -t "$@" ;;
     */sssh) ssh -t $gateway -- env SSH_AUTH_SOCK=foo ssh -t "$@" ;;

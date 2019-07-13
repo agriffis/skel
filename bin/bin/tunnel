@@ -10,10 +10,20 @@ if [[ $? != 0 ]]; then
     ssh-add || exit
 fi
 
+host=${1:-gg}-tunnel
+shift
+
+set -- -t -X "$@"
+
+if [[ $HOSTNAME == penguin ]]; then
+    set -- -o 'GatewayPorts yes' "$@"
+fi
+
 while true; do
-    # don't use -N because it prevents ForwardX11.
-    # just sleep for 100 years
-    ssh $1-tunnel sleep 36500d
+    # Don't use -N because it prevents ForwardX11.
+    # Just sleep for 100 years. The new-session/detach here allows
+    # update-environment to apply the new setting of DISPLAY
+    ssh $host "$@" 'source .ssh/agent; tmux new-session -As 0 \; detach; sleep 36500d'
     sleep 2
 done
 
