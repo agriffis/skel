@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 
 import collections, operator, sys
 
@@ -12,8 +12,8 @@ for line, count in sorted(lines.items(), key=lambda item: (-item[1], item[0])):
     if len(sys.argv) >= 2 and sys.argv[1] == '-p':
         count = 1.0 * count * 100 / total
         count = '%0.1f' % count
-    print "%6s %s" % (count, line),
+    print("%6s %s" % (count, line), end='')
 
 if len(sys.argv) < 2 or sys.argv[1] != '-p':
-    print "%6s %s" % (total, 'TOTAL')
-    print "%6s %s" % (len(lines), 'UNIQUE')
+    print("%6s %s" % (total, 'TOTAL'))
+    print("%6s %s" % (len(lines), 'UNIQUE'))
