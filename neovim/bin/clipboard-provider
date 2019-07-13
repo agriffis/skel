@@ -7,20 +7,20 @@
 #exec 2>> ~/clipboard-provider.out
 #set -x
 
-: ${COPY_PROVIDERS:=tmux osc52}
-: ${PASTE_PROVIDERS:=tmux}
-: ${TTY:=`(tty || tty </proc/$PPID/fd/0) 2>/dev/null | grep /dev/`}
+: ${COPY_PROVIDERS:=tmux xclip-or-osc52}
+: ${PASTE_PROVIDERS:=tmux xclip-or-osc52}
+: ${TTY:=`(tty || tmux display-message -p '#{pane_tty}') 2>/dev/null | grep /dev/`}
 
 main() {
-    declare buffer status=1
+    declare p status=99
 
     case $1 in
         copy)
-            buffer=$(base64)
-            internal() { base64 --decode <<<"$buffer"; }
+            slurp
             for p in $COPY_PROVIDERS; do
-                internal | $p-provider copy && status=0
+                $p-provider copy && status=0
             done ;;
+
         paste)
             for p in $PASTE_PROVIDERS; do
                 $p-provider paste && status=0 && break
@@ -30,18 +30,34 @@ main() {
     exit $status
 }
 
+# N.B. buffer is global for simplicity
+slurp() { buffer=$(base64); }
+spit() { base64 --decode <<<"$buffer"; }
+
 tmux-provider() {
     [[ -n $TMUX ]] || return
     case $1 in
-        copy) internal | tmux load-buffer - ;;
+        copy) spit | tmux load-buffer - ;;
         paste) tmux save-buffer - ;;
     esac
 }
 
-osc52-provider() {
-    # HACK: this ignores stdin and looks directly at the base64 buffer
+xclip-or-osc52-provider() {
+    xclip-provider "$@" || osc52-provider "$@"
+}
+
+xclip-provider() {
+    [[ -n $DISPLAY ]] && type -P xclip &>/dev/null || return
     case $1 in
-        copy) [[ -n "$TTY" ]] && printf $'\e]52;c;%s\a' "$buffer" > "$TTY" ;;
+        copy) spit | xclip -i -selection clipboard ;;
+        paste) xclip -o -selection clipboard ;;
+    esac
+}
+
+osc52-provider() {
+    [[ -n "$TTY" ]] || return
+    case $1 in
+        copy) printf $'\e]52;c;%s\a' "$buffer" > "$TTY" ;;
         paste) return 1 ;;
     esac
 }
