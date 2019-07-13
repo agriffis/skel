@@ -78,6 +78,8 @@ set_scheme() {
     #update_xfce_terminal "$xterm_colors" &  # XXX port to $xterm_colors
     #update_roxterm "$xterm_colors" &  # XXX port to $xterm_colors
     update_iterm2 "$iterm2_scheme" &
+    update_kitty "$xterm_colors" # not backgrounded
+    update_alacritty "$xterm_colors" # not backgrounded
 
     update_emacs "$emacs_theme" "$background" &
     update_vim "$vim_theme" "$background" &
@@ -230,7 +232,7 @@ update_tmux() {
     tmux info &>/dev/null || return
 
     case "$scheme:$background" in
-        solarized*|*:dark) tmux set -g status-style fg=default,bg=black ;;
+        solarized*|*:dark) tmux set -g status-style fg=default,bg=default ;;
         *:light) tmux set -g status-style fg=default,bg=white,dim ;;
     esac
 }
@@ -376,6 +378,88 @@ update_gnome_terminal() {
         dconf write "$p/background-color" "$gnome_background"
         dconf write "$p/palette" "$gnome_palette"
     done
+}
+
+update_kitty() {
+    declare xterm_colors="$1"
+
+    [[ -n $KITTY_WINDOW_ID ]] && type kitty &>/dev/null || return
+
+    # unpack xterm_colors string
+    declare xterm_foreground xterm_background
+    xterm_colors=( $xterm_colors )
+    if [[ ${#xterm_colors[@]} != 18 ]]; then
+        echo "Invalid xterm_colors (${#xterm_colors[@]} elements)" >&2
+        return
+    fi
+    xterm_background="${xterm_colors[0]}"
+    xterm_foreground="${xterm_colors[1]}"
+    xterm_colors=( "${xterm_colors[@]:2}" )
+
+    kitty @ set-colors --all --configured \
+        background=${xterm_background} \
+        foreground=${xterm_foreground} \
+        selection_foreground=${xterm_background} \
+        selection_background=${xterm_foreground} \
+        color0=${xterm_colors[0]} \
+        color1=${xterm_colors[1]} \
+        color2=${xterm_colors[2]} \
+        color3=${xterm_colors[3]} \
+        color4=${xterm_colors[4]} \
+        color5=${xterm_colors[5]} \
+        color6=${xterm_colors[6]} \
+        color7=${xterm_colors[7]} \
+        color8=${xterm_colors[8]} \
+        color9=${xterm_colors[9]} \
+        color10=${xterm_colors[10]} \
+        color11=${xterm_colors[11]} \
+        color12=${xterm_colors[12]} \
+        color13=${xterm_colors[13]} \
+        color14=${xterm_colors[14]} \
+        color15=${xterm_colors[15]}
+}
+
+update_alacritty() {
+    declare xterm_colors="$1"
+    declare config="$HOME/.config/alacritty/alacritty.yml"
+
+    [[ -f $config ]] || return
+
+    # unpack xterm_colors string
+    xterm_colors=( $xterm_colors )
+    if [[ ${#xterm_colors[@]} != 18 ]]; then
+        echo "Invalid xterm_colors (${#xterm_colors[@]} elements)" >&2
+        return
+    fi
+
+    declare snippet="\
+colors:
+  primary:
+    background: '0x${xterm_colors[0]:1}'
+    foreground: '0x${xterm_colors[1]:1}'
+
+  normal:
+    black:   '0x${xterm_colors[2]:1}'
+    red:     '0x${xterm_colors[3]:1}'
+    green:   '0x${xterm_colors[4]:1}'
+    yellow:  '0x${xterm_colors[5]:1}'
+    blue:    '0x${xterm_colors[6]:1}'
+    magenta: '0x${xterm_colors[7]:1}'
+    cyan:    '0x${xterm_colors[8]:1}'
+    white:   '0x${xterm_colors[9]:1}'
+
+  bright:
+    black:   '0x${xterm_colors[10]:1}'
+    red:     '0x${xterm_colors[11]:1}'
+    green:   '0x${xterm_colors[12]:1}'
+    yellow:  '0x${xterm_colors[13]:1}'
+    blue:    '0x${xterm_colors[14]:1}'
+    magenta: '0x${xterm_colors[15]:1}'
+    cyan:    '0x${xterm_colors[16]:1}'
+    white:   '0x${xterm_colors[17]:1}'
+"
+
+    perl -0777 -i -pe "s/(^# scheme START).*(^# scheme END)/\$1\\n$snippet\\n\$2/ms" "$config"
 }
 
 rgb() {
@@ -1229,4 +1313,4 @@ getopt() {
   return $status
 }
 
-[[ $BASH_SOURCE != "$0" ]] || main "$@"
+main "$@"
