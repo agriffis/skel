@@ -1,0 +1,4 @@
+#!/bin/bash
+
+vim=$(type -P n${0##*/} || wrapped "$0")
+exec "$vim" "$@"
