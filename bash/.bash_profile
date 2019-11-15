@@ -76,6 +76,8 @@ fi
 export QUILT_DIFF_ARGS='--color=auto'
 export QUILT_DIFF_OPTS='-p'
 
+export RIPGREP_CONFIG_PATH=~/.config/ripgrep/ripgreprc
+
 export RSYNC_RSH=ssh
 export CVS_RSH=ssh
 export SVN_SSH="ssh -l $USER"
