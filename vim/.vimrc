@@ -1,6 +1,6 @@
 " .vimrc
 "
-" Written in 2003-2018 by Aron Griffis <aron@arongriffis.com>
+" Written in 2003-2019 by Aron Griffis <aron@arongriffis.com>
 "
 " To the extent possible under law, the author(s) have dedicated all copyright
 " and related and neighboring rights to this software to the public domain
@@ -10,28 +10,98 @@
 " http://creativecommons.org/publicdomain/zero/1.0/
 "═══════════════════════════════════════════════════════════════════════════════
 
+" First {{{
+"═══════════════════════════════════════════════════════════════════════════════
+" Stuff that needs to happen before other stuff.
+
+set nocompatible
+
+" Given a dictionary, apply the content as environment variables. Returns
+" a sparse dictionary with the values prior to modification. Unfortunately
+" Vim doesn't distinguish environment variables that are empty from those
+" that aren't set, so variables that didn't exist previously will be
+" returned as the empty string. For symmetry, especially for calling from
+" WithEnv, values that are set by this function to the empty string will
+" instead be removed from the environment.
+function! SetEnv(env)
+  let old = {}
+  for [name, value] in items(a:env)
+    let old[name] = eval('$' . name)
+    if empty(value)
+      exe 'unlet $' . name
+    else
+      exe 'let $' . name . ' = value'
+    endif
+  endfor
+  return old
+endfunction
+
+" Given a dictionary and a function, return a new function that wraps the
+" original function with the environment variables specified in env.
+function! WithEnv(env, fun)
+  function! WrappedFun(...) closure
+    let old = SetEnv(a:env)
+    try
+      return call(a:fun, a:000)
+    finally
+      call SetEnv(old)
+    endtry
+  endfunction
+  return funcref('WrappedFun')
+endfunction
+
+function! TryClipboardCmd(cmd, ...) abort
+  let argv = split(a:cmd, " ")
+  let out = systemlist(argv, (a:0 ? a:1 : ['']), 1)
+  if v:shell_error == 0
+    return out
+  endif
+endfunction
+
+let s:regtype_sum = expand('~/.vim/clipboard-regtype.sum')
+let s:regtype_txt = expand('~/.vim/clipboard-regtype.txt')
+
+function! ClipboardCopy(lines, regtype)
+  let sum = TryClipboardCmd('md5sum', a:lines)
+  call writefile(sum, s:regtype_sum, 'S')
+  call writefile([a:regtype], s:regtype_txt, 'S')
+  return TryClipboardCmd('clipboard-provider copy', a:lines)
+endfunction
+
+function! ClipboardPaste()
+  let lines = TryClipboardCmd('clipboard-provider paste')
+  if type(lines) == type([])
+    let regtype = 'V'
+    if filereadable(s:regtype_sum) && filereadable(s:regtype_txt)
+      let actual = TryClipboardCmd('md5sum', lines)
+      let expected = readfile(s:regtype_sum)
+      if actual == expected
+        let regtype = readfile(s:regtype_txt)[0]
+      endif
+    endif
+    return [lines, regtype]
+  endif
+endfunction
+
+"}}}
+
 "═══════════════════════════════════════════════════════════════════════════════
 " Settings {{{
 "═══════════════════════════════════════════════════════════════════════════════
-
-" Keep this at the top of the file
-set nocompatible
 
 " General Settings {{{
 set autowrite           " write before a make
 set backspace=2         " allow backspacing over everything in insert mode
 set backupcopy=yes      " best for inotify
 let g:clipboard = {
-      \ 'name': 'myClipboard',
-      \     'copy': {
-      \         '+': 'clipboard-provider copy',
-      \         '*': 'env COPY_PROVIDERS=tmux clipboard-provider copy',
-      \     },
-      \     'paste': {
-      \         '+': 'clipboard-provider paste',
-      \         '*': 'env COPY_PROVIDERS=tmux clipboard-provider paste',
-      \     },
-      \ }
+      \ 'copy': {
+      \     '+': function('ClipboardCopy'),
+      \     '*': WithEnv({'COPY_PROVIDERS': 'tmux'}, function('ClipboardCopy')),
+      \ },
+      \ 'paste': {
+      \     '+': function('ClipboardPaste'),
+      \     '*': WithEnv({'PASTE_PROVIDERS': 'tmux'}, function('ClipboardPaste')),
+      \ }}
 set clipboard=unnamed   " to/from * by default (tmux only, not system)
 set cscopetag           " search cscope on ctrl-] and :tag
 set encoding=utf-8      " unicode me, baby
