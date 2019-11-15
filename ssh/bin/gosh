@@ -1,26 +1,55 @@
 #!/bin/bash
 
-gateway=pvd.scampersand.com
+main() {
+    declare gateway host user
 
-ssh-add -l &>/dev/null
-if [[ $? == 2 ]]; then
-  exec ssh-agent "$(type -P "$0")" "$@"
-fi
+    ensure-ssh-identity "$@"
 
-ssh-add -l &>/dev/null
-if [[ $? != 0 ]]; then
-  ssh-add || exit
-fi
+    gateway=scampernet.publicvm.com
+    host=${1:-gargan}
+    shift
 
-ssh -fA $gateway 'ln -sfn $SSH_AUTH_SOCK foo; sleep 30'
+    case $host in
+        gargan|gg) host=gargan session=scampersand ;;
+        jasperodus|jj) host=jasperodus session=scamperjam ;;
+    esac
 
-if [[ $# == 0 ]]; then
-    # -E to avoid wiping out DISPLAY set by tunnel
-    set -- gg 'tmux new-session -ADEs 0'
-fi
+    case $(whoami) in
+        amg) user=amy ;;
+        agriffis) user=aron ;;
+    esac
 
-case /$0 in
-    */gosh) mosh $gateway -- env SSH_AUTH_SOCK=foo ssh -t "$@" ;;
-    */sssh) ssh -t $gateway -- env SSH_AUTH_SOCK=foo ssh -t "$@" ;;
-    *) echo "what is $0?" >&2; exit 1 ;;
-esac
+    ssh -fA "$gateway" 'ln -sfn $SSH_AUTH_SOCK foo; sleep 30'
+
+    if [[ $# == 0 ]]; then
+        # -E to avoid wiping out DISPLAY set by tunnel
+        set -- "$host" "tmux new-session -ADEs $session"
+    fi
+
+    case /$0 in
+        */gosh) mosh "$gateway" -- env SSH_AUTH_SOCK=foo ssh -t "$@" ;;
+        */sssh) ssh -t "$gateway" -- env SSH_AUTH_SOCK=foo ssh -t "$@" ;;
+        *) echo "what is $0?" >&2; exit 1 ;;
+    esac
+
+    exit # always exit at bottom of main
+}
+
+ensure-ssh-identity() {
+    ssh-add -l &>/dev/null
+    case $? in
+        2)
+            # wrap and restart
+            exec ssh-agent "$(type -P "$0")" "$@"
+            ;;
+        0)
+            # we have identities, carry on
+            ;;
+        *)
+            # add identity to running ssh-agent
+            ssh-add || exit
+            ;;
+    esac
+}
+
+main "$@"

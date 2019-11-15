@@ -1,29 +1,57 @@
 #!/bin/bash
 
-ssh-add -l &>/dev/null
-if [[ $? == 2 ]]; then
-    exec ssh-agent "$(type -P "$0")" "$@"
-fi
+main() {
+    declare host session cmd
 
-ssh-add -l &>/dev/null
-if [[ $? != 0 ]]; then
-    ssh-add || exit
-fi
+    ensure-ssh-identity "$@"
 
-host=${1:-gg}-tunnel
-shift
+    host=${1:-gg}-tunnel
+    shift
 
-set -- -t -X "$@"
+    case $host in
+        gg-tunnel) session=scampersand ;;
+        jj-tunnel) session=scamperjam ;;
+    esac
 
-if [[ $HOSTNAME == penguin ]]; then
-    set -- -o 'GatewayPorts yes' "$@"
-fi
-
-while true; do
     # Don't use -N because it prevents ForwardX11.
-    # Just sleep for 100 years. The new-session/detach here allows
-    # update-environment to apply the new setting of DISPLAY
-    ssh $host "$@" 'source .ssh/agent; tmux new-session -As 0 \; detach; sleep 36500d'
-    sleep 2
-done
+    # Just sleep for 100 years.
+    cmd='sleep 36500d'
+    if [[ -n $session ]]; then
+        # The new-session/detach here allows update-environment to apply the new
+        # setting of DISPLAY. Source .ssh/agent first to avoid overriding agent
+        # vars in tmux session.
+        cmd="source .ssh/agent; tmux new-session -As $session \\; detach; $cmd"
+    fi
 
+    set -- -t -Y "$@"
+
+    if [[ $HOSTNAME == penguin ]]; then
+        set -- -o 'GatewayPorts yes' "$@"
+    fi
+
+    while true; do
+        ssh "$@" "$host" "$cmd"
+        sleep 2
+    done
+
+    exit # always exit at bottom of main
+}
+
+ensure-ssh-identity() {
+    ssh-add -l &>/dev/null
+    case $? in
+        2)
+            # wrap and restart
+            exec ssh-agent "$(type -P "$0")" "$@"
+            ;;
+        0)
+            # we have identities, carry on
+            ;;
+        *)
+            # add identity to running ssh-agent
+            ssh-add || exit
+            ;;
+    esac
+}
+
+main "$@"
