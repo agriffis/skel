@@ -107,15 +107,17 @@ set cscopetag           " search cscope on ctrl-] and :tag
 set encoding=utf-8      " unicode me, baby
 set hidden              " don't unload buffer when it is abandoned
 set history=100         " keep 100 lines of command line history
+set nojoinspaces        " two spaces after a period is for old fogeys
 set laststatus=2        " always show a status line (with the current filename)
 set listchars=tab:»·,trail:·    " how to display some special chars
 set modeline modelines=5 " security peskurity
-set nojoinspaces        " two spaces after a period is for old fogeys
+if $USER == 'aron'
+  set number
+endif
 set paragraphs=         " otherwise NROFF macros screw up CSS
 set pastetoggle=<F10>
 set report=0            " threshold for reporting nr. of lines changed
 set ruler               " show the cursor position all the time
-set shortmess+=at       " list of flags, reduce length of messages
 set showcmd             " show (partial) command in status line
 set showmode            " message on status line to show current mode
 set showmatch           " briefly jump to matching bracket
@@ -130,6 +132,13 @@ if ! isdirectory($HOME."/.vim/swap") && exists("*system")
 endif
 if isdirectory($HOME."/.vim/swap")
   set directory=~/.vim/swap,.
+endif
+
+" Use .vim/info and .vim/shada for state
+if exists('&shadafile')
+  let &shadafile = expand('~/.vim/shada')
+elseif has('viminfo')
+  let &viminfofile = expand('~/.vim/viminfo')
 endif
 "}}}
 
@@ -156,7 +165,7 @@ set shiftround          " round indent < and > to multiple of shiftwidth
 set shiftwidth=4        " but see override in c_linux-kernel.vim
 set smarttab            " use shiftwidth when inserting <Tab>
 set tabstop=8           " number of spaces that <Tab> in file uses
-set textwidth=75        " by default, although plugins or autocmds can modify
+set textwidth=80        " by default, although plugins or autocmds can modify
 "}}}
 
 " Search and completion settings {{{
@@ -166,6 +175,9 @@ set ignorecase          " "foo" matches "Foo", etc
 set infercase           " adjust the case of the match with ctrl-p/ctrl-n
 set smartcase           " ignorecase only when the pattern is all lower
 set nohlsearch          " by default, don't highlight matches after they're found
+if $USER == 'aron'
+  set hlsearch
+endif
 set grepprg=rg\ --line-number\ --smart-case\ --sort-files
 "}}}
 
@@ -175,7 +187,7 @@ set equalalways         " keep windows equal when splitting (default)
 set eadirection=both    " ver/hor/both - where does equalalways apply
 set fillchars+=vert:│
 set winheight=6         " height of current window
-set winwidth=75         " width of current window
+set winwidth=40         " width of current window
 "}}}
 
 " Terminal settings {{{
@@ -209,21 +221,6 @@ let maplocalleader=' m'
 augroup user  " captures all autocmds in plugins section
 autocmd!
 
-" Certain Python modules rely on sys.real_prefix and will fail to import if
-" it doesn't exist. Monkey-patch the sys module if sys.real_prefix doesn't
-" exist...
-if has('python')
-  function FixPythonSysRealPrefix()
-    python << EOT
-import os, sys
-if not hasattr(sys, 'real_prefix'):
-  from distutils.sysconfig import get_python_lib
-  sys.real_prefix = os.path.dirname(get_python_lib())
-EOT
-  endfunction
-  call FixPythonSysRealPrefix()
-endif
-
 if !has('nvim') && exists(':packadd')
   packadd! matchit
 endif
@@ -235,29 +232,45 @@ call plug#begin('~/.vim/plugged')
 "───────────────────────────────────────────────────────────────────────────────
 " Global plugins {{{
 "───────────────────────────────────────────────────────────────────────────────
+Plug 'markonm/traces.vim'
+Plug 'tpope/vim-commentary'
 Plug 'tpope/vim-fugitive'
 Plug 'tpope/vim-repeat'
 Plug 'tpope/vim-surround'
 Plug 'tpope/vim-unimpaired'
 
-" There are two competing editorconfig plugins, this one and the official
-" editorconfig/editorconfig-vim. This one is entirely VimL (doesn't depend
-" on if_python) and has better blacklisting support.
-Plug 'sgur/vim-editorconfig'
-let g:editorconfig_blacklist = {
-    \   'filetype': ['diff', 'fugitive', 'git.*'],
-    \ }
-
 " Provides projectroot#guess()
 Plug 'dbakker/vim-projectroot'
 let g:rootmarkers = ['.project', '.git', '.hg', '.svn', '.bzr', '_darcs', 'build.xml']
 
+" This is the official editorconfig plugin. There is also an alternative
+" sgur/vim-editorconfig which used to be preferable because it was pure VimL
+" whereas the official plugin required Python. Now the official plugin doesn't
+" require Python, and it provides an API for fetching domain-specific keys, see
+" :help editorconfig-advanced
+Plug 'editorconfig/editorconfig-vim'
+let g:EditorConfig_exclude_patterns = ['fugitive://.\*']
+let g:EditorConfig_max_line_indicator = 'none'
+
+function! EditorConfigAutoformatHook(config)
+  if has_key(a:config, 'autoformat') && exists(':AutoFormatBuffer')
+    " configure google/codefmt to format automatically on save
+    exec 'AutoFormatBuffer' a:config['autoformat']
+  endif
+  return 0 " success
+endfunction
+autocmd User PlugConfig call editorconfig#AddNewHook(function('EditorConfigAutoformatHook'))
+
 Plug 'junegunn/vim-easy-align'
-xmap ga <Plug>(EasyAlign)
 xmap ga <Plug>(EasyAlign)
 
 Plug 'vim-airline/vim-airline'
 Plug 'vim-airline/vim-airline-themes'
+let g:airline#extensions#tabline#enabled = 1
+let g:airline#extensions#tabline#buffer_idx_mode = 1
+let g:airline#extensions#tabline#buffer_min_count = 2
+let g:airline#extensions#tabline#buffers_label = 'BUFFERS'
+let g:airline#extensions#tabline#formatter = 'unique_tail'
 let g:airline_symbols = {}
 let g:airline_left_sep = ''
 let g:airline_left_alt_sep = ''
@@ -272,34 +285,26 @@ let g:airline_symbols.readonly = ''
 let g:airline_symbols.space = ' '
 let g:airline_symbols.spell = 'SPELL'
 let g:airline_symbols.whitespace = ''
-
-Plug 'Shougo/denite.nvim'
-Plug 'Shougo/neomru.vim'
-autocmd User PlugConfig call ConfigDenite()
-function! ConfigDenite()
-  call denite#custom#map('insert', '<Up>', '<denite:move_to_previous_line>', 'noremap')
-  call denite#custom#map('insert', '<Down>', '<denite:move_to_next_line>', 'noremap')
-  if executable('rg')
-    call denite#custom#var('file/rec', 'command', ['rg', '--files'])
-    call denite#custom#var('grep', 'command', ['rg'])
-    call denite#custom#var('grep', 'default_opts', ['--vimgrep', '--no-heading', '--smart-case', '--sort-files'])
-    call denite#custom#var('grep', 'recursive_opts', [])
-    call denite#custom#var('grep', 'pattern_opt', ['--regexp'])
-    call denite#custom#var('grep', 'separator', ['--'])
-    call denite#custom#var('grep', 'final_opts', [])
-    call denite#custom#source('grep', 'sorters', [])  " use rg-provided sort
-  endif
-  nnoremap <leader>bb :Denite buffer<CR>
-  nnoremap <leader>ff :DeniteBufferDir file<CR>
-  nnoremap <leader>fm :Denite file_mru<CR>
-  nnoremap <leader>pf :Denite file/rec:`projectroot#guess()`<CR>
-  nnoremap <C-p>      :Denite file/rec:`projectroot#guess()`<CR>
-  nnoremap <leader>sP :DeniteCursorWord grep:`projectroot#guess()`::!<CR>
-  nnoremap <leader>*  :DeniteCursorWord grep:`projectroot#guess()`::!<CR>
-  nnoremap <leader>sp :Denite grep:`projectroot#guess()`::!<CR>
-  nnoremap <leader>/  :Denite grep:`projectroot#guess()`::!<CR>
-  nnoremap <leader>sl :Denite -resume<CR>
+autocmd User PlugConfig call ConfigAirline()
+function! ConfigAirline()
+  nmap <leader>1 <Plug>AirlineSelectTab1
+  nmap <leader>2 <Plug>AirlineSelectTab2
+  nmap <leader>3 <Plug>AirlineSelectTab3
+  nmap <leader>4 <Plug>AirlineSelectTab4
+  nmap <leader>5 <Plug>AirlineSelectTab5
+  nmap <leader>6 <Plug>AirlineSelectTab6
+  nmap <leader>7 <Plug>AirlineSelectTab7
+  nmap <leader>8 <Plug>AirlineSelectTab8
+  nmap <leader>9 <Plug>AirlineSelectTab9
+  nmap <leader>n <Plug>AirlineSelectNextTab
+  nmap <leader>N <Plug>AirlineSelectPrevTab
+  nmap <leader>p <Plug>AirlineSelectPrevTab
 endfunction
+
+Plug 'scrooloose/nerdtree'
+" Plug 'Xuyuanp/nerdtree-git-plugin'
+
+Plug 'Shougo/defx.nvim', {'do': ':UpdateRemotePlugins'}
 
 " TODO modify spacevim to use denite
 " rather than overriding with mappings.
@@ -315,6 +320,156 @@ let g:spacevim_enabled_layers = [
 \ 'syntax-checking',
 \ ]
 Plug 'ctjhoa/spacevim'
+
+Plug 'autozimu/LanguageClient-neovim', {
+      \ 'branch': 'next',
+      \ 'do': 'bash install.sh',
+      \ }
+let g:LanguageClient_serverCommands = {
+      \ 'java': ['jdtls'],
+      \ }
+" Override the default signText which are wider than a character cell and
+" don't play well with hterm.js
+let g:LanguageClient_diagnosticsDisplay =
+      \ {
+      \     1: {
+      \         "name": "Error",
+      \         "texthl": "ALEError",
+      \         "signText": "*",
+      \         "signTexthl": "ALEErrorSign",
+      \         "virtualTexthl": "Error",
+      \     },
+      \     2: {
+      \         "name": "Warning",
+      \         "texthl": "ALEWarning",
+      \         "signText": "!",
+      \         "signTexthl": "ALEWarningSign",
+      \         "virtualTexthl": "Todo",
+      \     },
+      \     3: {
+      \         "name": "Information",
+      \         "texthl": "ALEInfo",
+      \         "signText": "?",
+      \         "signTexthl": "ALEInfoSign",
+      \         "virtualTexthl": "Todo",
+      \     },
+      \     4: {
+      \         "name": "Hint",
+      \         "texthl": "ALEInfo",
+      \         "signText": "»",
+      \         "signTexthl": "ALEInfoSign",
+      \         "virtualTexthl": "Todo",
+      \     },
+      \ }
+function! LC_maps()
+  if has_key(g:LanguageClient_serverCommands, &filetype)
+    nnoremap <buffer> <silent> K :call LanguageClient#textDocument_hover()<CR>
+    nnoremap <buffer> <silent> gd :call LanguageClient#textDocument_definition()<CR>
+    nnoremap <buffer> <silent> <localleader>gr :call LanguageClient#textDocument_references()<CR>
+    nnoremap <buffer> <silent> <localleader>gg :call LanguageClient#textDocument_definition()<CR>
+    nnoremap <buffer> <silent> <localleader>gt :call LanguageClient#textDocument_typeDefinition()<CR>
+    nnoremap <buffer> <silent> <localleader>= :call LanguageClient#textDocument_formatting()<CR>
+    vnoremap <buffer> <silent> <localleader>= :call LanguageClient#textDocument_rangeFormatting()<CR>
+    nnoremap <buffer> <silent> <localleader>rr :call LanguageClient#textDocument_rename()<CR>
+  endif
+endfunction
+autocmd FileType * call LC_maps()
+
+if 0
+  Plug 'junegunn/fzf'
+  function! s:build_quickfix_list(lines)
+    call setqflist(map(copy(a:lines), '{ "filename": v:val }'))
+    copen
+    cc
+  endfunction
+  let g:fzf_action = {
+        \ 'ctrl-q': function('s:build_quickfix_list'),
+        \ 'ctrl-t': 'tab split',
+        \ 'ctrl-x': 'split',
+        \ 'ctrl-v': 'vsplit' }
+  Plug 'junegunn/fzf.vim'
+  let g:fzf_command_prefix = 'Fzf'
+  command! FzfFiles call fzf#run(fzf#wrap(
+        \ {'source': 'rg --files', 'dir': projectroot#guess()}))
+  nnoremap <leader>pf :FzfFiles<Cr>
+  nnoremap <c-p> :FzfFiles<Cr>
+  autocmd! FileType fzf
+  autocmd  FileType fzf set laststatus=0 noshowmode noruler
+        \| autocmd BufLeave <buffer> set laststatus=2 showmode ruler
+else
+  Plug 'Shougo/context_filetype.vim'
+  Plug 'Shougo/denite.nvim'
+  Plug 'Shougo/neomru.vim'
+  autocmd User PlugConfig call ConfigDenite()
+  function! ConfigDenite()
+    call denite#custom#map('insert', '<Up>', '<denite:move_to_previous_line>', 'noremap')
+    call denite#custom#map('insert', '<Down>', '<denite:move_to_next_line>', 'noremap')
+    if executable('rg')
+      call denite#custom#var('file/rec', 'command', ['rg', '--files'])
+      call denite#custom#var('grep', 'command', ['rg'])
+      call denite#custom#var('grep', 'default_opts', ['--vimgrep', '--no-heading', '--smart-case', '--sort-files'])
+      call denite#custom#var('grep', 'recursive_opts', [])
+      call denite#custom#var('grep', 'pattern_opt', ['--regexp'])
+      call denite#custom#var('grep', 'separator', ['--'])
+      call denite#custom#var('grep', 'final_opts', [])
+      call denite#custom#source('grep', 'sorters', [])  " use rg-provided sort
+    endif
+    nnoremap <leader>bb :Denite -start-filter buffer<CR>
+    nnoremap <leader>ff :DeniteBufferDir -start-filter file<CR>
+    nnoremap <leader>fm :Denite -start-filter file_mru<CR>
+    nnoremap <leader>pf :Denite -start-filter file/rec:`projectroot#guess()`<CR>
+    nnoremap <c-p>      :Denite -start-filter file/rec:`projectroot#guess()`<CR>
+    nnoremap <leader>sP :DeniteCursorWord -start-filter grep:`projectroot#guess()`::!<CR>
+    nnoremap <leader>*  :DeniteCursorWord -start-filter grep:`projectroot#guess()`::!<CR>
+    nnoremap <leader>sp :Denite -start-filter grep:`projectroot#guess()`::!<CR>
+    nnoremap <leader>/  :Denite -start-filter grep:`projectroot#guess()`::!<CR>
+    nnoremap <leader>sl :Denite -start-filter -resume<CR>
+
+    autocmd FileType denite call s:denite_bindings()
+    function! s:denite_bindings() abort
+      nnoremap <silent><buffer><expr> <CR>    denite#do_map('do_action')
+      nnoremap <silent><buffer><expr> d       denite#do_map('do_action', 'delete')
+      nnoremap <silent><buffer><expr> p       denite#do_map('do_action', 'preview')
+      nnoremap <silent><buffer><expr> q       denite#do_map('quit')
+      nnoremap <silent><buffer><expr> i       denite#do_map('open_filter_buffer')
+      nnoremap <silent><buffer><expr> <Space> denite#do_map('toggle_select').'j'
+    endfunction
+
+    autocmd FileType denite-filter call s:denite_filter_bindings()
+    function! s:denite_filter_bindings() abort
+      inoremap <silent><buffer>       <C-o>  <Plug>(denite_filter_quit)
+      inoremap <silent><buffer><expr> <CR>   denite#do_map('do_action')
+      inoremap <silent><buffer><expr> <C-c>  denite#do_map('quit')
+      imap     <silent><buffer>       <C-k>  <Esc><C-w>pk<C-w>pA
+      imap     <silent><buffer>       <Up>   <Esc><C-w>pk<C-w>pA
+      imap     <silent><buffer>       <C-j>  <Esc><C-w>pj<C-w>pA
+      imap     <silent><buffer>       <Down> <Esc><C-w>pj<C-w>pA
+    endfunction
+  endfunction
+endif
+
+"Plug 'Shougo/deoplete.nvim', {'do': ':UpdateRemotePlugins'}
+"if $USER == 'aron'
+"  let deoplete#enable_at_startup = 1
+"endif
+"autocmd User PlugConfig call ConfigDeoplete()
+"function! ConfigDeoplete()
+"  call deoplete#custom#option({
+"        \ 'auto_complete_delay': 200,
+"        \ })
+"  autocmd FileType denite-filter call deoplete#custom#buffer_option('auto_complete', v:false)
+"endfunction
+
+" Code formatting -- https://github.com/google/vim-codefmt
+Plug 'google/vim-maktaba'
+if isdirectory('~/src/vim-codefmt')
+  Plug '~/src/vim-codefmt'
+else
+  Plug 'agriffis/vim-codefmt'
+endif
+Plug 'google/vim-glaive'
+autocmd User PlugConfig call glaive#Install()
+autocmd User PlugConfig Glaive codefmt plugin[mappings]
 
 " Color schemes
 Plug 'NLKNguyen/papercolor-theme'
@@ -347,22 +502,26 @@ Plug 'lifepillar/vim-solarized8'
 " If more are needed, this should be a comma-separated list.
 let g:html_indent_inctags = 'p,main'
 
-Plug 'lepture/vim-jinja'
+Plug 'agriffis/vim-jinja'
 
 Plug 'andreshazard/vim-freemarker'
 autocmd BufNewFile,BufReadPost *.ftl set ft=freemarker
 
 Plug 'agriffis/vim-vue', {'branch': 'develop'}
-autocmd FileType vue let &l:cinoptions = g:javascript_cinoptions
-autocmd FileType vue setl comments=s:<!--,m:\ \ \ \ \ ,e:-->,s1:/*,mb:*,ex:*/,://
+autocmd User PlugConfig
+      \ autocmd FileType vue let &l:cinoptions = g:javascript_cinoptions
+autocmd User PlugConfig
+      \ autocmd FileType vue setl comments=s:<!--,m:\ \ \ \ \ ,e:-->,s1:/*,mb:*,ex:*/,://
+autocmd User PlugConfig
+      \ autocmd FileType vue syn sync fromstart
 
-Plug 'vim-scripts/closetag.vim'
+Plug 'agriffis/closetag.vim'
 " The closetag.vim script is kinda broken... it requires b:unaryTagsStack
 " per buffer but only sets it once, on script load.
 autocmd BufNewFile,BufReadPre * let b:unaryTagsStack="area base br dd dt hr img input link meta param"
-autocmd FileType xml,jsx let b:unaryTagsStack=""
+autocmd FileType jsx,markdown,xml let b:unaryTagsStack=""
 " Replace the default closetag maps with c-/ in insert mode only.
-autocmd FileType html,jsx,vue,xml inoremap <buffer> <C-/> <C-R>=GetCloseTag()<CR>
+autocmd FileType html,jsx,markdown,vue,xml inoremap <buffer> <C-/> <C-r>=GetCloseTag()<CR>
 
 autocmd FileType xml syntax cluster xmlRegionHook add=SpellErrors,SpellCorrected
 
@@ -382,11 +541,11 @@ function! ReHtml(type, ...)
   endif
 endfunction
 " see :help :map-operator
-autocmd FileType html,vue nnoremap <buffer> <leader>= :set opfunc=ReHtml<CR>g@
-autocmd FileType html,vue vnoremap <buffer> <leader>= :<C-u>call ReHtml(visualmode(), 1)<CR>
+autocmd FileType html nnoremap <buffer> <localleader>rf :set opfunc=ReHtml<CR>g@
+autocmd FileType html vnoremap <buffer> <localleader>rf :<C-u>call ReHtml(visualmode(), 1)<CR>
 
 " vim bundles vim-markdown (by tpope)
-autocmd BufNewFile,BufReadPost *.md set filetype=markdown
+autocmd BufNewFile,BufReadPost *.md,*.mdx set filetype=markdown
 let g:markdown_fenced_languages = ['html', 'python', 'bash=sh', 'clojure', 'sql']
 let g:markdown_minlines = 500
 
@@ -395,12 +554,15 @@ autocmd BufNewFile,BufReadPost *.overrides,*.variables set ft=less
 
 "───────────────────────────────────────────────────────────────────────────────
 " JavaScript {{{
+"
+" Lots of helpful info to get started at
+" https://davidosomething.com/blog/vim-for-javascript/
 "───────────────────────────────────────────────────────────────────────────────
 " vim-javascript is the best available javascript indenter/hilighter.
-" Actively maintained, poorly commented, also a dependency for vim-jsx.
 " Note that once vim-javascript is loaded, it is automatically used by
 " the built-in html.vim for <script> sections via g:html_indent_script1
 Plug 'pangloss/vim-javascript'
+let g:javascript_plugin_jsdoc = 1
 
 " vim-javascript is configured with cinoptions, see
 " https://github.com/pangloss/vim-javascript#indentation-specific
@@ -409,26 +571,48 @@ let g:javascript_cinoptions = '(0,Ws'
 let g:javascript_indent_W_pat = '[^[:blank:]{[]'  " https://github.com/pangloss/vim-javascript/issues/1114
 autocmd FileType javascript let &l:cinoptions = g:javascript_cinoptions
 autocmd FileType javascript setl comments=s1:/*,mb:*,ex:*/,://
+autocmd FileType javascript setl shiftwidth=2
 
-" vim-jsx provides the glue between vim-javascript and xml. It only affects
-" files with js or jsx extensions, and does not affect <script> sections.
-Plug 'mxw/vim-jsx'
-let g:jsx_ext_required = 0
+Plug 'heavenshell/vim-jsdoc'
+autocmd FileType javascript noremap <localleader>rdf $?function<CR>:noh<CR><Plug>(jsdoc)
+
+" Disable Eclim's JS indentation which overrides vim-javascript.
+let g:EclimJavascriptIndentDisabled = 1
+
+Plug 'ternjs/tern_for_vim'
+let g:tern#command = ['tern']
+" yarn config set prefix ~/.local
+" yarn global add tern
+autocmd FileType javascript noremap <localleader>gg :TernDef<CR>
+autocmd FileType javascript noremap gd :TernDef<CR>
+
+" Configure deoplete for javascript
+Plug 'carlitux/deoplete-ternjs'
+"let g:deoplete#sources#ternjs#docs = 1
+let g:deoplete#sources#ternjs#expand_word_forward = 0
+
+" Configure codefmt to call prettier with vim settings (and leave everything
+" else set by config files)
+autocmd User PlugConfig Glaive codefmt prettier_options=`{-> [
+      \ '--print-width=' . &textwidth,
+      \ '--tab-width=' . &shiftwidth,
+      \ ]}`
+
+" vim-jsx-pretty replaces the deprecated vim-jsx to augment vim-javascript
+" with support for JSX indenting and highlighting.
+Plug 'maxmellon/vim-jsx-pretty'
 
 " vim-json highlights keys/values separately, conceals quotes except on the
 " cursor line, and highlights errors loudly.
 Plug 'elzr/vim-json'
 let g:vim_json_syntax_conceal = 0
+autocmd FileType json,yaml setl shiftwidth=2
+"}}}
 
-Plug 'prettier/vim-prettier'
-let g:prettier#config#semi = 'false'
-let g:prettier#config#single_quote = 'true'
-let g:prettier#config#bracket_spacing = 'false'
-let g:prettier#config#jsx_bracket_same_line = 'false'
-let g:prettier#config#trailing_comma = 'es5'
-
-" Disable Eclim's JS indentation which overrides vim-javascript.
-let g:EclimJavascriptIndentDisabled = 1
+"───────────────────────────────────────────────────────────────────────────────
+" TOML {{{
+"───────────────────────────────────────────────────────────────────────────────
+Plug 'cespare/vim-toml'
 "}}}
 
 "───────────────────────────────────────────────────────────────────────────────
@@ -512,20 +696,37 @@ autocmd BufNewFile,BufReadPost Vagrantfile* set ft=ruby
 "───────────────────────────────────────────────────────────────────────────────
 " https://juxt.pro/blog/posts/vim-1.html
 " http://blog.venanti.us/clojure-vim/
+"let g:sexp_enable_insert_mode_mappings = 0
 let g:sexp_insert_after_wrap = 0
-let g:sexp_enable_insert_mode_mappings = 0
-Plug 'guns/vim-sexp'
-Plug 'tpope/vim-fireplace'
-Plug 'tpope/vim-sexp-mappings-for-regular-people'
 Plug 'tpope/vim-classpath'
+Plug 'tpope/vim-fireplace'
+Plug 'guns/vim-sexp'
+Plug 'tpope/vim-sexp-mappings-for-regular-people'
+function! s:my_sexp_mappings()
+  nmap <buffer> ><  <Plug>(sexp_emit_head_element)
+  nmap <buffer> <>  <Plug>(sexp_emit_tail_element)
+  nmap <buffer> <<  <Plug>(sexp_capture_prev_element)
+  nmap <buffer> >>  <Plug>(sexp_capture_next_element)
+endfunction
+function! s:config_sexp()
+  autocmd FileType clojure,lisp,scheme call s:my_sexp_mappings()
+endfunction
+autocmd User PlugConfig call s:config_sexp()
+
+Plug 'guns/vim-clojure-static'
+let g:clj_highlight_builtins=1
 
 Plug 'venantius/vim-cljfmt'
 let g:clj_fmt_autosave = 0
 
-" clojure syntax config
-let g:clj_highlight_builtins=1
+" Configure codefmt to call zprint with vim settings (and leave everything
+" else set by config files)
+autocmd User PlugConfig Glaive codefmt zprint_options=`{-> [
+      \ '{:search-config? true :width ' . &textwidth . '}'
+      \ ]}`
 
-Plug '/home/aron/.vim/bundle/eclim'
+" Configure codefmt to zprint top-level forms with <leader>==
+autocmd FileType clojure nmap <buffer> <silent> <leader>== <leader>=iF
 
 " following required for eastwood
 " https://github.com/venantius/vim-eastwood/issues/8
@@ -542,8 +743,6 @@ let g:syntastic_always_populate_loc_list = 1
 let g:syntastic_auto_loc_list = 1
 let g:syntastic_check_on_open = 1
 let g:syntastic_check_on_wq = 0
-
-autocmd FileType clojure setlocal lisp
 "}}}
 
 "───────────────────────────────────────────────────────────────────────────────
@@ -563,14 +762,14 @@ function! LoadTypeC()
 
   " Add support for various types of cscope searches based on the current word
   if has("cscope")
-    noremap <buffer> <leader>mgc :cs find c <C-R>=expand("<cword>")<CR><CR>
-    noremap <buffer> <leader>mgd :cs find d <C-R>=expand("<cword>")<CR><CR>
-    noremap <buffer> <leader>mge :cs find e <C-R>=expand("<cword>")<CR><CR>
-    noremap <buffer> <leader>mgf :cs find f <C-R>=expand("<cword>")<CR><CR>
-    noremap <buffer> <leader>mgg :cs find g <C-R>=expand("<cword>")<CR><CR>
-    noremap <buffer> <leader>mgi :cs find i <C-R>=expand("<cword>")<CR><CR>
-    noremap <buffer> <leader>mgs :cs find s <C-R>=expand("<cword>")<CR><CR>
-    noremap <buffer> <leader>mgt :cs find t <C-R>=expand("<cword>")<CR><CR>
+    noremap <buffer> <localleader>gc :cs find c <C-R>=expand("<cword>")<CR><CR>
+    noremap <buffer> <localleader>gd :cs find d <C-R>=expand("<cword>")<CR><CR>
+    noremap <buffer> <localleader>ge :cs find e <C-R>=expand("<cword>")<CR><CR>
+    noremap <buffer> <localleader>gf :cs find f <C-R>=expand("<cword>")<CR><CR>
+    noremap <buffer> <localleader>gg :cs find g <C-R>=expand("<cword>")<CR><CR>
+    noremap <buffer> <localleader>gi :cs find i <C-R>=expand("<cword>")<CR><CR>
+    noremap <buffer> <localleader>gs :cs find s <C-R>=expand("<cword>")<CR><CR>
+    noremap <buffer> <localleader>gt :cs find t <C-R>=expand("<cword>")<CR><CR>
   endif
 endfunction
 
@@ -581,11 +780,13 @@ autocmd FileType c,cpp call LoadTypeC()
 " Shell {{{
 "───────────────────────────────────────────────────────────────────────────────
 let g:is_bash=1
-
-" Clear silly highlighting for words like "stop" that aren't bash
-" keywords at all.
-autocmd FileType sh syn clear bashStatement bashAdminStatement shStatement
 "}}}
+
+Plug 'norcalli/nvim-colorizer.lua'
+function! s:config_colorizer()
+  silent! lua require'colorizer'.setup()
+endfunction
+autocmd User PlugConfig call s:config_colorizer()
 
 call plug#end()
 
@@ -605,12 +806,22 @@ nnoremap <leader>tw :set list!<CR>
 
 " Reformat current paragraph
 nmap Q }{gq}
-vmap Q gq 
+vmap Q gq
 
 " Copy to system clipboard
 nmap YY "+yy
 nmap Y "+y
 vmap Y "+y
+
+" Toggle diff mode
+function! DiffToggle()
+  if &diff
+    diffoff
+  else
+    diffthis
+  endif
+endfunction
+nmap <leader>td :call DiffToggle()<CR>
 
 " Disable movement keys that I hit accidentally sometimes.
 inoremap <Up> <nop>
@@ -626,10 +837,6 @@ inoremap <End> <nop>
 "═══════════════════════════════════════════════════════════════════════════════
 " Colors {{{
 "═══════════════════════════════════════════════════════════════════════════════
-
-if has('nvim') && exists('&termguicolors')
-  set termguicolors
-endif
 
 function! TryTheme(theme, ...)
   let l:background = a:0 ? a:1 : ''
