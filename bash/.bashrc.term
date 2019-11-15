@@ -72,21 +72,14 @@ setup_TERM() {
   esac
 
   case $TERM in
-    *[-+]256color|rxvt*)
-      # Check if the system groks 256color then degrade gracefully.
-      # Note that xterm+256color doesn't really work right, so don't
-      # attempt to use it unless it's already set.
-      # ("less" complains that the terminal isn't fully functional...)
-      terms+=(
-        "$TERM"               # e.g. xterm+256color
-        "${TERM/+/-}"         # e.g. xterm-256color
-        "${TERM/#xterm?256color/vte-256color}"
-        "${TERM/#rxvt-unicode/rxvt-88color}"
-        "${TERM%[-+]*}-16color"  # e.g. xterm-16color
-        "${TERM%[-+]*}"       # e.g. xterm or rxvt
-        xterm
-        dumb
-        ) ;;
+    alacritty)
+      terms=("$TERM" xterm-256color xterm) ;;
+
+    rxvt-*)
+      terms=("$TERM" rxvt xterm) ;;
+
+    xterm-256color)
+      terms=("$TERM" xterm) ;;
 
     screen*)
       terms=(
