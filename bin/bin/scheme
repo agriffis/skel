@@ -142,11 +142,11 @@ load_default_schemes() {
     light_background=light
     light_iterm2_scheme=CLRS
     # background foreground then ANSI 0-15
-    light_xterm_colors="#f6f6f6 #000000 #000000 #8b4b4b #4b8b4b #8b8b4b
+    light_xterm_colors="#ffffff #000000 #000000 #8b4b4b #4b8b4b #8b8b4b
                         #4b4b8b #8b4b8b #4b8b8b #d9d9d9 #262626 #c99b9b
                         #9bc99b #c9c99b #9b9bc9 #c99bc9 #9bc9c9 #ffffff"
     light_emacs_theme=spacemacs-light
-    light_vim_theme=default
+    light_vim_theme=PaperColor # default
     light_toggle=dark
 
     dark_background=dark
@@ -155,7 +155,7 @@ load_default_schemes() {
                        #3465a4 #92659a #07c7ca #d3d7cf #6e706b #ef2929
                        #8ae234 #fce94f #729fcf #c19fbe #63e9e9 #eeeeec"
     dark_emacs_theme=spacemacs-dark
-    dark_vim_theme=jellybeans
+    dark_vim_theme=PaperColor # inkpot
     dark_toggle=light
 
     solarized_light_background=light
@@ -167,7 +167,7 @@ load_default_schemes() {
         #93a1a1 #839496 #657b83 #6c71c4 #586e75 #002b36"
     #xterm_cursor="#586e75"  XXX
     solarized_light_emacs_theme=solarized
-    solarized_light_vim_theme=solarized
+    solarized_light_vim_theme=solarized8
     solarized_light_toggle=solarized_dark
 
     solarized_dark_background=dark
@@ -178,8 +178,26 @@ load_default_schemes() {
         #586e75 #657b83 #839496 #6c71c4 #93a1a1 #fdf6e3"
     #xterm_cursor="#93a1a1"  XXX
     solarized_dark_emacs_theme=solarized
-    solarized_dark_vim_theme=solarized
+    solarized_dark_vim_theme=solarized8
     solarized_dark_toggle=solarized_light
+
+    darcula_background=dark
+    darcula_iterm2_scheme='JetBrains Darcula'
+    # background foreground then ANSI 0-15
+    darcula_xterm_colors="
+        #202020 #adadad #000000 #fa5355 #126e00 #c2c300
+        #4581eb #fa54ff #33c2c1 #adadad #555555 #fb7172
+        #67ff4f #ffff00 #6d9df1 #fb82ff #60d3d1 #eeeeee"
+    darcula_vim_theme=darcula
+    darcula_toggle=light
+
+    gruvbox_background=dark
+    gruvbox_xterm_colors="
+        #282828 #ebdbb2 #282828 #cc241d #98971a #d79921
+        #458588 #b16286 #689d6a #a89984 #928374 #fb4934
+        #b8bb26 #fabd2f #83a598 #d3869b #8ec07c #ebdbb2"
+    gruvbox_vim_theme="gruvbox"
+    gruvbox_toggle=light
 }
 
 update_state() {

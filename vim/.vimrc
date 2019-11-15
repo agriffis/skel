@@ -181,6 +181,10 @@ set winwidth=75         " width of current window
 " Terminal settings {{{
 set vb t_vb=            " shut off bell entirely; see also .gvimrc
 
+if has('nvim') && exists('&termguicolors')
+  set termguicolors
+endif
+
 " Enable bracketed paste everywhere. This would happen automatically on
 " local terms, even with mosh using TERM=xterm*, but doesn't happen
 " automatically in tmux with TERM=screen*. Setting it manually works fine.
@@ -314,11 +318,26 @@ Plug 'ctjhoa/spacevim'
 
 " Color schemes
 Plug 'NLKNguyen/papercolor-theme'
+let g:PaperColor_Theme_Options = {
+      \   'theme': {
+      \     'default': {
+      \       'transparent_background': 1
+      \     },
+      \     'default.light': {
+      \       'override': {
+      \         'color07': ['#000000', '16'],
+      \       }
+      \     }
+      \   }
+      \ }
 Plug 'nanotech/jellybeans.vim'
 let g:jellybeans_background_color = ''
 let g:jellybeans_background_color_256 = 'NONE'
 Plug 'rakr/vim-one'
 Plug 'reedes/vim-colors-pencil'
+Plug 'doums/darcula'
+Plug 'morhetz/gruvbox'
+Plug 'lifepillar/vim-solarized8'
 "}}}
 
 "───────────────────────────────────────────────────────────────────────────────
