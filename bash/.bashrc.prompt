@@ -26,6 +26,8 @@ source ~/.bashrc.funcs
 : ${PS1_COLOR_WARNING_BG:=yellow}
 : ${PS1_COLOR_ERROR_FG:=$PS1_COLOR_DEFAULT_FG}
 : ${PS1_COLOR_ERROR_BG:=red}
+: ${PS1_COLOR_PROMPT_FG:=default}
+: ${PS1_COLOR_PROMPT_BG:=default}
 : ${PS1_CHAR_OK:=$'\uf00c'}           #   (powerline)
 : ${PS1_CHAR_UGH:=$'\uf00d'}          #   (powerline)
 : ${PS1_CHAR_LARR:=$'\ue0b3'}         #   (powerline)
@@ -46,6 +48,7 @@ source ~/.bashrc.funcs
 : ${PS1_SEP_FILLED:=$PS1_CHAR_RARR_FILLED}
 : ${PS1_SEP_LEFT:=$PS1_CHAR_LARR}
 : ${PS1_SEP_LEFT_FILLED:=$PS1_CHAR_LARR_FILLED}
+: ${PS1_PROMPT:='\$ '}
 
 # Modules that want to cache information between calls can use these
 # functions.
@@ -474,8 +477,9 @@ ps1_mod_endcap() {
 ps1_add endcap
 
 ps1_mod_prompt() {
+  ps1_color $PS1_COLOR_PROMPT_FG bg $PS1_COLOR_PROMPT_BG
+  PS1+=$PS1_PROMPT
   ps1_color default bg default
-  PS1+='\$ '
 }
 ps1_add prompt after endcap
 
