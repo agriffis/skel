@@ -12,7 +12,6 @@ main() {
     declare opt_config=$HOME/.schemes
     declare force_dark=false
     declare force_light=false
-    declare opt_background=
     declare opt_xterm_colors=
     declare opt_iterm2_scheme=
     declare opt_eval=false
@@ -80,10 +79,11 @@ set_scheme() {
     update_iterm2 "$iterm2_scheme" &
     update_kitty "$xterm_colors" # not backgrounded
     update_alacritty "$xterm_colors" # not backgrounded
+    update_gtk "$gtk_theme" "$background" &
 
     update_emacs "$emacs_theme" "$background" &
     update_vim "$vim_theme" "$background" &
-    update_tmux "$scheme" "$background" &
+    #update_tmux "$scheme" "$background" &
 
     after_update_hook "${parsed_opts[@]}" "${params[@]}"
 
@@ -435,6 +435,20 @@ update_kitty() {
         color13=${xterm_colors[13]} \
         color14=${xterm_colors[14]} \
         color15=${xterm_colors[15]}
+}
+
+update_gtk() {
+    declare gtk_theme="$1" background="$2"
+    if [[ -z $gtk_theme ]]; then
+        declare current=$(gsettings get org.gnome.desktop.interface gtk-theme 2>/dev/null)
+        case "$current:$background" in
+            *Adwaita*:light) gtk_theme=Adwaita ;;
+            *Adwaita*:dark) gtk_theme=Adwaita-dark ;;
+        esac
+    fi
+    if [[ -n $gtk_theme ]]; then
+        gsettings set org.gnome.desktop.interface gtk-theme "$gtk_theme"
+    fi
 }
 
 update_alacritty() {
