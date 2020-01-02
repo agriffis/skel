@@ -364,6 +364,7 @@ else
   Plug 'Shougo/context_filetype.vim'
   Plug 'Shougo/denite.nvim'
   Plug 'Shougo/neomru.vim'
+  let g:neomru#do_validate=0
   autocmd User PlugConfig call ConfigDenite()
   function! ConfigDenite()
     call denite#custom#map('insert', '<Up>', '<denite:move_to_previous_line>', 'noremap')
