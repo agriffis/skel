@@ -62,7 +62,7 @@ let s:regtype_sum = expand('~/.vim/clipboard-regtype.sum')
 let s:regtype_txt = expand('~/.vim/clipboard-regtype.txt')
 
 function! ClipboardCopy(lines, regtype)
-  let sum = TryClipboardCmd('md5sum', a:lines)
+  let sum = TryClipboardCmd('sum', a:lines)
   call writefile(sum, s:regtype_sum, 'S')
   call writefile([a:regtype], s:regtype_txt, 'S')
   return TryClipboardCmd('clipboard-provider copy', a:lines)
@@ -73,7 +73,7 @@ function! ClipboardPaste()
   if type(lines) == type([])
     let regtype = 'V'
     if filereadable(s:regtype_sum) && filereadable(s:regtype_txt)
-      let actual = TryClipboardCmd('md5sum', lines)
+      let actual = TryClipboardCmd('sum', lines)
       let expected = readfile(s:regtype_sum)
       if actual == expected
         let regtype = readfile(s:regtype_txt)[0]
