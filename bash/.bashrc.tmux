@@ -14,18 +14,6 @@
 
 [[ -z $TMUX ]] && return
 
-if [[ $(type -t ps1_add) != function ]]; then
-  echo ".bashrc.tmux must load after .bashrc.prompt" >&2
-  return
-fi
-
-_gen_exports() {
-  declare name
-  for name; do
-    [[ -z ${!name} ]] || echo "export $name=$(printf %q "${!name}")"
-  done
-}
-
 ps1_mod_tmux_env() {
   declare line name value
 
@@ -37,23 +25,18 @@ ps1_mod_tmux_env() {
       *=*)
         name=${line%%=*}
         value=${line#*=}
-        eval "$name=$(printf %q "$value")"
+        eval "export $name=$(printf %q "$value")"
         ;;
     esac
   done <<<"$(tmux showenv)"
-
-  declare tmux_persistent_env=(
-    DBUS_SESSION_BUS_ADDRESS 
-    DISPLAY
-    SSH_AUTH_SOCK
-    XAUTHORITY
-  )
-  _gen_exports "${tmux_persistent_env[@]}" >> ~/.tmux.env
-  source ~/.tmux.env
-  _gen_exports "${tmux_persistent_env[@]}" > ~/.tmux.env
 }
 
-ps1_add tmux_env
+if [[ $(type -t ps1_add) == function ]]; then
+  ps1_add tmux_env
+else
+  append_cmd PROMPT_COMMAND ps1_mod_tmux_env
+fi
+
 
 # The following lines enforce a consistent indentation for this file.
 # Keep this comment at the end of file.
