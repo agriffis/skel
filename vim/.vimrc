@@ -111,9 +111,6 @@ set nojoinspaces        " two spaces after a period is for old fogeys
 set laststatus=2        " always show a status line (with the current filename)
 set listchars=tab:»·,trail:·    " how to display some special chars
 set modeline modelines=5 " security peskurity
-if $USER == 'aron'
-  set number
-endif
 set paragraphs=         " otherwise NROFF macros screw up CSS
 set pastetoggle=<F10>
 set report=0            " threshold for reporting nr. of lines changed
@@ -175,9 +172,6 @@ set ignorecase          " "foo" matches "Foo", etc
 set infercase           " adjust the case of the match with ctrl-p/ctrl-n
 set smartcase           " ignorecase only when the pattern is all lower
 set nohlsearch          " by default, don't highlight matches after they're found
-if $USER == 'aron'
-  set hlsearch
-endif
 set grepprg=rg\ --line-number\ --smart-case\ --sort-files
 "}}}
 
@@ -328,43 +322,11 @@ Plug 'autozimu/LanguageClient-neovim', {
 let g:LanguageClient_serverCommands = {
       \ 'java': ['jdtls'],
       \ }
-" Override the default signText which are wider than a character cell and
-" don't play well with hterm.js
-let g:LanguageClient_diagnosticsDisplay =
-      \ {
-      \     1: {
-      \         "name": "Error",
-      \         "texthl": "ALEError",
-      \         "signText": "*",
-      \         "signTexthl": "ALEErrorSign",
-      \         "virtualTexthl": "Error",
-      \     },
-      \     2: {
-      \         "name": "Warning",
-      \         "texthl": "ALEWarning",
-      \         "signText": "!",
-      \         "signTexthl": "ALEWarningSign",
-      \         "virtualTexthl": "Todo",
-      \     },
-      \     3: {
-      \         "name": "Information",
-      \         "texthl": "ALEInfo",
-      \         "signText": "?",
-      \         "signTexthl": "ALEInfoSign",
-      \         "virtualTexthl": "Todo",
-      \     },
-      \     4: {
-      \         "name": "Hint",
-      \         "texthl": "ALEInfo",
-      \         "signText": "»",
-      \         "signTexthl": "ALEInfoSign",
-      \         "virtualTexthl": "Todo",
-      \     },
-      \ }
 function! LC_maps()
   if has_key(g:LanguageClient_serverCommands, &filetype)
     nnoremap <buffer> <silent> K :call LanguageClient#textDocument_hover()<CR>
     nnoremap <buffer> <silent> gd :call LanguageClient#textDocument_definition()<CR>
+    nnoremap <buffer> <silent> gD :call LanguageClient#textDocument_declaration()<CR>
     nnoremap <buffer> <silent> <localleader>gr :call LanguageClient#textDocument_references()<CR>
     nnoremap <buffer> <silent> <localleader>gg :call LanguageClient#textDocument_definition()<CR>
     nnoremap <buffer> <silent> <localleader>gt :call LanguageClient#textDocument_typeDefinition()<CR>
