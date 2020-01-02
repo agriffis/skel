@@ -79,6 +79,12 @@ fi
 [[ -r ~/.bashrc.rvm ]] && source ~/.bashrc.rvm    # after .bashrc.prompt
 [[ -r ~/.bashrc.tmux ]] && source ~/.bashrc.tmux  # after .bashrc.prompt
 
+if [[ -r /usr/local/lib/powerline/bindings/bash/powerline.sh ]]; then
+  # We don't want the actual prompt, just the tmux support.
+  POWERLINE_NO_SHELL_PROMPT=1
+  source /usr/local/lib/powerline/bindings/bash/powerline.sh
+fi
+
 export GPG_TTY=$(tty)
 
 # Aliases
