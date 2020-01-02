@@ -752,7 +752,7 @@ let g:is_bash=1
 
 Plug 'norcalli/nvim-colorizer.lua'
 function! s:config_colorizer()
-  silent! lua require'colorizer'.setup()
+  lua require'colorizer'.setup{'*';'!text'}
 endfunction
 autocmd User PlugConfig call s:config_colorizer()
 
