@@ -104,16 +104,20 @@
 	program = gpg2
 
 [diff]
+	renameLimit = 3000
 	submodule = log
 
 [status]
 	submodulesummary = 1
 
-[include]
-	path = .gitconfig.mine
 [merge]
 	tool = vimmerge
 [mergetool "vimmerge"]
 	cmd = vimmerge \"$MERGED\"
+[mergetool "vim"]
+	cmd = vim -O \"$BASE\" \"$LOCAL\" \"$MERGED\" \"$REMOTE\"
 [mergetool]
 	keepBackup = false
+
+[include]
+	path = .gitconfig.mine
