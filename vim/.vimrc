@@ -131,8 +131,10 @@ if isdirectory($HOME."/.vim/swap")
   set directory=~/.vim/swap,.
 endif
 
-" Use .vim/info and .vim/shada for state
+" Use .vim/info and .vim/shada for state, but keep it fast by omitting shada
+" options that cause lots of file/directory stats
 if exists('&shadafile')
+  set shada=!,'1,f0,h,s100
   let &shadafile = expand('~/.vim/shada')
 elseif has('viminfo')
   let &viminfofile = expand('~/.vim/viminfo')
