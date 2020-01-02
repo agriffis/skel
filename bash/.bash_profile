@@ -33,8 +33,15 @@ frontpath PATH \
   /usr/bin /bin /usr/sbin /sbin \
   /usr/X11R6/bin /usr/games /usr/games/bin
 
-[[ $HOME == / ]] || frontpath PATH \
-  ~/bin ~/.local/bin ~/node_modules/.bin ~/.cargo/bin ~/.cask/bin ~/go/bin
+if [[ $HOME != / ]]; then
+  frontpath PATH ~/.cargo/bin # cargo install
+  frontpath PATH ~/.cask/bin # homebrew
+  frontpath PATH ~/.gem/bin # gem install --user-install --bindir ~/.gem/bin
+  frontpath PATH ~/go/bin # go install
+  frontpath PATH ~/node_modules/.bin # yarn global add
+  frontpath PATH ~/.local/bin # npm i -g, make install
+  frontpath PATH ~/bin # personal and overrides
+fi
 
 # ccache on Gentoo and Debian respectively
 frontpath PATH /usr/lib{64,}/ccache/bin /usr/lib{64,}/ccache
