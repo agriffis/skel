@@ -396,13 +396,14 @@ else
       nnoremap <silent><buffer><expr> d       denite#do_map('do_action', 'delete')
       nnoremap <silent><buffer><expr> p       denite#do_map('do_action', 'preview')
       nnoremap <silent><buffer><expr> q       denite#do_map('quit')
+      nnoremap <silent><buffer><expr> <C-c>   denite#do_map('quit')
       nnoremap <silent><buffer><expr> i       denite#do_map('open_filter_buffer')
       nnoremap <silent><buffer><expr> <Space> denite#do_map('toggle_select').'j'
     endfunction
 
     autocmd FileType denite-filter call s:denite_filter_bindings()
     function! s:denite_filter_bindings() abort
-      inoremap <silent><buffer>       <C-o>  <Plug>(denite_filter_quit)
+      inoremap <silent><buffer><expr> <C-o>  <Plug>(denite_filter_quit)
       inoremap <silent><buffer><expr> <CR>   denite#do_map('do_action')
       inoremap <silent><buffer><expr> <C-c>  denite#do_map('quit')
       imap     <silent><buffer>       <C-k>  <Esc><C-w>pk<C-w>pA
