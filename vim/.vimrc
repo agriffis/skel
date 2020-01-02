@@ -245,7 +245,7 @@ let g:rootmarkers = ['.project', '.git', '.hg', '.svn', '.bzr', '_darcs', 'build
 " require Python, and it provides an API for fetching domain-specific keys, see
 " :help editorconfig-advanced
 Plug 'editorconfig/editorconfig-vim'
-let g:EditorConfig_exclude_patterns = ['fugitive://.\*']
+let g:EditorConfig_exclude_patterns = ['fugitive://.*']
 let g:EditorConfig_max_line_indicator = 'none'
 
 function! EditorConfigAutoformatHook(config)
