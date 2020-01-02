@@ -18,16 +18,14 @@ _BASHRC_PROMPT=1
 source ~/.bashrc.funcs
 
 # Default colors, overrideable in user .bashrc
-: ${PS1_COLOR_DEFAULT_FG:=white}
-: ${PS1_COLOR_DEFAULT_BG:=blue}
+: ${PS1_COLOR_DEFAULT_FG:=grey93}
+: ${PS1_COLOR_DEFAULT_BG:=24}         # powerline darkestblue
 : ${PS1_COLOR_SUCCESS_FG:=$PS1_COLOR_DEFAULT_FG}
 : ${PS1_COLOR_SUCCESS_BG:=green}
-: ${PS1_COLOR_WARNING_FG:=black}
-: ${PS1_COLOR_WARNING_BG:=yellow}
+: ${PS1_COLOR_WARNING_FG:=grey0}
+: ${PS1_COLOR_WARNING_BG:=olive}
 : ${PS1_COLOR_ERROR_FG:=$PS1_COLOR_DEFAULT_FG}
-: ${PS1_COLOR_ERROR_BG:=red}
-: ${PS1_COLOR_PROMPT_FG:=default}
-: ${PS1_COLOR_PROMPT_BG:=default}
+: ${PS1_COLOR_ERROR_BG:=maroon}
 : ${PS1_CHAR_OK:=$'\uf00c'}           #   (powerline)
 : ${PS1_CHAR_UGH:=$'\uf00d'}          #   (powerline)
 : ${PS1_CHAR_LARR:=$'\ue0b3'}         #   (powerline)
@@ -218,10 +216,8 @@ ps1_add divider first
 # MODULE: micro status
 ps1_mod_micro() {
   ps1_cache_set MICRO ''
-  # 243 is a grayscale in the 256-color space.
-  # https://en.wikipedia.org/wiki/ANSI_escape_code#Colors
-  #ps1_color 243; PS1+="$PS1_SEP_LEFT_FILLED"
-  ps1_segment_noquote white 243 '__MICRO_PLACEHOLDER__'
+  #ps1_color grey46; PS1+="$PS1_SEP_LEFT_FILLED"
+  ps1_segment_noquote grey85 grey46 '__MICRO_PLACEHOLDER__'
 }
 ps1_mod_micro_postprocess() {
   PS1=${PS1/__MICRO_PLACEHOLDER__/$(ps1_cache_get MICRO)}
@@ -235,9 +231,9 @@ ps1_add micro
 # MODULE: error status
 ps1_mod_error() {
   if [[ ${PS1_ERROR:-0} == 0 ]]; then
-    ps1_micro "\[$(color bright green)\]$PS1_CHAR_OK"
+    ps1_micro "\[$(color chartreuse2)\]$PS1_CHAR_OK"
   else
-    ps1_micro "\[$(color bright red)\]$PS1_CHAR_UGH"
+    ps1_micro "\[$(color red2)\]$PS1_CHAR_UGH"
   fi
 }
 ps1_add error
@@ -281,7 +277,7 @@ ps1_add cwd
 # MODULE: virtualenv -- show the current python virtualenv
 ps1_mod_virtualenv() {
   if [[ -n $VIRTUAL_ENV ]]; then
-    ps1_micro "\[$(color bright blue)\]$PS1_CHAR_PYTHON"
+    ps1_micro "\[$(color blue)\]$PS1_CHAR_PYTHON"
   fi
 }
 ps1_add virtualenv
@@ -289,7 +285,7 @@ ps1_add virtualenv
 # MODULE: rvm -- show the current ruby environment
 ps1_mod_rvm() {
   if [[ -n $GEM_HOME ]]; then
-    ps1_micro "\[$(color bright red)\]$PS1_CHAR_RUBY"
+    ps1_micro "\[$(color red)\]$PS1_CHAR_RUBY"
   fi
 }
 ps1_add rvm
@@ -348,17 +344,11 @@ ps1_mod_git() {
   declare branch dirty fg bg
   branch=${status#?? }; branch=${branch%%$'\n'*}; branch=${branch%%...*}
   [[ $status == *$'\n'* ]] && status=${status#*$'\n'} || status=''
-  if [[ -e $top/.git/BISECT_LOG ]]; then
-    dirty="$PS1_CHAR_BISECT"
-  elif [[ -e $top/.git/MERGE_HEAD ]]; then
-    dirty="$PS1_CHAR_MERGE"
-  elif [[ -e $top/.git/rebase-merge ]]; then
-    dirty="$PS1_CHAR_REBASE"
-  elif [[ $'\n'$status == *$'\n'?[!\ ]* ]]; then
-    dirty="$PS1_CHAR_DIRTY"
-  elif [[ $'\n'$status == *$'\n'[!\ ]* ]]; then
-    dirty="$PS1_CHAR_STAGED"
-  fi
+  [[ $'\n'$status == *$'\n'[!\ ]* ]] && dirty+="$PS1_CHAR_STAGED"
+  [[ $'\n'$status == *$'\n'?[!\ ]* ]] && dirty+="$PS1_CHAR_DIRTY"
+  [[ -e $top/.git/rebase-merge ]] && dirty+="$PS1_CHAR_REBASE"
+  [[ -e $top/.git/MERGE_HEAD ]] && dirty+="$PS1_CHAR_MERGE"
+  [[ -e $top/.git/BISECT_LOG ]] && dirty+="$PS1_CHAR_BISECT"
   if [[ -n $dirty ]]; then
     fg=$PS1_COLOR_WARNING_FG bg=$PS1_COLOR_WARNING_BG
   else
@@ -413,7 +403,7 @@ ps1_mod_docker() {
   if (docker-compose ps -q; docker ps --filter status=running -q --no-trunc) | \
     sort | uniq -d | grep -q .
   then
-    ps1_micro "\[$(color bright yellow)\]"$'\uf0e7'  # lightning bolt
+    ps1_micro "\[$(color yellow)\]"$'\uf0e7'  # lightning bolt
   fi
 }
 #ps1_add docker
@@ -438,16 +428,16 @@ ps1_mod_vagrant() {
   if [[ -s $docker_id_file ]] && id=$(<$docker_id_file); then
     declare status=$(docker ps --filter id="$id" --format '{{.Status}}')
     if [[ ${status,,} == up* ]]; then
-      ps1_micro "\[$(color bright yellow)\]"$'\uf0e7'  # lightning bolt
+      ps1_micro "\[$(color yellow)\]"$'\uf0e7'  # lightning bolt
     fi
   elif [[ -s $libvirt_id_file ]] && id=$(<$libvirt_id_file); then
     declare status=$(virsh domstate "$libvirt_id" 2>/dev/null)
     if [[ $status == running ]]; then
-      ps1_micro "\[$(color bright yellow)\]"$'\uf0e7'  # lightning bolt
+      ps1_micro "\[$(color yellow)\]"$'\uf0e7'  # lightning bolt
     fi
   elif [[ -s $vbox_id_file ]] && id=$(<$vbox_id_file); then
     if vboxmanage list runningvms | fgrep -q "$id"; then
-      ps1_micro "\[$(color bright yellow)\]"$'\uf0e7'  # lightning bolt
+      ps1_micro "\[$(color yellow)\]"$'\uf0e7'  # lightning bolt
     fi
   fi
 }
