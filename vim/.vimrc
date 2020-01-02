@@ -660,6 +660,8 @@ autocmd BufNewFile,BufReadPost Vagrantfile* set ft=ruby
 "───────────────────────────────────────────────────────────────────────────────
 " Java, Clojure {{{
 "───────────────────────────────────────────────────────────────────────────────
+autocmd FileType java setlocal cindent cinoptions+=(0,u0,t0,l1 ")
+
 " https://juxt.pro/blog/posts/vim-1.html
 " http://blog.venanti.us/clojure-vim/
 "let g:sexp_enable_insert_mode_mappings = 0
