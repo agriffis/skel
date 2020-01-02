@@ -262,11 +262,6 @@ xmap ga <Plug>(EasyAlign)
 
 Plug 'vim-airline/vim-airline'
 Plug 'vim-airline/vim-airline-themes'
-"let g:airline#extensions#tabline#enabled = 1
-"let g:airline#extensions#tabline#buffer_idx_mode = 1
-"let g:airline#extensions#tabline#buffer_min_count = 2
-"let g:airline#extensions#tabline#buffers_label = 'BUFFERS'
-"let g:airline#extensions#tabline#formatter = 'unique_tail'
 let g:airline_symbols = {}
 let g:airline_left_sep = ''
 let g:airline_left_alt_sep = ''
@@ -281,26 +276,9 @@ let g:airline_symbols.readonly = ''
 let g:airline_symbols.space = ' '
 let g:airline_symbols.spell = 'SPELL'
 let g:airline_symbols.whitespace = ''
-autocmd User PlugConfig call ConfigAirline()
-function! ConfigAirline()
-  nmap <leader>1 <Plug>AirlineSelectTab1
-  nmap <leader>2 <Plug>AirlineSelectTab2
-  nmap <leader>3 <Plug>AirlineSelectTab3
-  nmap <leader>4 <Plug>AirlineSelectTab4
-  nmap <leader>5 <Plug>AirlineSelectTab5
-  nmap <leader>6 <Plug>AirlineSelectTab6
-  nmap <leader>7 <Plug>AirlineSelectTab7
-  nmap <leader>8 <Plug>AirlineSelectTab8
-  nmap <leader>9 <Plug>AirlineSelectTab9
-  nmap <leader>n <Plug>AirlineSelectNextTab
-  nmap <leader>N <Plug>AirlineSelectPrevTab
-  nmap <leader>p <Plug>AirlineSelectPrevTab
-endfunction
 
 Plug 'scrooloose/nerdtree'
 " Plug 'Xuyuanp/nerdtree-git-plugin'
-
-Plug 'Shougo/defx.nvim', {'do': ':UpdateRemotePlugins'}
 
 " TODO modify spacevim to use denite
 " rather than overriding with mappings.
@@ -339,92 +317,21 @@ function! LC_maps()
 endfunction
 autocmd FileType * call LC_maps()
 
-if 0
-  Plug 'junegunn/fzf'
-  function! s:build_quickfix_list(lines)
-    call setqflist(map(copy(a:lines), '{ "filename": v:val }'))
-    copen
-    cc
-  endfunction
-  let g:fzf_action = {
-        \ 'ctrl-q': function('s:build_quickfix_list'),
-        \ 'ctrl-t': 'tab split',
-        \ 'ctrl-x': 'split',
-        \ 'ctrl-v': 'vsplit' }
-  Plug 'junegunn/fzf.vim'
-  let g:fzf_command_prefix = 'Fzf'
-  command! FzfFiles call fzf#run(fzf#wrap(
-        \ {'source': 'rg --files', 'dir': projectroot#guess()}))
-  nnoremap <leader>pf :FzfFiles<Cr>
-  nnoremap <c-p> :FzfFiles<Cr>
-  autocmd! FileType fzf
-  autocmd  FileType fzf set laststatus=0 noshowmode noruler
-        \| autocmd BufLeave <buffer> set laststatus=2 showmode ruler
-else
-  Plug 'Shougo/context_filetype.vim'
-  Plug 'Shougo/denite.nvim'
-  Plug 'Shougo/neomru.vim'
-  let g:neomru#do_validate=0
-  autocmd User PlugConfig call ConfigDenite()
-  function! ConfigDenite()
-    call denite#custom#map('insert', '<Up>', '<denite:move_to_previous_line>', 'noremap')
-    call denite#custom#map('insert', '<Down>', '<denite:move_to_next_line>', 'noremap')
-    if executable('rg')
-      call denite#custom#var('file/rec', 'command', ['rg', '--files'])
-      call denite#custom#var('grep', 'command', ['rg'])
-      call denite#custom#var('grep', 'default_opts', ['--vimgrep', '--no-heading', '--smart-case', '--sort-files'])
-      call denite#custom#var('grep', 'recursive_opts', [])
-      call denite#custom#var('grep', 'pattern_opt', ['--regexp'])
-      call denite#custom#var('grep', 'separator', ['--'])
-      call denite#custom#var('grep', 'final_opts', [])
-      call denite#custom#source('grep', 'sorters', [])  " use rg-provided sort
-    endif
-    nnoremap <leader>bb :Denite -start-filter buffer<CR>
-    nnoremap <leader>ff :DeniteBufferDir -start-filter file<CR>
-    nnoremap <leader>fm :Denite -start-filter file_mru<CR>
-    nnoremap <leader>pf :Denite -start-filter file/rec:`projectroot#guess()`<CR>
-    nnoremap <c-p>      :Denite -start-filter file/rec:`projectroot#guess()`<CR>
-    nnoremap <leader>sP :DeniteCursorWord -start-filter grep:`projectroot#guess()`::!<CR>
-    nnoremap <leader>*  :DeniteCursorWord -start-filter grep:`projectroot#guess()`::!<CR>
-    nnoremap <leader>sp :Denite -start-filter grep:`projectroot#guess()`::!<CR>
-    nnoremap <leader>/  :Denite -start-filter grep:`projectroot#guess()`::!<CR>
-    nnoremap <leader>sl :Denite -start-filter -resume<CR>
+Plug 'Shougo/context_filetype.vim'
 
-    autocmd FileType denite call s:denite_bindings()
-    function! s:denite_bindings() abort
-      nnoremap <silent><buffer><expr> <CR>    denite#do_map('do_action')
-      nnoremap <silent><buffer><expr> d       denite#do_map('do_action', 'delete')
-      nnoremap <silent><buffer><expr> p       denite#do_map('do_action', 'preview')
-      nnoremap <silent><buffer><expr> q       denite#do_map('quit')
-      nnoremap <silent><buffer><expr> <C-c>   denite#do_map('quit')
-      nnoremap <silent><buffer><expr> i       denite#do_map('open_filter_buffer')
-      nnoremap <silent><buffer><expr> <Space> denite#do_map('toggle_select').'j'
-    endfunction
-
-    autocmd FileType denite-filter call s:denite_filter_bindings()
-    function! s:denite_filter_bindings() abort
-      inoremap <silent><buffer><expr> <C-o>  <Plug>(denite_filter_quit)
-      inoremap <silent><buffer><expr> <CR>   denite#do_map('do_action')
-      inoremap <silent><buffer><expr> <C-c>  denite#do_map('quit')
-      imap     <silent><buffer>       <C-k>  <Esc><C-w>pk<C-w>pA
-      imap     <silent><buffer>       <Up>   <Esc><C-w>pk<C-w>pA
-      imap     <silent><buffer>       <C-j>  <Esc><C-w>pj<C-w>pA
-      imap     <silent><buffer>       <Down> <Esc><C-w>pj<C-w>pA
-    endfunction
-  endfunction
+if has('patch-8.1.2114') || has('nvim-0.4')
+  Plug 'liuchengxu/vim-clap', {'do': function('clap#helper#build_all')}
+  nnoremap <Leader>fm :Clap history<CR>
+  nnoremap <Leader>ff :Clap files .<CR>
+  nnoremap <Leader>pf :Clap files<CR>
+  nnoremap <c-p>      :Clap files<CR>
+  nnoremap <Leader>fg :Clap git_diff_files<CR>
+  nnoremap <Leader>sp :Clap grep<CR>
+  nnoremap <Leader>/  :Clap grep<CR>
+  nnoremap <Leader>sP :Clap grep ++query=<cword><CR>
+  nnoremap <Leader>*  :Clap grep ++query=<cword><CR>
+  nnoremap <Leader>bb :Clap buffers<CR>
 endif
-
-"Plug 'Shougo/deoplete.nvim', {'do': ':UpdateRemotePlugins'}
-"if $USER == 'aron'
-"  let deoplete#enable_at_startup = 1
-"endif
-"autocmd User PlugConfig call ConfigDeoplete()
-"function! ConfigDeoplete()
-"  call deoplete#custom#option({
-"        \ 'auto_complete_delay': 200,
-"        \ })
-"  autocmd FileType denite-filter call deoplete#custom#buffer_option('auto_complete', v:false)
-"endfunction
 
 " Code formatting -- https://github.com/google/vim-codefmt
 Plug 'google/vim-maktaba'
