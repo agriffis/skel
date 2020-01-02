@@ -1,0 +1,11 @@
+#!/bin/bash
+
+tmux=$(wrapped "$0")
+
+shopt -s extglob
+
+if [[ $1 == +(new|new-session) ]] && type systemd-run &>/dev/null; then
+    exec systemd-run --quiet --scope --user "$tmux" "$@"
+fi
+
+exec "$tmux" "$@"
