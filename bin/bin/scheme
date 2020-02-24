@@ -401,8 +401,6 @@ update_gnome_terminal() {
 update_kitty() {
     declare xterm_colors="$1"
 
-    [[ -n $KITTY_WINDOW_ID ]] && type kitty &>/dev/null || return
-
     # unpack xterm_colors string
     declare xterm_foreground xterm_background
     xterm_colors=( $xterm_colors )
@@ -414,27 +412,50 @@ update_kitty() {
     xterm_foreground="${xterm_colors[1]}"
     xterm_colors=( "${xterm_colors[@]:2}" )
 
-    kitty @ set-colors --all --configured \
-        background=${xterm_background} \
-        foreground=${xterm_foreground} \
-        selection_foreground=${xterm_background} \
-        selection_background=${xterm_foreground} \
-        color0=${xterm_colors[0]} \
-        color1=${xterm_colors[1]} \
-        color2=${xterm_colors[2]} \
-        color3=${xterm_colors[3]} \
-        color4=${xterm_colors[4]} \
-        color5=${xterm_colors[5]} \
-        color6=${xterm_colors[6]} \
-        color7=${xterm_colors[7]} \
-        color8=${xterm_colors[8]} \
-        color9=${xterm_colors[9]} \
-        color10=${xterm_colors[10]} \
-        color11=${xterm_colors[11]} \
-        color12=${xterm_colors[12]} \
-        color13=${xterm_colors[13]} \
-        color14=${xterm_colors[14]} \
+    # translate to kitty color names
+    declare -a kolors
+    kolors=(
+        background=${xterm_background}
+        foreground=${xterm_foreground}
+        selection_foreground=${xterm_background}
+        selection_background=${xterm_foreground}
+        color0=${xterm_colors[0]}
+        color1=${xterm_colors[1]}
+        color2=${xterm_colors[2]}
+        color3=${xterm_colors[3]}
+        color4=${xterm_colors[4]}
+        color5=${xterm_colors[5]}
+        color6=${xterm_colors[6]}
+        color7=${xterm_colors[7]}
+        color8=${xterm_colors[8]}
+        color9=${xterm_colors[9]}
+        color10=${xterm_colors[10]}
+        color11=${xterm_colors[11]}
+        color12=${xterm_colors[12]}
+        color13=${xterm_colors[13]}
+        color14=${xterm_colors[14]}
         color15=${xterm_colors[15]}
+    )
+
+    # apply to static config first
+    declare kitty_conf="$HOME/.config/kitty/kitty.conf"
+    if [[ -d ${kitty_conf%/*} ]]; then
+        declare konfig
+        if [[ -e $kitty_conf ]]; then
+            konfig=$(grep -Eve "^($(IFS='|'; echo "${kolors[*]/=*/}"))\\>" < $kitty_conf)
+        fi
+        (   [[ -z $konfig ]] || echo "$konfig"
+            for k in "${kolors[@]}"; do
+                echo "${k/=/ }"
+            done
+        ) > $kitty_conf
+    fi
+
+    # now apply to dynamic config (running kitty).
+    # kitty @ check is supplied by my wrapper.
+    if type kitty &>/dev/null && ([[ -n $KITTY_WINDOW_ID ]] || kitty @ check); then
+        kitty @ set-colors --all --configured "${kolors[@]}"
+    fi
 }
 
 update_gtk() {
