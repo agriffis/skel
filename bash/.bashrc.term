@@ -12,36 +12,9 @@
 # http://creativecommons.org/publicdomain/zero/1.0/
 #======================================================================
 
-try_TERM() {
-  # toe on gentoo searches only /usr/share/terminfo.
-  # toe on debian/unbuntu searches only ~/.terminfo and /etc/terminfo.
-  # both appear to be broken.
-
-  declare term
-  declare -a tried
-
-  for term; do
-    [[ " ${tried[*]} " == *" $term "* ]] && continue
-    tried+=( "$term" )
-
-    if { toe ~/.terminfo
-         toe /etc/terminfo
-         toe /lib/terminfo
-         toe /usr/share/terminfo
-        } 2>/dev/null | grep -q "^$term[[:blank:]]"; then
-      TERM=$term
-      return 0
-    fi
-  done
-
-  return 1
-}
-
-setup_TERM() {
-
+setup-TERM() {
   # vte-256color messes up emacs with solarized, so use xterm-256color
-  # instead. This might be something hardcoded in emacs since the terminfo
-  # comparison doesn't show significant differences.
+  # instead.
   declare vte=xterm-256color
   declare -a terms
 
@@ -74,30 +47,40 @@ setup_TERM() {
   case $TERM in
     alacritty)
       terms=("$TERM" xterm-256color xterm) ;;
-
     rxvt-*)
       terms=("$TERM" rxvt xterm) ;;
-
-    xterm-256color)
-      terms=("$TERM" xterm) ;;
-
+    xterm-256color|xterm-kitty)
+      terms=("$TERM" xterm-256color xterm) ;;
     screen*)
-      terms=(
-        # screen-256color-bce-s doesnt seem to work with weechat.
-        # The top status bar gets truncated.
-        #screen-256color-bce-s
-        screen-256color-s
-        screen-256color
-        screen-16color
-        "$TERM"
-        screen
-        ) ;;
+      terms=(screen-256color "$TERM" screen) ;;
+    tmux*)
+      terms=(tmux-256color screen-256color "$TERM" tmux screen) ;;
   esac
 
-  if [[ ${#terms[@]} -gt 0 ]]; then
-    try_TERM "${terms[@]}"
+  if [[ -n $terms ]]; then
+    # toe on gentoo searches only /usr/share/terminfo.
+    # toe on debian/unbuntu searches only ~/.terminfo and /etc/terminfo.
+    # both appear to be broken, so we search explicitly.
+    declare -a toes
+    toes=($(
+      for d in ~/.terminfo /etc/terminfo /lib/terminfo /usr/share/terminfo; do
+        [[ -d $d ]] && toe "$d"
+      done | awk '{print $1}'
+    ))
+    for term in "${terms[@]}"; do
+      for toe in "${toes[@]}"; do
+        if [[ $term == "$toe" ]]; then
+          TERM=$term
+          return
+        fi
+      done
+    done
   fi
 }
+
+setup-TERM
+
+unset -f setup-TERM
 
 # The following lines enforce a consistent indentation for this file.
 # Keep this comment at the end of file.

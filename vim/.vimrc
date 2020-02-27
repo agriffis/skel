@@ -1,6 +1,6 @@
 " .vimrc
 "
-" Written in 2003-2019 by Aron Griffis <aron@arongriffis.com>
+" Written in 2003-2020 by Aron Griffis <aron@arongriffis.com>
 "
 " To the extent possible under law, the author(s) have dedicated all copyright
 " and related and neighboring rights to this software to the public domain
@@ -134,7 +134,7 @@ endif
 " Use .vim/info and .vim/shada for state, but keep it fast by omitting shada
 " options that cause lots of file/directory stats
 if exists('&shadafile')
-  set shada=!,'1,f0,h,s100
+  set shada=!,'10,f0,h,s100
   let &shadafile = expand('~/.vim/shada')
 elseif has('viminfo')
   let &viminfofile = expand('~/.vim/viminfo')
@@ -182,7 +182,6 @@ set splitright splitbelow
 set equalalways         " keep windows equal when splitting (default)
 set eadirection=both    " ver/hor/both - where does equalalways apply
 set fillchars+=vert:│
-set winheight=6         " height of current window
 set winwidth=40         " width of current window
 "}}}
 
@@ -320,7 +319,8 @@ autocmd FileType * call LC_maps()
 Plug 'Shougo/context_filetype.vim'
 
 if has('patch-8.1.2114') || has('nvim-0.4')
-  Plug 'liuchengxu/vim-clap', {'do': function('clap#helper#build_all')}
+  let g:clap_stop_bottom_top = 1
+  Plug 'liuchengxu/vim-clap', {'do': ':Clap install-binary'}
   nnoremap <Leader>fm :Clap history<CR>
   nnoremap <Leader>ff :Clap files .<CR>
   nnoremap <Leader>pf :Clap files<CR>
@@ -335,13 +335,13 @@ endif
 
 " Code formatting -- https://github.com/google/vim-codefmt
 Plug 'google/vim-maktaba'
-if isdirectory('~/src/vim-codefmt')
-  Plug '~/src/vim-codefmt'
-else
-  Plug 'agriffis/vim-codefmt'
-endif
 Plug 'google/vim-glaive'
 autocmd User PlugConfig call glaive#Install()
+if isdirectory(expand('~/src/vim-codefmt'))
+  Plug '~/src/vim-codefmt'
+else
+  Plug 'google/vim-codefmt'
+endif
 autocmd User PlugConfig Glaive codefmt plugin[mappings]
 
 " Color schemes
@@ -362,10 +362,12 @@ Plug 'nanotech/jellybeans.vim'
 let g:jellybeans_background_color = ''
 let g:jellybeans_background_color_256 = 'NONE'
 Plug 'rakr/vim-one'
+let g:one_allow_italics = 1
 Plug 'reedes/vim-colors-pencil'
 Plug 'doums/darcula'
 Plug 'morhetz/gruvbox'
 Plug 'lifepillar/vim-solarized8'
+Plug 'liuchengxu/space-vim-theme'
 "}}}
 
 "───────────────────────────────────────────────────────────────────────────────
@@ -569,39 +571,127 @@ autocmd BufNewFile,BufReadPost Vagrantfile* set ft=ruby
 "───────────────────────────────────────────────────────────────────────────────
 autocmd FileType java setlocal cindent cinoptions+=(0,u0,t0,l1 ")
 
-" https://juxt.pro/blog/posts/vim-1.html
-" http://blog.venanti.us/clojure-vim/
-"let g:sexp_enable_insert_mode_mappings = 0
-let g:sexp_insert_after_wrap = 0
 Plug 'tpope/vim-classpath'
-Plug 'tpope/vim-fireplace'
+
 Plug 'guns/vim-sexp'
+let g:sexp_insert_after_wrap = 0
 Plug 'tpope/vim-sexp-mappings-for-regular-people'
-function! s:my_sexp_mappings()
+function! s:my_sexp_mappings() abort
   nmap <buffer> ><  <Plug>(sexp_emit_head_element)
   nmap <buffer> <>  <Plug>(sexp_emit_tail_element)
   nmap <buffer> <<  <Plug>(sexp_capture_prev_element)
   nmap <buffer> >>  <Plug>(sexp_capture_next_element)
 endfunction
-function! s:config_sexp()
-  autocmd FileType clojure,lisp,scheme call s:my_sexp_mappings()
+autocmd User PlugConfig
+      \ autocmd FileType clojure,lisp,scheme call s:my_sexp_mappings()
+
+if 1
+  Plug 'tpope/vim-fireplace'
+else
+
+Plug 'liquidz/vim-iced', {'for': 'clojure'}
+function! s:my_iced_mappings() abort
+  silent! nmap <buffer> <Leader>' <Plug>(iced_connect)
+  silent! nmap <buffer> <Leader>" <Plug>(iced_jack_in)
+
+  "" Evaluating (<Leader>e)
+  "" ------------------------------------------------------------------------
+  silent! nmap <buffer> <Leader>eq <Plug>(iced_interrupt)
+  silent! nmap <buffer> <Leader>eQ <Plug>(iced_interrupt_all)
+  silent! nmap <buffer> <Leader>ei <Plug>(iced_eval)<Plug>(sexp_inner_element)``
+  silent! nmap <buffer> <Leader>ee <Plug>(iced_eval)<Plug>(sexp_outer_list)``
+  silent! nmap <buffer> <Leader>et <Plug>(iced_eval_outer_top_list)
+  silent! vmap <buffer> <Leader>ee <Plug>(iced_eval_visual)
+  silent! nmap <buffer> <Leader>en <Plug>(iced_eval_ns)
+  silent! nmap <buffer> <Leader>ep <Plug>(iced_print_last)
+  silent! nmap <buffer> <Leader>eb <Plug>(iced_require)
+  silent! nmap <buffer> <Leader>eB <Plug>(iced_require_all)
+  silent! nmap <buffer> <Leader>eu <Plug>(iced_undef)
+  silent! nmap <buffer> <Leader>eU <Plug>(iced_undef_all_in_ns)
+  silent! nmap <buffer> <Leader>eM <Plug>(iced_macroexpand_outer_list)
+  silent! nmap <buffer> <Leader>em <Plug>(iced_macroexpand_1_outer_list)
+
+  "" Testing (<Leader>t)
+  "" ------------------------------------------------------------------------
+  silent! nmap <buffer> <Leader>tt <Plug>(iced_test_under_cursor)
+  silent! nmap <buffer> <Leader>tl <Plug>(iced_test_rerun_last)
+  silent! nmap <buffer> <Leader>ts <Plug>(iced_test_spec_check)
+  silent! nmap <buffer> <Leader>to <Plug>(iced_test_buffer_open)
+  silent! nmap <buffer> <Leader>tn <Plug>(iced_test_ns)
+  silent! nmap <buffer> <Leader>tp <Plug>(iced_test_all)
+  silent! nmap <buffer> <Leader>tr <Plug>(iced_test_redo)
+
+  "" Stdout buffer (<Leader>s)
+  "" ------------------------------------------------------------------------
+  silent! nmap <buffer> <Leader>ss <Plug>(iced_stdout_buffer_open)
+  silent! nmap <buffer> <Leader>sl <Plug>(iced_stdout_buffer_clear)
+  silent! nmap <buffer> <Leader>sq <Plug>(iced_stdout_buffer_close)
+
+  "" Refactoring (<Leader>r)
+  "" ------------------------------------------------------------------------
+  silent! nmap <buffer> <Leader>rcn <Plug>(iced_clean_ns)
+  silent! nmap <buffer> <Leader>rca <Plug>(iced_clean_all)
+  silent! nmap <buffer> <Leader>ram <Plug>(iced_add_missing)
+  silent! nmap <buffer> <Leader>ran <Plug>(iced_add_ns)
+  silent! nmap <buffer> <Leader>rtf <Plug>(iced_thread_first)
+  silent! nmap <buffer> <Leader>rtl <Plug>(iced_thread_last)
+  silent! nmap <buffer> <Leader>ref <Plug>(iced_extract_function)
+  silent! nmap <buffer> <Leader>raa <Plug>(iced_add_arity)
+  silent! nmap <buffer> <Leader>rml <Plug>(iced_move_to_let)
+
+  "" Help/Document (<Leader>h)
+  "" ------------------------------------------------------------------------
+  silent! nmap <buffer> K <Plug>(iced_popup_document_open)
+  silent! nmap <buffer> <Leader>hb <Plug>(iced_document_open)
+  silent! nmap <buffer> <Leader>hu <Plug>(iced_use_case_open)
+  silent! nmap <buffer> <Leader>hn <Plug>(iced_next_use_case)
+  silent! nmap <buffer> <Leader>hN <Plug>(iced_prev_use_case)
+  silent! nmap <buffer> <Leader>hq <Plug>(iced_document_close)
+  silent! nmap <buffer> <Leader>hS <Plug>(iced_source_show)
+  silent! nmap <buffer> <Leader>hs <Plug>(iced_popup_source_show)
+  silent! nmap <buffer> <Leader>hc <Plug>(iced_clojuredocs_open)
+  silent! nmap <buffer> <Leader>hh <Plug>(iced_command_palette)
+
+  "" Browsing (<Leader>b)
+  "" ------------------------------------------------------------------------
+  silent! nmap <buffer> <Leader>bn <Plug>(iced_browse_related_namespace)
+  silent! nmap <buffer> <Leader>bs <Plug>(iced_browse_spec)
+  silent! nmap <buffer> <Leader>bt <Plug>(iced_browse_test_under_cursor)
+  silent! nmap <buffer> <Leader>br <Plug>(iced_browse_references)
+  silent! nmap <buffer> <Leader>bd <Plug>(iced_browse_dependencies)
+  silent! nmap <buffer> <Leader>bvr <Plug>(iced_browse_var_references)
+  silent! nmap <buffer> <Leader>bvd <Plug>(iced_browse_var_dependencies)
+
+  "" Jumping cursor (<Leader>j)
+  "" ------------------------------------------------------------------------
+  silent! nmap <buffer> <C-]> <Plug>(iced_def_jump)
+  silent! nmap <buffer> <Leader>jn <Plug>(iced_jump_to_next_sign)
+  silent! nmap <buffer> <Leader>jN <Plug>(iced_jump_to_prev_sign)
+  silent! nmap <buffer> <Leader>jl <Plug>(iced_jump_to_let)
+
+  "" Debugging (<Leader>d)
+  "" ------------------------------------------------------------------------
+  silent! nmap <buffer> <Leader>dbt <Plug>(iced_browse_tapped)
+  silent! nmap <buffer> <Leader>dlt <Plug>(iced_clear_tapped)
+
+  "" Misc
+  "" ------------------------------------------------------------------------
+  "silent! nmap <buffer> == <Plug>(iced_format)
+  "silent! nmap <buffer> =G <Plug>(iced_format_all)
+  "silent! nmap <buffer> <Leader>* <Plug>(iced_grep)
+  "silent! nmap <buffer> <Leader>/ :<C-u>IcedGrep<Space>
 endfunction
-autocmd User PlugConfig call s:config_sexp()
+autocmd User PlugConfig
+      \ autocmd FileType clojure call s:my_iced_mappings()
+
+endif
 
 Plug 'guns/vim-clojure-static'
 let g:clj_highlight_builtins=1
 
-Plug 'venantius/vim-cljfmt'
-let g:clj_fmt_autosave = 0
-
-" Configure codefmt to call zprint with vim settings (and leave everything
-" else set by config files)
-autocmd User PlugConfig Glaive codefmt zprint_options=`{-> [
-      \ '{:search-config? true :width ' . &textwidth . '}'
-      \ ]}`
-
 " Configure codefmt to zprint top-level forms with <leader>==
-autocmd FileType clojure nmap <buffer> <silent> <leader>== <leader>=iF
+autocmd User PlugConfig
+      \ autocmd FileType clojure nmap <buffer> <silent> <leader>== <leader>=iF
 
 " following required for eastwood
 " https://github.com/venantius/vim-eastwood/issues/8
@@ -658,10 +748,7 @@ let g:is_bash=1
 "}}}
 
 Plug 'norcalli/nvim-colorizer.lua'
-function! s:config_colorizer()
-  lua require'colorizer'.setup{'*';'!text'}
-endfunction
-autocmd User PlugConfig call s:config_colorizer()
+autocmd User PlugConfig lua require'colorizer'.setup{'*';'!text'}
 
 call plug#end()
 

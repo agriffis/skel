@@ -43,7 +43,6 @@ unset MAILCHECK
 
 # TERM
 source ~/.bashrc.term
-setup_TERM
 
 # set umask before interactive test; this helps scp.
 # shared hosting should use writeable group.
