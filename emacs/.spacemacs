@@ -48,8 +48,9 @@ This function should only modify configuration layer settings."
      emacs-lisp
      haskell
      html
-     (java :variables java-backend 'eclim)
+     java
      javascript
+     lsp
      markdown
      org
      php
