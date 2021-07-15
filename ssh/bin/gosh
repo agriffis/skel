@@ -1,7 +1,7 @@
 #!/bin/bash
 
 main() {
-    declare gateway host user
+    declare gateway host
 
     ensure-ssh-identity "$@"
 
@@ -11,25 +11,29 @@ main() {
 
     case $host in
         gargan|gg) host=gargan session=scampersand ;;
+        ggx) host=gargan session=ggx ;;
         jasperodus|jj) host=jasperodus session=scamperjam ;;
     esac
-
-    case $(whoami) in
-        amg) user=amy ;;
-        agriffis) user=aron ;;
-    esac
-
-    ssh -fA "$gateway" 'ln -sfn $SSH_AUTH_SOCK foo; sleep 30'
 
     if [[ $# == 0 ]]; then
         # -E to avoid wiping out DISPLAY set by tunnel
         set -- "$host" "tmux new-session -ADEs $session"
     fi
 
-    case /$0 in
-        */gosh) mosh "$gateway" -- env SSH_AUTH_SOCK=foo ssh -t "$@" ;;
-        */sssh) ssh -t "$gateway" -- env SSH_AUTH_SOCK=foo ssh -t "$@" ;;
-        *) echo "what is $0?" >&2; exit 1 ;;
+    case ${HOSTNAME%%.*}/$(where-am-i)/${0##*/} in
+        #jasperodus/*|bergamot/*|
+        */sssh) 
+            ssh -t "$@"
+            ;;
+
+        */gosh) 
+            ssh -fA "$gateway" 'ln -sfn $SSH_AUTH_SOCK foo; sleep 30'
+            mosh "$gateway" -- env SSH_AUTH_SOCK=foo ssh -t "$@"
+            ;;
+
+        *)
+            echo "what is $0?" >&2; exit 1
+            ;;
     esac
 
     exit # always exit at bottom of main
