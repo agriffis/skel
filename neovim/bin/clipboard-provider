@@ -43,10 +43,17 @@ tmux-provider() {
 }
 
 desktop-provider() {
-    wl-clipboard-provider "$@" || xclip-provider "$@" || osc52-provider "$@"
+    pasteboard-provider "$@" || wayland-provider "$@" || xclip-provider "$@" || osc52-provider "$@"
 }
 
-wl-clipboard-provider() {
+pasteboard-provider() {
+    case $1 in
+        copy) type -P pbcopy &>/dev/null && spit | pbcopy ;;
+        paste) type -P pbpaste &>/dev/null && pbpaste ;;
+    esac
+}
+
+wayland-provider() {
     [[ -n $WAYLAND_DISPLAY ]] || return
     case $1 in
         copy) type -P wl-copy &>/dev/null && spit | wl-copy --type=text/plain ;;
