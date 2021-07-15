@@ -28,14 +28,13 @@ export SHELL=$BASH
 source ~/.bashrc.funcs
 source ~/.bashrc.pathfuncs
 
-frontpath PATH \
-  /usr/local/bin /usr/local/sbin \
-  /usr/bin /bin /usr/sbin /sbin \
-  /usr/X11R6/bin /usr/games /usr/games/bin
+frontpath PATH /usr/local/bin /usr/local/sbin
+addpath PATH /usr/bin /bin /usr/sbin /sbin
 
 if [[ $HOME != / ]]; then
   frontpath PATH ~/.cargo/bin # cargo install
   frontpath PATH ~/.cask/bin # homebrew
+  frontpath PATH ~/.emacs.d/bin # doom emacs
   frontpath PATH ~/.gem/bin # gem install --user-install --bindir ~/.gem/bin
   frontpath PATH ~/go/bin # go install
   frontpath PATH ~/node_modules/.bin # yarn global add
@@ -72,6 +71,9 @@ else
   export EDITOR=vi
 fi
 
+export FZF_DEFAULT_COMMAND='fd --type f --hidden'
+export FZF_DEFAULT_OPTS=--reverse
+
 # if "less" is available, use it as the pager
 type -P less &>/dev/null && export PAGER=less COLORPAGER=less
 export LESS=-isXFRQ
@@ -79,6 +81,9 @@ export LESSCHARSET=utf-8
 if type -P lesspipe &>/dev/null; then
   eval "$(lesspipe)"
 fi
+
+# https://github.com/sharkdp/bat
+type -P bat &>/dev/null && export MANPAGER="sh -c 'col -bx | bat -l man -p'" MANROFFOPT="-c"
 
 export QUILT_DIFF_ARGS='--color=auto'
 export QUILT_DIFF_OPTS='-p'
@@ -89,7 +94,12 @@ export RSYNC_RSH=ssh
 export CVS_RSH=ssh
 export SVN_SSH="ssh -l $USER"
 
-export JAVA_HOME=$(first_test -d "$JAVA_HOME" /usr/java/latest /usr/lib/jvm/java)
+jh=$(first_test -d "$JAVA_HOME" /opt/graalvm /usr/java/latest /usr/lib/jvm/java)
+if [[ -d $jh ]]; then
+  export JAVA_HOME="$jh"
+  frontpath PATH "$JAVA_HOME/bin"
+fi
+unset jh
 
 # make pinentry-curses work for gpg-agent
 export GPG_TTY=$(tty)

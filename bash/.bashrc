@@ -20,7 +20,9 @@ if [[ -z $_BASH_PROFILE ]]; then
   return $?
 fi
 
+source ~/.bashrc.ghettopt
 source ~/.bashrc.funcs
+source ~/.bashrc.pathfuncs
 
 #######################################################################
 # Non-interactive settings
@@ -32,6 +34,7 @@ source ~/.bashrc.funcs
 shopt -s cdspell
 shopt -s checkwinsize
 shopt -s extglob
+shopt -s globstar
 
 shopt -s cmdhist histappend histreedit
 HISTIGNORE='\ *:&'
@@ -73,7 +76,6 @@ fi
 # Interactive settings
 #######################################################################
 
-[[ -r ~/.bashrc.fastls ]] && source ~/.bashrc.fastls
 [[ -r ~/.bashrc.prompt ]] && source ~/.bashrc.prompt
 [[ -r ~/.bashrc.rvm ]] && source ~/.bashrc.rvm    # after .bashrc.prompt
 [[ -r ~/.bashrc.tmux ]] && source ~/.bashrc.tmux  # after .bashrc.prompt
@@ -117,6 +119,44 @@ h() {
   history | grep -e "${@:-}" | tail
 }
 
+# remove the Red Hat default alias,
+# otherwise setting the 'ls' function will be an error
+unalias ls 2>/dev/null
+
+LS_VERSION=$(command ls --version 2>/dev/null || echo non-gnu)
+
+ls() {
+  declare all=true header=true human=true d=.
+
+  # Show all files except in homedir
+  if [[ $# -gt 0 && ${!#} != -* ]]; then
+    d=${!#}
+  fi
+  if [[ $d -ef ~ ]]; then
+    all=false
+  fi
+
+  # Use human-readable sizes on coreutils
+  [[ $LS_VERSION == *coreutils* ]] || human=false
+
+  # Use header on terminal
+  if [[ ! -t 1 ]]; then
+    header=false
+  fi
+
+  # exa works, I'm just not sure I care about the improvements it brings over
+  # ls. And ls -lt breaks, so that's annoying.
+  if false && type exa &>/dev/null; then
+    exa $($all && echo -a) $($header && echo --header) \
+      -F --git --group --group-directories-first "$@"
+  elif [[ $LS_VERSION == non-gnu ]]; then
+    command ls $($all && echo -A) -F "$@"
+  else
+    command ls $($all && echo -A) $($human && echo -h) \
+      --color=tty -p "$@"
+  fi
+}
+
 # git -- override what can't be aliased
 git() {
   case $1 in
@@ -127,6 +167,9 @@ git() {
 
 # fedora /usr/bin/vi is vim-minimal
 alias vi=vim
+
+# fedora has a stupid vim alias
+unalias vim &>/dev/null
 
 # Load user-specific settings
 [[ ! -r ~/.bashrc.mine ]] || source ~/.bashrc.mine

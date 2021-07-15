@@ -35,7 +35,7 @@ isnfs() {
 
   # Branch depending on OS where df has different options.
   case $OSTYPE in
-    linux*|*bsd*|*BSD*)
+    darwin*|linux*|*bsd*|*BSD*)
       dfout=`/bin/df -l "$1" 2>/dev/null`
       case "$dfout" in
         */*) return 1 ;;  # looks like local

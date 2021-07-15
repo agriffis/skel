@@ -26,8 +26,9 @@ source ~/.bashrc.funcs
 : ${PS1_COLOR_WARNING_BG:=olive}
 : ${PS1_COLOR_ERROR_FG:=$PS1_COLOR_DEFAULT_FG}
 : ${PS1_COLOR_ERROR_BG:=maroon}
-: ${PS1_CHAR_OK:=$'\uf00c'}           #   (powerline)
-: ${PS1_CHAR_UGH:=$'\uf00d'}          #   (powerline)
+: ${PS1_CHAR_OK:=}
+: ${PS1_CHAR_UGH:=$'\u2717'}          # ✗ (unicode ballot x)
+: ${PS1_CHAR_UGH:=nak}
 : ${PS1_CHAR_LARR:=$'\ue0b3'}         #   (powerline)
 : ${PS1_CHAR_LARR_FILLED:=$'\ue0b2'}  #   (powerline)
 : ${PS1_CHAR_RARR:=$'\ue0b1'}         #   (powerline)
@@ -231,8 +232,10 @@ ps1_add micro
 # MODULE: error status
 ps1_mod_error() {
   if [[ ${PS1_ERROR:-0} == 0 ]]; then
+    [[ -n $PS1_CHAR_OK ]] && \
     ps1_micro "\[$(color chartreuse2)\]$PS1_CHAR_OK"
   else
+    [[ -n $PS1_CHAR_UGH ]] && \
     ps1_micro "\[$(color red2)\]$PS1_CHAR_UGH"
   fi
 }
