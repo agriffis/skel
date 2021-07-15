@@ -136,8 +136,6 @@ endif
 if exists('&shadafile')
   set shada=!,'10,f0,h,s100
   let &shadafile = expand('~/.vim/shada')
-elseif has('viminfo')
-  let &viminfofile = expand('~/.vim/viminfo')
 endif
 "}}}
 
@@ -174,14 +172,14 @@ set ignorecase          " "foo" matches "Foo", etc
 set infercase           " adjust the case of the match with ctrl-p/ctrl-n
 set smartcase           " ignorecase only when the pattern is all lower
 set nohlsearch          " by default, don't highlight matches after they're found
-set grepprg=rg\ --line-number\ --smart-case\ --sort-files
+set grepprg=rg\ --hidden\ --line-number\ --smart-case\ --sort-files
 "}}}
 
 " Windowing settings {{{
 set splitright splitbelow
 set equalalways         " keep windows equal when splitting (default)
 set eadirection=both    " ver/hor/both - where does equalalways apply
-set fillchars+=vert:│
+set fillchars=vert:╎
 set winwidth=40         " width of current window
 "}}}
 
@@ -230,13 +228,20 @@ call plug#begin('~/.vim/plugged')
 Plug 'markonm/traces.vim'
 Plug 'tpope/vim-commentary'
 Plug 'tpope/vim-fugitive'
-Plug 'tpope/vim-repeat'
+"Plug 'tpope/vim-repeat'
 Plug 'tpope/vim-surround'
 Plug 'tpope/vim-unimpaired'
+"if $USER == 'aron'
+"  Plug 'cohama/lexima.vim'
+"endif
 
 " Provides projectroot#guess()
-Plug 'dbakker/vim-projectroot'
-let g:rootmarkers = ['.project', '.git', '.hg', '.svn', '.bzr', '_darcs', 'build.xml']
+"Plug 'dbakker/vim-projectroot'
+"let g:rootmarkers = ['.project', '.git', '.hg', '.svn', '.bzr', '_darcs', 'build.xml']
+
+Plug 'airblade/vim-rooter'
+let g:rooter_patterns = ['.git', '.project', '.hg', '.bzr', '.svn', 'package.json']
+let g:rooter_silent_chdir = 1
 
 " This is the official editorconfig plugin. There is also an alternative
 " sgur/vim-editorconfig which used to be preferable because it was pure VimL
@@ -277,10 +282,11 @@ let g:airline_symbols.spell = 'SPELL'
 let g:airline_symbols.whitespace = ''
 
 Plug 'scrooloose/nerdtree'
+nnoremap <Leader>tN :NERDTreeToggle<CR>
+Plug 'unkiwii/vim-nerdtree-sync'
+let g:nerdtree_sync_cursorline = 1
 " Plug 'Xuyuanp/nerdtree-git-plugin'
 
-" TODO modify spacevim to use denite
-" rather than overriding with mappings.
 let g:spacevim_enabled_layers = [
 \ 'core/buffers',
 \ 'core/buffers/move',
@@ -294,32 +300,219 @@ let g:spacevim_enabled_layers = [
 \ ]
 Plug 'ctjhoa/spacevim'
 
-Plug 'autozimu/LanguageClient-neovim', {
-      \ 'branch': 'next',
-      \ 'do': 'bash install.sh',
-      \ }
-let g:LanguageClient_serverCommands = {
-      \ 'java': ['jdtls'],
-      \ }
-function! LC_maps()
-  if has_key(g:LanguageClient_serverCommands, &filetype)
-    nnoremap <buffer> <silent> K :call LanguageClient#textDocument_hover()<CR>
-    nnoremap <buffer> <silent> gd :call LanguageClient#textDocument_definition()<CR>
-    nnoremap <buffer> <silent> gD :call LanguageClient#textDocument_declaration()<CR>
-    nnoremap <buffer> <silent> <localleader>gr :call LanguageClient#textDocument_references()<CR>
-    nnoremap <buffer> <silent> <localleader>gg :call LanguageClient#textDocument_definition()<CR>
-    nnoremap <buffer> <silent> <localleader>gt :call LanguageClient#textDocument_typeDefinition()<CR>
-    nnoremap <buffer> <silent> <localleader>= :call LanguageClient#textDocument_formatting()<CR>
-    vnoremap <buffer> <silent> <localleader>= :call LanguageClient#textDocument_rangeFormatting()<CR>
-    nnoremap <buffer> <silent> <localleader>rr :call LanguageClient#textDocument_rename()<CR>
+if v:true
+  if $USER == 'aron'
+    set number signcolumn=number
+  else
+    lua vim.lsp.handlers["textDocument/publishDiagnostics"] = function() end
   endif
-endfunction
-autocmd FileType * call LC_maps()
+  Plug 'neovim/nvim-lspconfig'
+  function s:setup_nvim_lsp_mappings()
+    nnoremap <buffer> <silent> gA    <cmd>lua vim.lsp.buf.code_action()<CR>
+    "nnoremap <buffer> <silent> gD   <cmd>lua vim.lsp.buf.declaration()<CR>
+    nnoremap <buffer> <silent> gd    <cmd>lua vim.lsp.buf.definition()<CR>
+    nnoremap <buffer> <silent> K     <cmd>lua vim.lsp.buf.hover()<CR>
+    nnoremap <buffer> <silent> gi    <cmd>lua vim.lsp.buf.implementation()<CR>
+    nnoremap <buffer> <silent> <c-k> <cmd>lua vim.lsp.buf.signature_help()<CR>
+    nnoremap <buffer> <silent> gt    <cmd>lua vim.lsp.buf.type_definition()<CR>
+    nnoremap <buffer> <silent> gr    <cmd>lua vim.lsp.buf.references()<CR>
+    nnoremap <buffer> <silent> gR    <cmd>lua vim.lsp.buf.rename()<CR>
+    nnoremap <buffer> <silent> g0    <cmd>lua vim.lsp.buf.document_symbol()<CR>
+    nnoremap <buffer> <silent> gW    <cmd>lua vim.lsp.buf.workspace_symbol()<CR>
+    setl omnifunc=v:lua.vim.lsp.omnifunc
+    setl completeopt-=preview
+  endfunction
+  if executable('css-languageserver')
+    autocmd User PlugConfig lua require'lspconfig'.cssls.setup{}
+    autocmd User PlugConfig
+          \ autocmd FileType css,less,scss call s:setup_nvim_lsp_mappings()
+  endif
+  " doesn't work because of unreadable files in source dir (server directory)
+" if executable('/home/aron/src/java-language-server/dist/lang_server_linux.sh')
+"   autocmd User PlugConfig lua require'lspconfig'.java_language_server.setup{cmd='/home/aron/src/java-language-server/dist/lang_server_linux.sh'}
+"   autocmd User PlugConfig
+"         \ autocmd FileType java call s:setup_nvim_lsp_mappings()
+" elseif executable('jdtls')
+  if executable('jdtls')
+    autocmd User PlugConfig lua require'lspconfig'.jdtls.setup{cmd={'jdtls'}}
+    autocmd User PlugConfig
+          \ autocmd FileType java call s:setup_nvim_lsp_mappings()
+  endif
+  if executable('typescript-language-server')
+    autocmd User PlugConfig lua require'lspconfig'.tsserver.setup{}
+    autocmd User PlugConfig
+          \ autocmd FileType javascript,javascriptreact,typescript,typescriptreact call s:setup_nvim_lsp_mappings()
+  endif
+  if executable('vls')
+    autocmd User PlugConfig lua require'lspconfig'.vuels.setup{}
+    autocmd User PlugConfig
+          \ autocmd FileType vue call s:setup_nvim_lsp_mappings()
+  endif
+else
+  Plug 'prabirshrestha/async.vim'
+  Plug 'prabirshrestha/vim-lsp'
+  Plug 'mattn/vim-lsp-settings'
+  let g:lsp_diagnostics_enabled = 0
+  " Signs only take effect if diagnostics (above) and signcolumn (below) are
+  " enabled.
+  let g:lsp_signs_error = {'text': '✗'}
+  let g:lsp_signs_warning = {'text': '‼'}
+
+  function! s:on_lsp_buffer_enabled() abort
+    setlocal omnifunc=lsp#complete
+    setlocal signcolumn=no
+    "if $USER == 'aron' | setlocal signcolumn=yes | endif
+    if exists('+tagfunc') | setlocal tagfunc=lsp#tagfunc | endif
+    nmap <buffer> gd <plug>(lsp-definition)
+    nmap <buffer> gr <plug>(lsp-references)
+    nmap <buffer> gi <plug>(lsp-implementation)
+    nmap <buffer> gt <plug>(lsp-type-definition)
+    nmap <buffer> <localleader>rr <plug>(lsp-rename)
+    nmap <buffer> [g <Plug>(lsp-previous-diagnostic)
+    nmap <buffer> ]g <Plug>(lsp-next-diagnostic)
+    nmap <buffer> K <plug>(lsp-hover)
+  endfunction
+  autocmd User lsp_buffer_enabled call s:on_lsp_buffer_enabled()
+
+  autocmd User lsp_setup call lsp#register_server({
+        \ 'name': 'jdtls',
+        \ 'cmd': {server_info->['jdtls']},
+        \ 'allowlist': ['java'],
+        \ })
+endif
 
 Plug 'Shougo/context_filetype.vim'
 
-if has('patch-8.1.2114') || has('nvim-0.4')
+if 1
+  Plug 'junegunn/fzf'
+  Plug 'junegunn/fzf.vim'
+
+  function! s:build_quickfix_list(lines)
+    call setqflist(map(copy(a:lines), '{ "filename": v:val }'))
+    copen
+    cc
+  endfunction
+
+  let g:fzf_action = {
+        \ 'ctrl-q': function('s:build_quickfix_list'),
+        \ 'ctrl-t': 'tab split',
+        \ 'ctrl-x': 'split',
+        \ 'ctrl-v': 'vsplit',
+        \ }
+
+  let g:fzf_colors = {
+        \ 'fg':      ['fg', 'Normal'],
+        \ 'bg':      ['bg', 'Normal'],
+        \ 'hl':      ['fg', 'Comment'],
+        \ 'fg+':     ['fg', 'CursorLine', 'CursorColumn', 'Normal'],
+        \ 'bg+':     ['bg', 'CursorLine', 'CursorColumn'],
+        \ 'hl+':     ['fg', 'Statement'],
+        \ 'info':    ['fg', 'PreProc'],
+        \ 'border':  ['fg', 'Ignore'],
+        \ 'prompt':  ['fg', 'Conditional'],
+        \ 'pointer': ['fg', 'Exception'],
+        \ 'marker':  ['fg', 'Keyword'],
+        \ 'spinner': ['fg', 'Label'],
+        \ 'header':  ['fg', 'Comment'],
+        \ }
+
+  let g:fzf_history_dir = '~/.vim/fzf-history'
+
+  function! ProjectRg(query, fullscreen)
+    let command_fmt = 'rg --column --line-number --no-heading --color=always --smart-case --hidden -- %s || true'
+    let initial_command = printf(command_fmt, shellescape(a:query))
+    let reload_command = printf(command_fmt, '{q}')
+    " We used to pass 'dir': projectroot#guess() here, but since vim-rooter
+    " always changes directory for us, the current working dir is fine.
+    let spec = {
+          \ 'dir': getcwd(),
+          \ 'options': ['--phony', '--query', a:query, '--bind', 'change:reload:'.reload_command],
+          \ }
+    call fzf#vim#grep(initial_command, 1, fzf#vim#with_preview(spec), a:fullscreen)
+  endfunction
+
+  " We used to pass 'dir': projectroot#guess() here, but since vim-rooter
+  " always changes directory for us, the current working dir is fine.
+  command! -bang ProjectFiles call fzf#vim#files(getcwd(), fzf#vim#with_preview(), <bang>0)
+  command! -bang -nargs=* ProjectRg call ProjectRg(<q-args>, <bang>0)
+
+  nnoremap <leader>ff :FZF <C-R>=expand("%:p:h")<CR><CR>
+  nnoremap <leader>fh :History<CR>
+  nnoremap <leader>pf :ProjectFiles<CR>
+  nnoremap <c-p>      :ProjectFiles<CR>
+  nnoremap <leader>fg :GFiles?<CR>
+  nnoremap <leader>sP :ProjectRg <C-R>=expand("<cword>")<CR><CR>
+  nnoremap <leader>*  :ProjectRg <C-R>=expand("<cword>")<CR><CR>
+  nnoremap <leader>sp :ProjectRg<CR>
+  nnoremap <leader>/  :ProjectRg<CR>
+  nnoremap <leader>bb :Buffers<CR>
+
+  nnoremap <leader>sr :%s/\<<C-R>=expand("<cword>")<cr>\>//g<left><left>
+
+elseif 0
+  Plug 'Shougo/denite.nvim'
+  Plug 'Shougo/neomru.vim'
+  let g:neomru#do_validate=0
+
+  function! ConfigDenite()
+    "call denite#custom#map('insert', '<Up>', '<denite:move_to_previous_line>', 'noremap')
+    "call denite#custom#map('insert', '<Down>', '<denite:move_to_next_line>', 'noremap')
+    if executable('rg')
+      call denite#custom#filter('matcher/clap', 'clap_path', expand('~/.vim/plugged/vim-clap'))
+      "call denite#custom#source('file/rec', 'matchers', ['matcher/clap'])
+      "call denite#custom#source('file/rec', 'sorters', ['sorter/sublime'])
+      call denite#custom#var('file/rec', 'command', ['rg', '--files'])
+      call denite#custom#var('grep', 'command', ['rg'])
+      call denite#custom#var('grep', 'default_opts', ['--vimgrep', '--no-heading', '--smart-case', '--sort-files'])
+      call denite#custom#var('grep', 'recursive_opts', [])
+      call denite#custom#var('grep', 'pattern_opt', ['--regexp'])
+      call denite#custom#var('grep', 'separator', ['--'])
+      call denite#custom#var('grep', 'final_opts', [])
+      call denite#custom#source('grep', 'sorters', [])  " use rg-provided sort
+    endif
+
+    nnoremap <leader>bb :Denite -start-filter buffer<CR>
+    nnoremap <leader>ff :DeniteBufferDir -start-filter file<CR>
+    nnoremap <leader>fm :Denite -start-filter file_mru<CR>
+    nnoremap <leader>pf :Denite -start-filter file/rec:`projectroot#guess()`<CR>
+    nnoremap <c-p>      :Denite -start-filter file/rec:`projectroot#guess()`<CR>
+    nnoremap <leader>sP :DeniteCursorWord -start-filter grep:`projectroot#guess()`::!<CR>
+    nnoremap <leader>*  :DeniteCursorWord -start-filter grep:`projectroot#guess()`::!<CR>
+    nnoremap <leader>sp :Denite -start-filter grep:`projectroot#guess()`::!<CR>
+    nnoremap <leader>/  :Denite -start-filter grep:`projectroot#guess()`::!<CR>
+    nnoremap <leader>sl :Denite -start-filter -resume<CR>
+
+    function! s:denite_bindings() abort
+      nnoremap <silent><buffer><expr> <CR>    denite#do_map('do_action')
+      nnoremap <silent><buffer><expr> d       denite#do_map('do_action', 'delete')
+      nnoremap <silent><buffer><expr> p       denite#do_map('do_action', 'preview')
+      nnoremap <silent><buffer><expr> q       denite#do_map('quit')
+      nnoremap <silent><buffer><expr> <C-c>   denite#do_map('quit')
+      nnoremap <silent><buffer><expr> i       denite#do_map('open_filter_buffer')
+      nnoremap <silent><buffer><expr> <Space> denite#do_map('toggle_select').'j'
+    endfunction
+    autocmd FileType denite call s:denite_bindings()
+
+    function! s:denite_filter_bindings() abort
+      inoremap <silent><buffer><expr> <C-o>  <Plug>(denite_filter_quit)
+      inoremap <silent><buffer><expr> <CR>   denite#do_map('do_action')
+      inoremap <silent><buffer><expr> <C-c>  denite#do_map('quit')
+      inoremap <silent><buffer><expr> <Up>   denite#increment_parent_cursor(-1)
+      inoremap <silent><buffer><expr> <Down> denite#increment_parent_cursor(1)
+      inoremap <silent><buffer><expr> <C-k>  denite#increment_parent_cursor(-1)
+      inoremap <silent><buffer><expr> <C-j>  denite#increment_parent_cursor(1)
+    endfunction
+    autocmd FileType denite-filter call s:denite_filter_bindings()
+
+  endfunction
+  autocmd User PlugConfig call ConfigDenite()
+
+elseif has('patch-8.1.2114') || has('nvim-0.4')
   let g:clap_stop_bottom_top = 1
+  let g:clap_layout = {'relative': 'editor'}
+  "let g:clap_provider_grep_opts = '--hidden'
+  autocmd ColorScheme * let g:clap_theme = 'solarized_' . &background
+  " autocmd ColorScheme * let g:clap_theme = 'solarized_dark'
   Plug 'liuchengxu/vim-clap', {'do': ':Clap install-binary'}
   nnoremap <Leader>fm :Clap history<CR>
   nnoremap <Leader>ff :Clap files .<CR>
@@ -337,11 +530,7 @@ endif
 Plug 'google/vim-maktaba'
 Plug 'google/vim-glaive'
 autocmd User PlugConfig call glaive#Install()
-if isdirectory(expand('~/src/vim-codefmt'))
-  Plug '~/src/vim-codefmt'
-else
-  Plug 'google/vim-codefmt'
-endif
+Plug 'agriffis/vim-codefmt', {'branch': 'scampersand'}
 autocmd User PlugConfig Glaive codefmt plugin[mappings]
 
 " Color schemes
@@ -349,7 +538,9 @@ Plug 'NLKNguyen/papercolor-theme'
 let g:PaperColor_Theme_Options = {
       \   'theme': {
       \     'default': {
-      \       'transparent_background': 1
+      \       'transparent_background': 1,
+      \       'allow_bold': 1,
+      \       'allow_italic': 1,
       \     },
       \     'default.light': {
       \       'override': {
@@ -366,8 +557,13 @@ let g:one_allow_italics = 1
 Plug 'reedes/vim-colors-pencil'
 Plug 'doums/darcula'
 Plug 'morhetz/gruvbox'
+let g:gruvbox_contrast = 'hard'
 Plug 'lifepillar/vim-solarized8'
 Plug 'liuchengxu/space-vim-theme'
+Plug 'nelstrom/vim-mac-classic-theme'
+Plug 'JaySandhu/xcode-vim'
+Plug 'https://gitlab.com/protesilaos/tempus-themes-vim.git'
+Plug 'chriskempson/base16-vim'
 "}}}
 
 "───────────────────────────────────────────────────────────────────────────────
@@ -378,25 +574,28 @@ Plug 'liuchengxu/space-vim-theme'
 let g:html_indent_inctags = 'p,main'
 
 Plug 'agriffis/vim-jinja'
+Plug 'mustache/vim-mustache-handlebars'
 
-Plug 'andreshazard/vim-freemarker'
-autocmd BufNewFile,BufReadPost *.ftl set ft=freemarker
+"Plug 'agriffis/vim-freemarker'
+autocmd BufNewFile,BufReadPost *.ftl set ft=ftl
+"autocmd BufNewFile,BufReadPost *.ftl set ft=html
 
-Plug 'agriffis/vim-vue', {'branch': 'develop'}
-autocmd User PlugConfig
-      \ autocmd FileType vue let &l:cinoptions = g:javascript_cinoptions
+" Plug 'agriffis/vim-vue', {'branch': 'develop'}
+" autocmd User PlugConfig
+"       \ autocmd FileType vue let &l:cinoptions = g:javascript_cinoptions
 autocmd User PlugConfig
       \ autocmd FileType vue setl comments=s:<!--,m:\ \ \ \ \ ,e:-->,s1:/*,mb:*,ex:*/,://
-autocmd User PlugConfig
-      \ autocmd FileType vue syn sync fromstart
+" autocmd User PlugConfig
+"       \ autocmd FileType vue syn sync fromstart
+Plug 'posva/vim-vue'
 
 Plug 'agriffis/closetag.vim'
 " The closetag.vim script is kinda broken... it requires b:unaryTagsStack
 " per buffer but only sets it once, on script load.
 autocmd BufNewFile,BufReadPre * let b:unaryTagsStack="area base br dd dt hr img input link meta param"
-autocmd FileType jsx,markdown,xml let b:unaryTagsStack=""
+autocmd FileType javascriptreact,markdown,xml let b:unaryTagsStack=""
 " Replace the default closetag maps with c-/ in insert mode only.
-autocmd FileType html,jsx,markdown,vue,xml inoremap <buffer> <C-/> <C-r>=GetCloseTag()<CR>
+autocmd FileType html,javascriptreact,markdown,vue,xml inoremap <buffer> <C-/> <C-r>=GetCloseTag()<CR>
 
 autocmd FileType xml syntax cluster xmlRegionHook add=SpellErrors,SpellCorrected
 
@@ -420,9 +619,13 @@ autocmd FileType html nnoremap <buffer> <localleader>rf :set opfunc=ReHtml<CR>g@
 autocmd FileType html vnoremap <buffer> <localleader>rf :<C-u>call ReHtml(visualmode(), 1)<CR>
 
 " vim bundles vim-markdown (by tpope)
-autocmd BufNewFile,BufReadPost *.md,*.mdx set filetype=markdown
+autocmd BufNewFile,BufReadPost *.md set filetype=markdown
 let g:markdown_fenced_languages = ['html', 'python', 'bash=sh', 'clojure', 'sql']
 let g:markdown_minlines = 500
+
+" mdx is markdown with embedded jsx
+Plug 'jxnblk/vim-mdx-js'
+autocmd BufNewFile,BufReadPost *.js set filetype=javascriptreact
 
 autocmd BufNewFile,BufReadPost *.overrides,*.variables set ft=less
 "}}}
@@ -444,9 +647,9 @@ let g:javascript_plugin_jsdoc = 1
 " This also applies to FileType vue above.
 let g:javascript_cinoptions = '(0,Ws'
 let g:javascript_indent_W_pat = '[^[:blank:]{[]'  " https://github.com/pangloss/vim-javascript/issues/1114
-autocmd FileType javascript let &l:cinoptions = g:javascript_cinoptions
-autocmd FileType javascript setl comments=s1:/*,mb:*,ex:*/,://
-autocmd FileType javascript setl shiftwidth=2
+autocmd FileType javascript,javascriptreact,typescript,typescriptreact let &l:cinoptions = g:javascript_cinoptions
+autocmd FileType javascript,javascriptreact,typescript,typescriptreact setl comments=s1:/*,mb:*,ex:*/,://
+autocmd FileType javascript,javascriptreact,typescript,typescriptreact setl shiftwidth=2
 
 Plug 'heavenshell/vim-jsdoc'
 autocmd FileType javascript noremap <localleader>rdf $?function<CR>:noh<CR><Plug>(jsdoc)
@@ -454,24 +657,26 @@ autocmd FileType javascript noremap <localleader>rdf $?function<CR>:noh<CR><Plug
 " Disable Eclim's JS indentation which overrides vim-javascript.
 let g:EclimJavascriptIndentDisabled = 1
 
-Plug 'ternjs/tern_for_vim'
-let g:tern#command = ['tern']
+"Plug 'ternjs/tern_for_vim'
+"let g:tern#command = ['tern']
 " yarn config set prefix ~/.local
 " yarn global add tern
-autocmd FileType javascript noremap <localleader>gg :TernDef<CR>
-autocmd FileType javascript noremap gd :TernDef<CR>
+"autocmd FileType javascript noremap <localleader>gg :TernDef<CR>
+"autocmd FileType javascript noremap gd :TernDef<CR>
 
 " Configure deoplete for javascript
-Plug 'carlitux/deoplete-ternjs'
+"Plug 'carlitux/deoplete-ternjs'
 "let g:deoplete#sources#ternjs#docs = 1
-let g:deoplete#sources#ternjs#expand_word_forward = 0
+"let g:deoplete#sources#ternjs#expand_word_forward = 0
 
 " Configure codefmt to call prettier with vim settings (and leave everything
 " else set by config files)
-autocmd User PlugConfig Glaive codefmt prettier_options=`{-> [
-      \ '--print-width=' . &textwidth,
-      \ '--tab-width=' . &shiftwidth,
-      \ ]}`
+"autocmd User PlugConfig Glaive codefmt prettier_options=`{-> [
+"      \ '--print-width=' . &textwidth,
+"      \ '--tab-width=' . &shiftwidth,
+"      \ ]}`
+"autocmd User PlugConfig Glaive codefmt prettier_executable="/home/aron/src/xstyled/node_modules/.bin/prettier"
+"autocmd User PlugConfig Glaive codefmt prettier_executable=`['yarn', 'prettier']`
 
 " vim-jsx-pretty replaces the deprecated vim-jsx to augment vim-javascript
 " with support for JSX indenting and highlighting.
@@ -479,9 +684,9 @@ Plug 'maxmellon/vim-jsx-pretty'
 
 " vim-json highlights keys/values separately, conceals quotes except on the
 " cursor line, and highlights errors loudly.
-Plug 'elzr/vim-json'
-let g:vim_json_syntax_conceal = 0
-autocmd FileType json,yaml setl shiftwidth=2
+"Plug 'elzr/vim-json'
+"let g:vim_json_syntax_conceal = 0
+"autocmd FileType json,yaml setl shiftwidth=2
 "}}}
 
 "───────────────────────────────────────────────────────────────────────────────
@@ -494,7 +699,7 @@ Plug 'cespare/vim-toml'
 " Python {{{
 "───────────────────────────────────────────────────────────────────────────────
 Plug 'Vimjas/vim-python-pep8-indent'
-Plug 'tmhedberg/SimpylFold'
+" Plug 'tmhedberg/SimpylFold'
 
 " Consider https://github.com/python-mode/python-mode
 " with configuration below
@@ -557,6 +762,7 @@ function! LoadTypePython()
 endfunction
 
 autocmd BufReadPost,BufNewFile *.wsgi set ft=python
+autocmd FileType python nnoremap <buffer><silent> <localleader>= :silent w<CR>:silent !reformat-python "%"<CR>:silent e!<CR>
 autocmd FileType python call LoadTypePython()
 "}}}
 
@@ -588,102 +794,107 @@ autocmd User PlugConfig
 if 1
   Plug 'tpope/vim-fireplace'
 else
+  Plug 'liquidz/vim-iced', {'for': 'clojure'}
+  " These don't work, not sure why
+  let g:iced#nrepl#path_translation = {
+          \ '/opt/agilepublisher-9/webapps/ROOT/WEB-INF/classes': '/home/aron/src/ss/clients/tizra/cubchicken/src/main/clj',
+          \ '/home/agilepublisher/cubchicken/target/ROOT/WEB-INF/classes': '/home/aron/src/ss/clients/tizra/cubchicken/src/main/clj',
+          \ '/home/agilepublisher/cubchicken': '/home/aron/src/ss/clients/tizra/cubchicken',
+          \ }
+  let g:iced#promise#timeout_ms = 8000 " default is 3000, not enuf for cubchicken
+  function! s:my_iced_mappings() abort
+    silent! nmap <buffer> <Leader>' <Plug>(iced_connect)
+    silent! nmap <buffer> <Leader>" <Plug>(iced_jack_in)
 
-Plug 'liquidz/vim-iced', {'for': 'clojure'}
-function! s:my_iced_mappings() abort
-  silent! nmap <buffer> <Leader>' <Plug>(iced_connect)
-  silent! nmap <buffer> <Leader>" <Plug>(iced_jack_in)
+    "" Evaluating (<Leader>e)
+    "" ------------------------------------------------------------------------
+    silent! nmap <buffer> <Leader>eq <Plug>(iced_interrupt)
+    silent! nmap <buffer> <Leader>eQ <Plug>(iced_interrupt_all)
+    silent! nmap <buffer> <Leader>ei <Plug>(iced_eval)<Plug>(sexp_inner_element)``
+    silent! nmap <buffer> <Leader>ee <Plug>(iced_eval)<Plug>(sexp_outer_list)``
+    silent! nmap <buffer> <Leader>et <Plug>(iced_eval_outer_top_list)
+    silent! vmap <buffer> <Leader>ee <Plug>(iced_eval_visual)
+    silent! nmap <buffer> <Leader>en <Plug>(iced_eval_ns)
+    silent! nmap <buffer> <Leader>ep <Plug>(iced_print_last)
+    silent! nmap <buffer> <Leader>eb <Plug>(iced_require)
+    silent! nmap <buffer> <Leader>eB <Plug>(iced_require_all)
+    silent! nmap <buffer> <Leader>eu <Plug>(iced_undef)
+    silent! nmap <buffer> <Leader>eU <Plug>(iced_undef_all_in_ns)
+    silent! nmap <buffer> <Leader>eM <Plug>(iced_macroexpand_outer_list)
+    silent! nmap <buffer> <Leader>em <Plug>(iced_macroexpand_1_outer_list)
 
-  "" Evaluating (<Leader>e)
-  "" ------------------------------------------------------------------------
-  silent! nmap <buffer> <Leader>eq <Plug>(iced_interrupt)
-  silent! nmap <buffer> <Leader>eQ <Plug>(iced_interrupt_all)
-  silent! nmap <buffer> <Leader>ei <Plug>(iced_eval)<Plug>(sexp_inner_element)``
-  silent! nmap <buffer> <Leader>ee <Plug>(iced_eval)<Plug>(sexp_outer_list)``
-  silent! nmap <buffer> <Leader>et <Plug>(iced_eval_outer_top_list)
-  silent! vmap <buffer> <Leader>ee <Plug>(iced_eval_visual)
-  silent! nmap <buffer> <Leader>en <Plug>(iced_eval_ns)
-  silent! nmap <buffer> <Leader>ep <Plug>(iced_print_last)
-  silent! nmap <buffer> <Leader>eb <Plug>(iced_require)
-  silent! nmap <buffer> <Leader>eB <Plug>(iced_require_all)
-  silent! nmap <buffer> <Leader>eu <Plug>(iced_undef)
-  silent! nmap <buffer> <Leader>eU <Plug>(iced_undef_all_in_ns)
-  silent! nmap <buffer> <Leader>eM <Plug>(iced_macroexpand_outer_list)
-  silent! nmap <buffer> <Leader>em <Plug>(iced_macroexpand_1_outer_list)
+    "" Testing (<Leader>t)
+    "" ------------------------------------------------------------------------
+    silent! nmap <buffer> <Leader>tt <Plug>(iced_test_under_cursor)
+    silent! nmap <buffer> <Leader>tl <Plug>(iced_test_rerun_last)
+    silent! nmap <buffer> <Leader>ts <Plug>(iced_test_spec_check)
+    silent! nmap <buffer> <Leader>to <Plug>(iced_test_buffer_open)
+    silent! nmap <buffer> <Leader>tn <Plug>(iced_test_ns)
+    silent! nmap <buffer> <Leader>tp <Plug>(iced_test_all)
+    silent! nmap <buffer> <Leader>tr <Plug>(iced_test_redo)
 
-  "" Testing (<Leader>t)
-  "" ------------------------------------------------------------------------
-  silent! nmap <buffer> <Leader>tt <Plug>(iced_test_under_cursor)
-  silent! nmap <buffer> <Leader>tl <Plug>(iced_test_rerun_last)
-  silent! nmap <buffer> <Leader>ts <Plug>(iced_test_spec_check)
-  silent! nmap <buffer> <Leader>to <Plug>(iced_test_buffer_open)
-  silent! nmap <buffer> <Leader>tn <Plug>(iced_test_ns)
-  silent! nmap <buffer> <Leader>tp <Plug>(iced_test_all)
-  silent! nmap <buffer> <Leader>tr <Plug>(iced_test_redo)
+    "" Stdout buffer (<Leader>s)
+    "" ------------------------------------------------------------------------
+    silent! nmap <buffer> <Leader>ss <Plug>(iced_stdout_buffer_open)
+    silent! nmap <buffer> <Leader>sl <Plug>(iced_stdout_buffer_clear)
+    silent! nmap <buffer> <Leader>sq <Plug>(iced_stdout_buffer_close)
 
-  "" Stdout buffer (<Leader>s)
-  "" ------------------------------------------------------------------------
-  silent! nmap <buffer> <Leader>ss <Plug>(iced_stdout_buffer_open)
-  silent! nmap <buffer> <Leader>sl <Plug>(iced_stdout_buffer_clear)
-  silent! nmap <buffer> <Leader>sq <Plug>(iced_stdout_buffer_close)
+    "" Refactoring (<Leader>r)
+    "" ------------------------------------------------------------------------
+    silent! nmap <buffer> <Leader>rcn <Plug>(iced_clean_ns)
+    silent! nmap <buffer> <Leader>rca <Plug>(iced_clean_all)
+    silent! nmap <buffer> <Leader>ram <Plug>(iced_add_missing)
+    silent! nmap <buffer> <Leader>ran <Plug>(iced_add_ns)
+    silent! nmap <buffer> <Leader>rtf <Plug>(iced_thread_first)
+    silent! nmap <buffer> <Leader>rtl <Plug>(iced_thread_last)
+    silent! nmap <buffer> <Leader>ref <Plug>(iced_extract_function)
+    silent! nmap <buffer> <Leader>raa <Plug>(iced_add_arity)
+    silent! nmap <buffer> <Leader>rml <Plug>(iced_move_to_let)
 
-  "" Refactoring (<Leader>r)
-  "" ------------------------------------------------------------------------
-  silent! nmap <buffer> <Leader>rcn <Plug>(iced_clean_ns)
-  silent! nmap <buffer> <Leader>rca <Plug>(iced_clean_all)
-  silent! nmap <buffer> <Leader>ram <Plug>(iced_add_missing)
-  silent! nmap <buffer> <Leader>ran <Plug>(iced_add_ns)
-  silent! nmap <buffer> <Leader>rtf <Plug>(iced_thread_first)
-  silent! nmap <buffer> <Leader>rtl <Plug>(iced_thread_last)
-  silent! nmap <buffer> <Leader>ref <Plug>(iced_extract_function)
-  silent! nmap <buffer> <Leader>raa <Plug>(iced_add_arity)
-  silent! nmap <buffer> <Leader>rml <Plug>(iced_move_to_let)
+    "" Help/Document (<Leader>h)
+    "" ------------------------------------------------------------------------
+    silent! nmap <buffer> K <Plug>(iced_popup_document_open)
+    silent! nmap <buffer> <Leader>hb <Plug>(iced_document_open)
+    silent! nmap <buffer> <Leader>hu <Plug>(iced_use_case_open)
+    silent! nmap <buffer> <Leader>hn <Plug>(iced_next_use_case)
+    silent! nmap <buffer> <Leader>hN <Plug>(iced_prev_use_case)
+    silent! nmap <buffer> <Leader>hq <Plug>(iced_document_close)
+    silent! nmap <buffer> <Leader>hS <Plug>(iced_source_show)
+    silent! nmap <buffer> <Leader>hs <Plug>(iced_popup_source_show)
+    silent! nmap <buffer> <Leader>hc <Plug>(iced_clojuredocs_open)
+    silent! nmap <buffer> <Leader>hh <Plug>(iced_command_palette)
 
-  "" Help/Document (<Leader>h)
-  "" ------------------------------------------------------------------------
-  silent! nmap <buffer> K <Plug>(iced_popup_document_open)
-  silent! nmap <buffer> <Leader>hb <Plug>(iced_document_open)
-  silent! nmap <buffer> <Leader>hu <Plug>(iced_use_case_open)
-  silent! nmap <buffer> <Leader>hn <Plug>(iced_next_use_case)
-  silent! nmap <buffer> <Leader>hN <Plug>(iced_prev_use_case)
-  silent! nmap <buffer> <Leader>hq <Plug>(iced_document_close)
-  silent! nmap <buffer> <Leader>hS <Plug>(iced_source_show)
-  silent! nmap <buffer> <Leader>hs <Plug>(iced_popup_source_show)
-  silent! nmap <buffer> <Leader>hc <Plug>(iced_clojuredocs_open)
-  silent! nmap <buffer> <Leader>hh <Plug>(iced_command_palette)
+    "" Browsing (<Leader>b)
+    "" ------------------------------------------------------------------------
+    silent! nmap <buffer> <Leader>bn <Plug>(iced_browse_related_namespace)
+    silent! nmap <buffer> <Leader>bs <Plug>(iced_browse_spec)
+    silent! nmap <buffer> <Leader>bt <Plug>(iced_browse_test_under_cursor)
+    silent! nmap <buffer> <Leader>br <Plug>(iced_browse_references)
+    silent! nmap <buffer> <Leader>bd <Plug>(iced_browse_dependencies)
+    silent! nmap <buffer> <Leader>bvr <Plug>(iced_browse_var_references)
+    silent! nmap <buffer> <Leader>bvd <Plug>(iced_browse_var_dependencies)
 
-  "" Browsing (<Leader>b)
-  "" ------------------------------------------------------------------------
-  silent! nmap <buffer> <Leader>bn <Plug>(iced_browse_related_namespace)
-  silent! nmap <buffer> <Leader>bs <Plug>(iced_browse_spec)
-  silent! nmap <buffer> <Leader>bt <Plug>(iced_browse_test_under_cursor)
-  silent! nmap <buffer> <Leader>br <Plug>(iced_browse_references)
-  silent! nmap <buffer> <Leader>bd <Plug>(iced_browse_dependencies)
-  silent! nmap <buffer> <Leader>bvr <Plug>(iced_browse_var_references)
-  silent! nmap <buffer> <Leader>bvd <Plug>(iced_browse_var_dependencies)
+    "" Jumping cursor (<Leader>j)
+    "" ------------------------------------------------------------------------
+    silent! nmap <buffer> <C-]> <Plug>(iced_def_jump)
+    silent! nmap <buffer> <Leader>jn <Plug>(iced_jump_to_next_sign)
+    silent! nmap <buffer> <Leader>jN <Plug>(iced_jump_to_prev_sign)
+    silent! nmap <buffer> <Leader>jl <Plug>(iced_jump_to_let)
 
-  "" Jumping cursor (<Leader>j)
-  "" ------------------------------------------------------------------------
-  silent! nmap <buffer> <C-]> <Plug>(iced_def_jump)
-  silent! nmap <buffer> <Leader>jn <Plug>(iced_jump_to_next_sign)
-  silent! nmap <buffer> <Leader>jN <Plug>(iced_jump_to_prev_sign)
-  silent! nmap <buffer> <Leader>jl <Plug>(iced_jump_to_let)
+    "" Debugging (<Leader>d)
+    "" ------------------------------------------------------------------------
+    silent! nmap <buffer> <Leader>dbt <Plug>(iced_browse_tapped)
+    silent! nmap <buffer> <Leader>dlt <Plug>(iced_clear_tapped)
 
-  "" Debugging (<Leader>d)
-  "" ------------------------------------------------------------------------
-  silent! nmap <buffer> <Leader>dbt <Plug>(iced_browse_tapped)
-  silent! nmap <buffer> <Leader>dlt <Plug>(iced_clear_tapped)
-
-  "" Misc
-  "" ------------------------------------------------------------------------
-  "silent! nmap <buffer> == <Plug>(iced_format)
-  "silent! nmap <buffer> =G <Plug>(iced_format_all)
-  "silent! nmap <buffer> <Leader>* <Plug>(iced_grep)
-  "silent! nmap <buffer> <Leader>/ :<C-u>IcedGrep<Space>
-endfunction
-autocmd User PlugConfig
-      \ autocmd FileType clojure call s:my_iced_mappings()
-
+    "" Misc
+    "" ------------------------------------------------------------------------
+    "silent! nmap <buffer> == <Plug>(iced_format)
+    "silent! nmap <buffer> =G <Plug>(iced_format_all)
+    "silent! nmap <buffer> <Leader>* <Plug>(iced_grep)
+    "silent! nmap <buffer> <Leader>/ :<C-u>IcedGrep<Space>
+  endfunction
+  autocmd User PlugConfig
+        \ autocmd FileType clojure call s:my_iced_mappings()
 endif
 
 Plug 'guns/vim-clojure-static'
@@ -747,8 +958,10 @@ autocmd FileType c,cpp call LoadTypeC()
 let g:is_bash=1
 "}}}
 
-Plug 'norcalli/nvim-colorizer.lua'
-autocmd User PlugConfig lua require'colorizer'.setup{'*';'!text'}
+if has('nvim')
+  Plug 'norcalli/nvim-colorizer.lua'
+  autocmd User PlugConfig lua require'colorizer'.setup{'*';'!text'}
+endif
 
 call plug#end()
 
@@ -786,29 +999,24 @@ endfunction
 nmap <leader>td :call DiffToggle()<CR>
 
 " Disable movement keys that I hit accidentally sometimes.
-inoremap <Up> <nop>
-inoremap <Down> <nop>
-inoremap <Left> <nop>
-inoremap <Right> <nop>
-inoremap <PageUp> <nop>
-inoremap <PageDown> <nop>
-inoremap <Home> <nop>
-inoremap <End> <nop>
+"inoremap <Up> <nop>
+"inoremap <Down> <nop>
+"inoremap <Left> <nop>
+"inoremap <Right> <nop>
+"inoremap <PageUp> <nop>
+"inoremap <PageDown> <nop>
+"inoremap <Home> <nop>
+"inoremap <End> <nop>
 "}}}
 
 "═══════════════════════════════════════════════════════════════════════════════
 " Colors {{{
 "═══════════════════════════════════════════════════════════════════════════════
 
-function! TryTheme(theme, ...)
-  let l:background = a:0 ? a:1 : ''
-  if a:theme == 'solarized'
-    " force dark bg to prevent double toggle with term scheme
-    let l:background = 'dark'
-  endif
-  if exists('g:colors_name') && g:colors_name == a:theme &&
-      \ (empty(l:background) || &background == l:background)
-    return 1
+function! TryTheme(theme, background)
+  let l:background = a:theme == 'solarized' ? 'dark' : a:background
+  if ! empty(l:background)
+    let &background = l:background
   endif
   try
     exec 'colorscheme' a:theme
@@ -821,37 +1029,34 @@ function! TryTheme(theme, ...)
   if exists('syntax_on')
     syn reset
   endif
-  let g:colors_name_loaded = a:theme
 endfunction
 
-function! LoadTheme()
+function! LoadTheme(from_timer)
   let l:background_file = expand('~/.vim/background')
   let l:theme_file = expand('~/.vim/theme')
-  let l:background = filereadable(l:background_file) ?
-                   \ readfile(l:background_file)[0] : &background
-  let l:theme = filereadable(l:theme_file) ?
-              \ readfile(l:theme_file)[0] : 'default'
-  if l:background == &background &&
-        \ ((exists('g:colors_name_loaded') && l:theme == g:colors_name_loaded) ||
-        \  (exists('g:colors_name') && l:theme == g:colors_name))
+  let l:background = filereadable(l:background_file) ? readfile(l:background_file)[0] : ''
+  let l:theme = filereadable(l:theme_file) ? readfile(l:theme_file)[0] : 'default'
+  if (a:from_timer &&
+        \ (exists('g:tried_theme') && l:theme == g:tried_theme) &&
+        \ (exists('g:tried_background') && l:background == g:tried_background))
     return 0
   endif
-  " echom l:theme . " " . l:background
+  let g:tried_theme = l:theme
+  let g:tried_background = l:background
   call TryTheme(l:theme, l:background)
 endfunction
 
-colorscheme default  " ensure g:colors_name is set
-call LoadTheme()
+call LoadTheme(0)
 
 if has("timers")
   function! LoadThemeTimer(timer)
-    call LoadTheme()
+    call LoadTheme(1)
   endfunction
   let theme_timer = timer_start(1000, 'LoadThemeTimer', {'repeat': -1})
 else
   " http://vim.wikia.com/wiki/Timer_to_execute_commands_periodically
   function! LoadThemeTimer()
-    call LoadTheme()
+    call LoadTheme(1)
     call feedkeys("f\e")
   endfunction
   autocmd CursorHold * call LoadThemeTimer()
