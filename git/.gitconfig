@@ -1,123 +1,134 @@
 [push]
-	default = simple
+    default = simple
+
+[pull]
+    ff = only
 
 [core]
-	pager = less -FXRS
+    pager = less -QRSX
+    #pager = delta
+
+#[interactive]
+#    diffFilter = delta --color-only --24-bit-color always
 
 [alias]
-	# Common abbreviations
-	ci = commit -v
-	co = checkout
-	di = diff
-	id = describe
-	st = status
-	sub = submodule
-	up = checkout
-	update = checkout
-	uncommit = reset --soft HEAD~1
-	amend = commit --amend -C HEAD
-	purge = clean -fdx
-	pushf = push --force-with-lease
-        changed = diff --name-only
+    # Common abbreviations
+    ci = commit -v
+    co = checkout
+    id = describe
+    st = status
+    sub = submodule
+    up = checkout
+    update = checkout
+    uncommit = reset --soft HEAD~1
+    amend = commit --amend -C HEAD
+    purge = clean -fdx
+    pushf = push --force-with-lease
+    changed = diff --name-only
+    wip = commit -a -m wip
 
-	# Runs diff using vimdiff to compare versions
-	vimdiff = difftool -t vimdiff
+    # Diffs
+    di = diff
+    diffc = diff --cached
+    diffw = diff --ignore-space-change
+    diw = diffw
+    diffcw = diff --cached --ignore-space-change
+    showw = show --ignore-space-change
 
-	# Check In All
-	cia = commit -v -a
+    # Runs diff using vimdiff to compare versions
+    vimdiff = difftool -t vimdiff
 
-	# Returns relative path to repo root ("cd up" in absurd git vernacular)
-	root = rev-parse --show-cdup
+    # Check In All
+    cia = commit -v -a
 
-	# ReBase Upstream
-	rbu = rebase @{upstream}
+    # Returns relative path to repo root ("cd up" in absurd git vernacular)
+    root = rev-parse --show-cdup
 
-	# diff Cached
-	diffc = diff --cached
+    # ReBase Upstream
+    rbu = rebase @{upstream}
 
-	# Log, One Line
-	lol = log --graph --decorate --pretty=lol
+    # diff from main fork point
+    idb = !git merge-base --fork-point
+    diffb = "!f(){ b=$1; shift; git diff $(git idb \"$b\") \"$@\"; }; f"
+    lsb = "!f(){ b=$1; shift; git diffb \"$b\" --name-only \"$@\"; }; f"
+    main-branch = !git show-ref --verify --quiet refs/heads/main && echo main || echo master
+    idm = "!git idb \"$(git main-branch)\""
+    diffm = "!git diff \"$(git idm)\""
+    lsm = diffm --name-only
 
-	# Log, One Line, All (refs) - shows the relationship of all refs in the repository
-	lola = !git lol --all
+    # Log, One Line
+    lol = log --graph --pretty=lol
 
-	# Log, One Line, outbound - shows the commits on HEAD not on upstream
-	lolo = !git lol @{upstream}..HEAD
+    # Log, One Line, All (refs) - shows the relationship of all refs in the repository
+    lola = !git lol --all
 
-	# Log, One Line "Y" format - compares HEAD vs upstream back to the merge point
-	loly = !git lol ^$(git merge-base HEAD @{upstream})^@ HEAD @{upstream}
+    # Log, One Line, outbound - shows the commits on HEAD not on upstream
+    lolo = !git lol @{upstream}..HEAD
 
-	# log Full (format)
-	logf = log -p --stat
+    # Log, One Line "Y" format - compares HEAD vs upstream back to the merge point
+    loly = !git lol ^$(git merge-base HEAD @{upstream})^@ HEAD @{upstream}
 
-	# fetch and show log of upstream commits
-	inbound = !bash -c "\"git fetch; git log -p --stat HEAD..@{upstream}\""
+    # log Full (format)
+    logf = log -p --stat
 
-	# Show list of contributors
-	contrib = !git log "--pretty=format:'%an %ae%n%cn %ce'" |sort |uniq -c |sort
+    # fetch and show log of upstream commits
+    inbound = !bash -c "\"git fetch; git log -p --stat HEAD..@{upstream}\""
 
-	# Working with submodules
-	sdiff = !git diff && git submodule foreach 'git diff'
-	spush = push --recurse-submodules=on-demand
-	supdate = submodule update --remote --rebase
+    # Show list of contributors
+    contrib = !git log "--pretty=format:'%an %ae%n%cn %ce'" |sort |uniq -c |sort
+
+    # Working with submodules
+    sdiff = !git diff && git submodule foreach 'git diff'
+    spush = push --recurse-submodules=on-demand
+    supdate = submodule update --remote --rebase
 
 [pretty]
-	lol = "%C(yellow bold)%h%C(reset) %C(red)(%an)%C(reset)%C(blue bold)%d%C(reset) %s %C(cyan)(%ar)%C(reset)"
-	lolol = "%C(yellow bold)%h%Creset by %C(red)%an%Creset (%ar)%C(cyan bold)%d%Creset%n%s%n%n%b"
+    #lol = "%C(yellow bold)%h%C(reset) %C(red)(%an)%C(reset)%C(blue bold)%d%C(reset) %s %C(cyan)(%as)%C(reset)"
+    lol = "%as %C(bold blue)%h%Creset%C(bold red)%d%Creset %C(bold yellow)(%an)%Creset %s"
+    lolol = "%C(yellow bold)%h%Creset by %C(red)%an%Creset (%as)%C(cyan bold)%d%Creset%n%s%n%n%b"
 
 [notes]
-	displayRef = refs/notes/[t]ickets
-	displayRef = refs/notes/[t]esters
+    displayRef = refs/notes/[t]ickets
+    displayRef = refs/notes/[t]esters
 
-[color]
-	ui = auto
-	status = auto
-	branch = auto
-	diff = auto
-	interactive = auto
-	pager = true
-
-[color "diff"]
-	#plain = blue
-	#meta = blue
-	#frag = blue
-	old = red
-	new = blue
-	#commit = yellow bold
-	whitespace = "red reverse"
-
-[color "interactive"]
-	header = blue
-        prompt = reverse
-        help = bold
-	error = red bold
-
-[color "status"]
-	#header = white
-	added = blue bold
-	updated = green bold
-	changed = magenta bold
-	#untracked = yellow bold
-	nobranch = red bold
-
-[gpg]
-	program = gpg2
+# [color "diff"]
+#     #plain = blue
+#     #meta = blue
+#     #frag = blue
+#     old = red
+#     new = blue
+#     #commit = yellow bold
+#     whitespace = "red reverse"
+# 
+# [color "interactive"]
+#     header = blue
+#     prompt = reverse
+#     help = bold
+#     error = red bold
+# 
+# [color "status"]
+#     #header = white
+#     added = blue bold
+#     updated = green bold
+#     changed = magenta bold
+#     #untracked = yellow bold
+#     nobranch = red bold
 
 [diff]
-	renameLimit = 3000
-	submodule = log
+    renameLimit = 3000
+    submodule = log
 
 [status]
-	submodulesummary = 1
+    submodulesummary = 1
 
 [merge]
-	tool = vimmerge
+    tool = vimmerge
 [mergetool "vimmerge"]
-	cmd = vimmerge \"$MERGED\"
+    cmd = vimmerge \"$MERGED\"
 [mergetool "vim"]
-	cmd = vim -O \"$BASE\" \"$LOCAL\" \"$MERGED\" \"$REMOTE\"
+    cmd = vim -O \"$BASE\" \"$LOCAL\" \"$MERGED\" \"$REMOTE\"
 [mergetool]
-	keepBackup = false
+    keepBackup = false
 
 [include]
-	path = .gitconfig.mine
+    path = .gitconfig.mine
