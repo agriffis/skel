@@ -1,6 +1,6 @@
 -- init.lua
 --
--- Written in 2003-2020 by Aron Griffis <aron@arongriffis.com>
+-- Written in 2003-2021 by Aron Griffis <aron@arongriffis.com>
 -- (originally as .vimrc)
 --
 -- To the extent possible under law, the author(s) have dedicated all copyright
@@ -10,7 +10,14 @@
 -- CC0 Public Domain Dedication at
 -- http://creativecommons.org/publicdomain/zero/1.0/
 --------------------------------------------------------------------------------
+-- vim.opt.verbose = 9
+-- vim.opt.verbosefile = '/tmp/vim.debug.txt'
+
 local cmd = vim.api.nvim_command
+local cmdv = function(...)
+  print(...)
+  cmd(...)
+end
 
 local function map(fn, ...)
   local function map_(t)
@@ -37,20 +44,24 @@ local function filter(fn, ...)
 end
 
 local function compose(...)
-  local fns = table.pack(...)
+  local fns = {...}
   return function(x)
-    for i = fns.n, 1, -1 do
-      x = fns[i](x)
+    for _, fn in ipairs(fns) do
+      x = fn(x)
     end
     return x
   end
 end
 
+local function merge(...)
+  return vim.tbl_extend('force', ...)
+end
+
 local function keymap(mode, lhs, rhs, opts)
-  local options = vim.tbl_extend('force', {noremap = true}, opts or {})
+  local options = merge({noremap = true}, opts or {})
   options.buffer = nil
   if (opts or {}).buffer then
-    vim.api.nvim_buf_set_keymap(0, mode, lhs, rhs, options)
+    vim.api.nvim_buf_set_keymap(buffer == true and 0 or buffer, mode, lhs, rhs, options)
   else
     vim.api.nvim_set_keymap(mode, lhs, rhs, options)
   end
@@ -198,6 +209,13 @@ packages = {
         spell = 'SPELL',
         whitespace = '',
       }
+      -- https://github.com/vim-airline/vim-airline#smarter-tab-line
+      vim.g['airline#extensions#tabline#enabled'] = 1
+      vim.g['airline#extensions#tabline#formatter'] = 'jsformatter'
+      vim.g['airline#extensions#tabline#left_sep'] = ''
+      vim.g['airline#extensions#tabline#left_alt_sep'] = ''
+      vim.g['airline#extensions#tabline#right_sep'] = ''
+      vim.g['airline#extensions#tabline#right_alt_sep'] = ''
     end,
   },
   {'vim-airline/vim-airline-themes'},
@@ -369,11 +387,16 @@ packages = {
   ----------------------------------------------------------------------
   {
     'neovim/nvim-lspconfig',
+
     pre = function()
       vim.lsp.handlers["textDocument/publishDiagnostics"] = function() end
     end,
+
     post = function()
-      function setup_nvim_lsp_mappings()
+      local lspconfig = require('lspconfig')
+
+      local function on_attach(client, bufnr)
+        local function setlocal(...) vim.api.nvim_buf_set_option(bufnr, ...) end
         for lhs, rhs in pairs({
           gA = 'code_action',
           gD = 'declaration',
@@ -387,34 +410,21 @@ packages = {
           g0 = 'document_symbol',
           gW = 'workspace_symbol',
         }) do
-          nmap(lhs, '<cmd>lua vim.lsp.buf.' .. rhs .. '()<CR>', {buffer = true, silent = true})
+          nmap(lhs, '<cmd>lua vim.lsp.buf.' .. rhs .. '()<CR>', {buffer = bufnr, silent = true})
         end
-	vim.opt.omnifunc = 'v:lua.vim.lsp.omnifunc'
-	vim.opt.completeopt:remove {'preview'}
+        setlocal('omnifunc', 'v:lua.vim.lsp.omnifunc')
+        vim.opt.completeopt:remove {'preview'} -- completeopt is global, not buffer-local
       end
 
-      function setup_nvim_lsp_mappings_for(filetypes)
-        cmd('autocmd FileType ' .. table.concat(filetypes, ',') .. ' call v:lua.setup_nvim_lsp_mappings()')
-      end
-
-      if vim.fn.executable('css-languageserver') then
-        require('lspconfig').cssls.setup {}
-        setup_nvim_lsp_mappings_for({'css', 'less', 'scss'})
-      end
-
-      if vim.fn.executable('typescript-language-server') then
-        require('lspconfig').tsserver.setup {}
-        setup_nvim_lsp_mappings_for({'javascript', 'javascriptreact', 'typescript', 'typescriptreact'})
-      end
-
-      if vim.fn.executable('jdtls') then
-        require('lspconfig').jdtls.setup {cmd = {'jdtls'}}
-        setup_nvim_lsp_mappings_for({'java'})
-      end
-
-      if vim.fn.executable('vls') then
-        require('lspconfig').vuels.setup {}
-        setup_nvim_lsp_mappings_for({'vue'})
+      for _, entry in ipairs({
+        {lsp = 'cssls', exe = 'css-languageserver'},
+        {lsp = 'jdtls', exe = 'jdtls', opts = {cmd = {'jdtls'}}},
+        {lsp = 'tsserver', exe = 'typescript-language-server'},
+        {lsp = 'vuels', exe = 'vls'},
+      }) do
+        if vim.fn.executable(entry.exe) then
+          lspconfig[entry.lsp].setup(merge({on_attach = on_attach}, entry.opts or {}))
+        end
       end
     end,
   },
@@ -441,14 +451,14 @@ packages = {
   {
     'google/vim-glaive',
     post = function()
-      cmd([[call glaive#Install()]])
+      cmd('call glaive#Install()')
     end,
   },
   {
     'agriffis/vim-codefmt',
     branch = 'scampersand',
     post = function()
-      cmd([[Glaive codefmt plugin[mappings] ]])
+      cmd('Glaive codefmt plugin[mappings]')
     end,
   },
 
