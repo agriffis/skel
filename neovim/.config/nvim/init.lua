@@ -10,14 +10,8 @@
 -- CC0 Public Domain Dedication at
 -- http://creativecommons.org/publicdomain/zero/1.0/
 --------------------------------------------------------------------------------
--- vim.opt.verbose = 9
--- vim.opt.verbosefile = '/tmp/vim.debug.txt'
 
 local cmd = vim.api.nvim_command
-local cmdv = function(...)
-  print(...)
-  cmd(...)
-end
 
 local function map(fn, ...)
   local function map_(t)
@@ -94,6 +88,7 @@ vim.opt.paragraphs = ''       -- otherwise NROFF macros screw up CSS
 vim.opt.pastetoggle = '<F10>'
 vim.opt.report = 0            -- threshold for reporting nr. of lines changed
 vim.opt.ruler = true          -- show the cursor position all the time
+vim.opt.shada = "!,'10,f0,h,s100" -- keep fast by avoiding lots of file/dir stats
 vim.opt.showcmd = true        -- show (partial) command in status line
 vim.opt.showmode = true       -- message on status line to show current mode
 vim.opt.showmatch = true      -- briefly jump to matching bracket
@@ -101,23 +96,6 @@ vim.opt.warn = false          -- don't warn for shell command when buffer change
 vim.opt.updatetime = 2000
 vim.opt.wildmode = {'longest', 'list', 'full'}
 vim.opt.wrap = false
-
-cmd([[
-" Use .vim/swap for swapfiles
-if ! isdirectory($HOME."/.vim/swap") && exists("*system")
-  call system("mkdir -p $HOME/.vim/swap")
-endif
-if isdirectory($HOME."/.vim/swap")
-  set directory=~/.vim/swap,.
-endif
-
-" Use .vim/info and .vim/shada for state, but keep it fast by omitting shada
-" options that cause lots of file/directory stats
-if exists('&shadafile')
-  set shada=!,'10,f0,h,s100
-  let &shadafile = expand('~/.vim/shada')
-endif
-]])
 
 -- Settings: tabs and indents
 vim.opt.autoindent = true
@@ -164,17 +142,15 @@ vim.opt.winwidth = 40
 -- Settings: terminal
 vim.opt.termguicolors = true
 
-cmd([[
-" Enable bracketed paste everywhere. This would happen automatically on
-" local terms, even with mosh using TERM=xterm*, but doesn't happen
-" automatically in tmux with TERM=screen*. Setting it manually works fine.
-if ! has("gui_running") && exists('&t_BE') && &t_BE == ''
-  let &t_BE = "\e[?2004h"  " enable
-  let &t_BD = "\e[?2004l"  " disable
-  let &t_PS = "\e[200~"    " start
-  let &t_PE = "\e[201~"    " end
-endif
-]])
+-- Enable bracketed paste everywhere. This would happen automatically on
+-- local terms, even with mosh using TERM=xterm*, but doesn't happen
+-- automatically in tmux with TERM=screen*. Setting it manually works fine.
+if not vim.fn.has('gui_running') and vim.go.t_BE == '' then
+  vim.go.t_BE = '\27[?2004h' -- enable
+  vim.go.t_BD = '\27[?2004l' -- disable
+  vim.go.t_PS = '\27[200~'   -- start
+  vim.go.t_PE = '\27[201~'   -- end
+end
 
 -- Set the map leaders to SPC and SPC-m similar to Spacemacs.
 -- These must be set before referring to <leader> in maps
@@ -345,27 +321,25 @@ packages = {
 
       vim.g.fzf_history_dir = '~/.vim/fzf-history'
 
-      cmd([[
-        function! ProjectRg(query, fullscreen)
-          let command_fmt = 'rg --column --line-number --no-heading --color=always --smart-case --hidden -- %s || true'
-          let initial_command = printf(command_fmt, shellescape(a:query))
-          let reload_command = printf(command_fmt, '{q}')
-          " We used to pass 'dir': projectroot#guess() here, but since vim-rooter
-          " always changes directory for us, the current working dir is fine.
-          let spec = {
-                \\ 'dir': getcwd(),
-                \\ 'options': ['--phony', '--query', a:query, '--bind', 'change:reload:'.reload_command],
-                \\ }
-          call fzf#vim#grep(initial_command, 1, fzf#vim#with_preview(spec), a:fullscreen)
-        endfunction
-      ]])
+      function fzfProjectRg(query, fullscreen)
+        local command_fmt = 'rg --column --line-number --no-heading --color=always --smart-case --hidden -- %s || true'
+        local initial_command = string.format(command_fmt, vim.fn.shellescape(query))
+        local reload_command = string.format(command_fmt, '{q}')
+        -- We used to pass 'dir': projectroot#guess() here, but since vim-rooter
+        -- always changes directory for us, the current working dir is fine.
+        local spec = {
+          dir = vim.fn.getcwd(),
+          options = {'--phony', '--query', query, '--bind', 'change:reload:' .. reload_command},
+        }
+        vim.fn['fzf#vim#grep'](initial_command, 1, vim.fn['fzf#vim#with_preview'](spec), fullscreen)
+      end
 
       cmd([[
         command! -bang ProjectFiles call fzf#vim#files(getcwd(), fzf#vim#with_preview(), <bang>0)
       ]])
 
       cmd([[
-        command! -bang -nargs=* ProjectRg call ProjectRg(<q-args>, <bang>0)
+        command! -bang -nargs=* ProjectRg call v:lua.fzfProjectRg(<q-args>, <bang>0)
       ]])
 
       nmap('<leader>ff', ':FZF <C-R>=expand("%:p:h")<CR><CR>')
@@ -374,9 +348,9 @@ packages = {
       nmap('<c-p>',      ':ProjectFiles<CR>')
       nmap('<leader>fg', ':GFiles?<CR>')
       nmap('<leader>sP', ':ProjectRg <C-R>=expand("<cword>")<CR><CR>')
-      nmap('<leader>*', ' :ProjectRg <C-R>=expand("<cword>")<CR><CR>')
+      nmap('<leader>*',  ':ProjectRg <C-R>=expand("<cword>")<CR><CR>')
       nmap('<leader>sp', ':ProjectRg<CR>')
-      nmap('<leader>/', ' :ProjectRg<CR>')
+      nmap('<leader>/',  ':ProjectRg<CR>')
       nmap('<leader>bb', ':Buffers<CR>')
     end,
   },
@@ -474,16 +448,14 @@ packages = {
       vim.g.EditorConfig_max_line_indicator = 'none'
     end,
     post = function()
-      cmd([[
-        function! EditorConfigAutoformatHook(config)
-          if has_key(a:config, 'autoformat') && exists(':AutoFormatBuffer')
-            " configure google/codefmt to format automatically on save
-            exec 'AutoFormatBuffer' a:config['autoformat']
-          endif
-          return 0 " success
-        endfunction
-        call editorconfig#AddNewHook(function('EditorConfigAutoformatHook'))
-      ]])
+      local function editorConfigAutoformatHook(config)
+        if config.autoformat and vim.fn.exists(':AutoFormatBuffer') then
+          -- configure google/codefmt to format automatically on save
+          cmd('AutoFormatBuffer ' .. config.autoformat)
+        end
+        return 0 -- success
+      end
+      vim.fn['editorconfig#AddNewHook'](editorConfigAutoformatHook)
     end,
   },
 
@@ -536,56 +508,6 @@ packages = {
       cmd('autocmd BufNewFile,BufReadPost *.js set filetype=javascriptreact')
     end,
   },
-
-  --[[
-  {
-    -- vim-javascript is the best available javascript indenter/hilighter.
-    -- Note that once vim-javascript is loaded, it is automatically used by
-    -- the built-in html.vim for <script> sections via g:html_indent_script1
-    'pangloss/vim-javascript',
-
-    pre = function()
-      cmd('autocmd BufNewFile,BufReadPost *.js set filetype=javascriptreact')
-
-      -- vim-javascript is configured with cinoptions, see
-      -- https://github.com/pangloss/vim-javascript#indentation-specific
-      -- This also applies to FileType vue.
-      vim.g.javascript_cinoptions = '(0,Ws'
-      vim.g.javascript_indent_W_pat = '[^[:blank:]{[]' -- https://github.com/pangloss/vim-javascript/issues/1114
-
-      vim.g.javascript_plugin_jsdoc = 1
-    end,
-
-    filetypes = {
-      'javascript',
-      'javascriptreact',
-      'typescript',
-      'typescriptreact',
-    },
-
-    each = function()
-      vim.bo.cinoptions = vim.g.javascript_cinoptions
-      vim.bo.comments = 's1:/*,mb:*,ex:*/,://'
-      vim.bo.shiftwidth = 2
-    end,
-  },
-
-  {
-    -- vim-jsx-pretty replaces the deprecated vim-jsx to augment vim-javascript
-    -- with support for JSX indenting and highlighting.
-    'maxmellon/vim-jsx-pretty',
-
-    filetypes = {
-      'javascript',
-      'javascriptreact',
-      'typescript',
-      'typescriptreact',
-    },
-  },
-  ]]--
-
-  -- TOML --------------------------------------------------------------
-  -- {'cespare/vim-toml'},
 }
 
 ------------------------------------------------------------------------
