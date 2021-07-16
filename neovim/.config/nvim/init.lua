@@ -572,10 +572,7 @@ vmap('Q', 'gq')
 cmd([[
 augroup user
   augroup fedora!
-  autocmd BufReadPost *
-        \\ if line("'\\"") > 0 && line ("'\\"") <= line("$") |
-        \\   exe "normal! g'\\"" |
-        \\ endif
+  autocmd BufReadPost * if line("'\"") > 0 && line("'\"") <= line("$") | exe "normal! g'\"" | endif
   autocmd BufReadPost COMMIT_EDITMSG exe "normal! gg"
 augroup END
 ]])
