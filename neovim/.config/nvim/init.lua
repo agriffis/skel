@@ -196,21 +196,6 @@ packages = {
   },
   {'vim-airline/vim-airline-themes'},
 
-  --[[
-  -- TODO bufferline colors to match airline
-  {'kyazdani42/nvim-web-devicons'},
-  {
-    'akinsho/nvim-bufferline.lua',
-    post = function()
-      require('bufferline').setup {
-        options = {
-          separator_style = 'slant',
-        },
-      }
-    end,
-  },
-  ]]--
-
   {
     'ctjhoa/spacevim',
     pre = function()
