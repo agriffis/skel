@@ -187,7 +187,7 @@ packages = {
       }
       -- https://github.com/vim-airline/vim-airline#smarter-tab-line
       vim.g['airline#extensions#tabline#enabled'] = 1
-      vim.g['airline#extensions#tabline#formatter'] = 'jsformatter'
+      vim.g['airline#extensions#tabline#formatter'] = 'short_path'
       vim.g['airline#extensions#tabline#left_sep'] = ''
       vim.g['airline#extensions#tabline#left_alt_sep'] = ''
       vim.g['airline#extensions#tabline#right_sep'] = ''
