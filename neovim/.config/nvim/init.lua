@@ -208,7 +208,7 @@ vim.opt.termguicolors = true
 -- Enable bracketed paste everywhere. This would happen automatically on
 -- local terms, even with mosh using TERM=xterm*, but doesn't happen
 -- automatically in tmux with TERM=screen*. Setting it manually works fine.
-if not vim.fn.has('gui_running') and vim.go.t_BE == '' then
+if vim.fn.has('gui_running') == 0 and vim.go.t_BE == '' then
   vim.go.t_BE = '\27[?2004h' -- enable
   vim.go.t_BD = '\27[?2004l' -- disable
   vim.go.t_PS = '\27[200~'   -- start
@@ -444,7 +444,7 @@ packages = {
         {lsp = 'tsserver', exe = 'typescript-language-server'},
         {lsp = 'vuels', exe = 'vls'},
       }) do
-        if vim.fn.executable(entry.exe) then
+        if vim.fn.executable(entry.exe) == 1 then
           lspconfig[entry.lsp].setup(merge({on_attach = on_attach}, entry.opts or {}))
         end
       end
@@ -643,6 +643,6 @@ augroup END
 -- Load plugins now to prevent conflict with those that modify &bin
 cmd('runtime! plugin/*.vim')
 
-if vim.fn.filereadable(vim.fn.expand('~/.vimrc.mine')) then
+if vim.fn.filereadable(vim.fn.expand('~/.vimrc.mine')) == 1 then
   cmd('source ~/.vimrc.mine')
 end
