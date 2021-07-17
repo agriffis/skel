@@ -497,7 +497,7 @@ packages = {
     end,
     post = function()
       local function editorConfigAutoformatHook(config)
-        if config.autoformat and vim.fn.exists(':AutoFormatBuffer') then
+        if config.autoformat and vim.fn.exists(':AutoFormatBuffer') == 1 then
           -- configure google/codefmt to format automatically on save
           cmd('AutoFormatBuffer ' .. config.autoformat)
         end
