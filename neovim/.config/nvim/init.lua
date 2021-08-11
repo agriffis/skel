@@ -24,11 +24,11 @@ local cmd = vim.api.nvim_command
 -- This bug affects unpack() which relies on the table to know its length. So we
 -- replace with our own implementation that doesn't depend on the table knowing
 -- its length.
-local function unpork(t, n, i)
-  i = i or 1
-  if i <= n then
-    return t[i], unpork(t, n, i + 1)
+local function unpork(t, n, ...)
+  if n == 0 then
+    return ...
   end
+  return unpork(t, n - 1, t[n], ...)
 end
 
 local function test_unpork()
