@@ -11,9 +11,6 @@
 -- http://creativecommons.org/publicdomain/zero/1.0/
 --------------------------------------------------------------------------------
 
--- Aliases
-local cmd = vim.api.nvim_command
-
 -- lua 5.1 is buggy for the specific case of table with nils past the first
 -- position, for example:
 --
@@ -133,7 +130,7 @@ local function xmap(...) keymap('x', ...) end
 --------------------------------------------------------------------------------
 -- Settings
 --------------------------------------------------------------------------------
-cmd('source ' .. vim.fn.stdpath('config') .. '/clipboard.vim')
+vim.cmd('source ' .. vim.fn.stdpath('config') .. '/clipboard.vim')
 
 vim.opt.autowrite = true      -- write before a make
 vim.opt.backspace = '2'       -- allow backspacing over everything in insert mode
@@ -251,7 +248,7 @@ packages = {
       -- https://github.com/vim-airline/vim-airline#smarter-tab-line
       vim.g['airline#extensions#tabline#enabled'] = 1
       vim.g['airline#extensions#tabline#formatter'] = 'short_path'
-      vim.g['airline#extensions#tabline#left_sep'] = ''
+      vim.g['airline#extensions#tabline#left_sep'] = ' '
       vim.g['airline#extensions#tabline#left_alt_sep'] = ''
       vim.g['airline#extensions#tabline#right_sep'] = ''
       vim.g['airline#extensions#tabline#right_alt_sep'] = ''
@@ -341,7 +338,7 @@ packages = {
     pre = function()
       function build_fzf_quickfix_list(lines)
         vim.fn.setqflist(vim.fn.map(vim.fn.copy(lines), '{ "filename": v:val }'))
-        cmd([[copen | cc]])
+        vim.cmd([[copen | cc]])
       end
 
       vim.g.fzf_action = {
@@ -382,11 +379,8 @@ packages = {
         vim.fn['fzf#vim#grep'](initial_command, 1, vim.fn['fzf#vim#with_preview'](spec), fullscreen)
       end
 
-      cmd([[
+      vim.cmd([[
         command! -bang ProjectFiles call fzf#vim#files(getcwd(), fzf#vim#with_preview(), <bang>0)
-      ]])
-
-      cmd([[
         command! -bang -nargs=* ProjectRg call v:lua.fzfProjectRg(<q-args>, <bang>0)
       ]])
 
@@ -456,7 +450,7 @@ packages = {
     'nvim-treesitter/nvim-treesitter',
 
     run = function()
-      cmd('TSUpdate')
+      vim.cmd('TSUpdate')
     end,
 
     post = function()
@@ -473,14 +467,14 @@ packages = {
   {
     'google/vim-glaive',
     post = function()
-      cmd('call glaive#Install()')
+      vim.cmd('call glaive#Install()')
     end,
   },
   {
     'agriffis/vim-codefmt',
     branch = 'scampersand',
     post = function()
-      cmd('Glaive codefmt plugin[mappings]')
+      vim.cmd('Glaive codefmt plugin[mappings]')
     end,
   },
 
@@ -496,14 +490,15 @@ packages = {
       vim.g.EditorConfig_max_line_indicator = 'none'
     end,
     post = function()
-      local function editorConfigAutoformatHook(config)
-        if config.autoformat and vim.fn.exists(':AutoFormatBuffer') == 1 then
-          -- configure google/codefmt to format automatically on save
-          cmd('AutoFormatBuffer ' .. config.autoformat)
-        end
-        return 0 -- success
-      end
-      vim.fn['editorconfig#AddNewHook'](editorConfigAutoformatHook)
+      vim.cmd([[
+        function! EditorConfigAutoformatHook(config)
+          if has_key(a:config, 'autoformat') && exists(':AutoFormatBuffer')
+            exec 'AutoFormatBuffer' a:config['autoformat']
+          endif
+          return 0
+        endfunction
+        call editorconfig#AddNewHook(function('EditorConfigAutoformatHook'))
+      ]])
     end,
   },
 
@@ -521,22 +516,26 @@ packages = {
   },
   -- {'agriffis/vim-jinja'},
   -- {'mustache/vim-mustache-handlebars'},
+  -- {'windwp/nvim-ts-autotag'},
   {
     'agriffis/closetag.vim',
     post = function()
-      -- The closetag.vim script is kinda broken... it requires b:unaryTagsStack
-      -- per buffer but only sets it once, on script load.
-      cmd([[autocmd BufNewFile,BufReadPre * let b:unaryTagsStack="area base br dd dt hr img input link meta param"]])
-      cmd([[autocmd FileType javascriptreact,markdown,xml let b:unaryTagsStack=""]])
-      -- Replace the default closetag maps with c-/ in insert mode only.
-      cmd([[autocmd FileType html,javascriptreact,markdown,vue,xml inoremap <buffer> <C-/> <C-r>=GetCloseTag()<CR>]])
+      vim.cmd([[
+        " The closetag.vim script is kinda broken... it requires b:unaryTagsStack
+        " per buffer but only sets it once, on script load.
+        autocmd BufNewFile,BufReadPre * let b:unaryTagsStack="area base br dd dt hr img input link meta param"
+        autocmd FileType javascriptreact,markdown,xml let b:unaryTagsStack=""
+
+        " Replace the default closetag maps with c-/ in insert mode only.
+        autocmd FileType html,javascriptreact,markdown,vue,xml inoremap <buffer> <C-/> <C-r>=GetCloseTag()<CR>
+      ]])
     end,
   },
 
   -- CSS ---------------------------------------------------------------
   {
     post = function()
-      cmd([[autocmd BufNewFile,BufReadPost *.overrides,*.variables set ft=less]])
+      vim.cmd([[autocmd BufNewFile,BufReadPost *.overrides,*.variables set ft=less]])
     end,
   },
 
@@ -550,10 +549,13 @@ packages = {
   },
   -- {'jxnblk/vim-mdx-js'},
 
-  -- JavaScript --------------------------------------------------------
+  -- JavaScript and Vue ------------------------------------------------
   {
     pre = function()
-      cmd('autocmd BufNewFile,BufReadPost *.js set filetype=javascriptreact')
+      vim.cmd([[
+        autocmd BufNewFile,BufReadPost *.js set filetype=javascriptreact
+        autocmd FileType vue setl comments=s:<!--,m:\ \ \ \ \ ,e:-->,s1:/*,mb:*,ex:*/,://
+      ]])
     end,
   },
 }
@@ -575,7 +577,7 @@ for i, p in ipairs(packages) do
   if p.filetypes ~= nil then
     p.opt = true
     local function auto(s)
-      cmd('autocmd FileType ' .. table.concat(p.filetypes, ',') .. ' ' .. s)
+      vim.cmd('autocmd FileType ' .. table.concat(p.filetypes, ',') .. ' ' .. s)
     end
     auto('packadd ' .. (p.as or vim.fn.split(p[1], '/')[2]))
     if p.once then
@@ -604,7 +606,7 @@ require('paq')(compose(
   end)
 )(packages))
 
-cmd('packloadall')
+vim.cmd('packloadall')
 
 -- TODO don't run post unless package loaded (check runtimepath?)
 for i, p in ipairs(packages) do if p.post then p.post() end end
@@ -612,7 +614,7 @@ for i, p in ipairs(packages) do if p.post then p.post() end end
 ------------------------------------------------------------------------
 -- Theming
 ------------------------------------------------------------------------
-cmd('source ' .. vim.fn.stdpath('config') .. '/themer.vim')
+vim.cmd('source ' .. vim.fn.stdpath('config') .. '/themer.vim')
 
 ------------------------------------------------------------------------
 -- Mappings
@@ -632,7 +634,7 @@ vmap('Q', 'gq')
 ------------------------------------------------------------------------
 -- When editing a file, always jump to the last cursor position.
 -- This duplicates an autocmd provided by fedora, so clear that.
-cmd([[
+vim.cmd([[
 augroup user
   augroup fedora!
   autocmd BufReadPost * if line("'\"") > 0 && line("'\"") <= line("$") | exe "normal! g'\"" | endif
@@ -641,8 +643,8 @@ augroup END
 ]])
 
 -- Load plugins now to prevent conflict with those that modify &bin
-cmd('runtime! plugin/*.vim')
+vim.cmd('runtime! plugin/*.vim')
 
 if vim.fn.filereadable(vim.fn.expand('~/.vimrc.mine')) == 1 then
-  cmd('source ~/.vimrc.mine')
+  vim.cmd('source ~/.vimrc.mine')
 end
