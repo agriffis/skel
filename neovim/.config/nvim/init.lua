@@ -575,6 +575,31 @@ packages = {
       ]])
     end,
   },
+
+  -- Java and Clojure --------------------------------------------------
+  {'tpope/vim-classpath'},
+  {
+    'guns/vim-sexp',
+    pre = function()
+      vim.g.sexp_insert_after_wrap = 0
+    end,
+  },
+  {
+    'tpope/vim-sexp-mappings-for-regular-people',
+    post = function()
+      vim.cmd([[
+        function! MySexpMappings() abort
+          nmap <buffer> ><  <Plug>(sexp_emit_head_element)
+          nmap <buffer> <>  <Plug>(sexp_emit_tail_element)
+          nmap <buffer> <<  <Plug>(sexp_capture_prev_element)
+          nmap <buffer> >>  <Plug>(sexp_capture_next_element)
+        endfunction
+        autocmd FileType clojure,lisp,scheme call MySexpMappings()
+        autocmd FileType clojure nmap <buffer> <silent> <leader>== <leader>=iF
+      ]])
+    end,
+  },
+  {'tpope/vim-fireplace'},
 }
 
 ------------------------------------------------------------------------
