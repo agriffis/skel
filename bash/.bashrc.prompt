@@ -449,18 +449,37 @@ ps1_add vagrant
 ps1_mod_disable_bracketed_paste() {
   PS1+=$'\[\033[?2004l\]'
 }
-if [[ $TERM == +(gnome|rxvt|screen|vte|xterm)* ]]; then
+if [[ $TERM == +(gnome|rxvt|screen|tmux|vte|xterm)* ]]; then
   ps1_add disable_bracketed_paste
 fi
 
-ps1_mod_xterm_title() {
-  PS1+=$'\[\033]0;'
-  PS1+="${HOSTNAME%%.*}:$(ps1_get_cwd)"
-  PS1+=$'\007\]'
+ps1_get_terminal_title() {
+  if [[ $PWD/. -ef $HOME/. ]]; then
+    declare h="${HOSTNAME%%.*}"
+    if [[ $h == bergamot* ]]; then
+      echo bergamot
+    else
+      echo "$h"
+    fi
+  else
+    declare topdir="$(topdir)"
+    (
+      [[ -z $topdir ]] || cd "$topdir"
+      echo "$(ps1_get_cwd)"
+    )
+  fi
 }
-if [[ $TERM == +(gnome|rxvt|screen|vte|xterm)* ]]; then
-  ps1_add xterm_title
-fi
+
+ps1_mod_terminal_title() {
+  declare start end title="$(ps1_get_terminal_title)"
+  case $TERM in
+    gnome*|rxvt*|screen*|vte*|xterm*) start=$'\[\033]0;' end=$'\007\]' ;;
+    tmux*) tmux rename-window "$title"; return ;;
+    *) return ;;
+  esac
+  PS1+="$start$(ps1_get_terminal_title)$end"
+}
+ps1_add terminal_title
 
 ps1_mod_endcap() {
   ps1_sep default ' ' ''
