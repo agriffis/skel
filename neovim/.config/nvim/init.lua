@@ -421,7 +421,25 @@ packages = {
     'neovim/nvim-lspconfig',
 
     pre = function()
-      vim.lsp.handlers["textDocument/publishDiagnostics"] = function() end
+      vim.lsp.handlers["textDocument/publishDiagnostics"] = vim.lsp.with(
+         vim.lsp.diagnostic.on_publish_diagnostics, {
+           signs = false,
+           underline = true,
+           virtual_text = false,
+         }
+      )
+      vim.cmd([[
+        " Underlining doesn't look good in tmux, which changes the curly
+        " underlines to plain. Instead rely on PaperColor to set the
+        " background colors.
+        autocmd ColorScheme PaperColor hi! SpellBad cterm=NONE gui=NONE
+        autocmd ColorScheme PaperColor hi! SpellCap cterm=NONE gui=NONE
+        autocmd ColorScheme PaperColor hi! SpellRare cterm=NONE gui=NONE
+        autocmd ColorScheme * hi! link LspDiagnosticsUnderlineError SpellBad
+        autocmd ColorScheme * hi! link LspDiagnosticsUnderlineWarning SpellCap
+        autocmd ColorScheme * hi! link LspDiagnosticsUnderlineHint SpellRare
+        autocmd ColorScheme * hi! link LspDiagnosticsUnderlineInformation SpellRare
+      ]])
     end,
 
     post = function()
@@ -444,6 +462,11 @@ packages = {
         }) do
           nmap(lhs, '<cmd>lua vim.lsp.buf.' .. rhs .. '()<CR>', {buffer = bufnr, silent = true})
         end
+        nmap('ge', '<cmd>lua vim.lsp.diagnostic.show_position_diagnostics()<cr>')
+        nmap('[e', '<cmd>lua vim.lsp.diagnostic.goto_prev()<cr>')
+        nmap(']e', '<cmd>lua vim.lsp.diagnostic.goto_next()<cr>')
+        nmap('<leader>e', '<cmd>lua vim.lsp.diagnostic.set_loclist()<cr>')
+        nmap('<leader>E', '<cmd>lua vim.lsp.diagnostic.set_qflist()<cr>')
         setlocal('omnifunc', 'v:lua.vim.lsp.omnifunc')
         vim.opt.completeopt:remove {'preview'} -- completeopt is global, not buffer-local
       end
