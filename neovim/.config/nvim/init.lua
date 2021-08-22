@@ -327,6 +327,7 @@ packages = {
   ----------------------------------------------------------------------
   {'tpope/vim-commentary'}, -- gcc toggle comments
   {'tpope/vim-fugitive'}, -- :Gvdiffsplit
+  {'tpope/vim-rhubarb'}, -- :Gbrowse for github
   {'tpope/vim-surround'}, -- dst ysiw<h1>
 
   {
@@ -538,7 +539,8 @@ packages = {
       vim.cmd([[
         " The closetag.vim script is kinda broken... it requires b:unaryTagsStack
         " per buffer but only sets it once, on script load.
-        autocmd BufNewFile,BufReadPre * let b:unaryTagsStack="area base br dd dt hr img input link meta param"
+        autocmd BufNewFile,BufReadPre * let b:unaryTagsStack=""
+        autocmd BufNewFile,BufReadPre *.html,*.md let b:unaryTagsStack="area base br dd dt hr img input link meta param"
         autocmd FileType javascriptreact,markdown,xml let b:unaryTagsStack=""
 
         " Replace the default closetag maps with c-/ in insert mode only.
