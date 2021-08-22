@@ -225,11 +225,29 @@ packages = {
   {'savq/paq-nvim'},
 
   ----------------------------------------------------------------------
-  -- main interface: airline, bufferline, spacevim, colors
+  -- main interface: spacevim bindings, airline, colors
   ----------------------------------------------------------------------
+  {
+    'ctjhoa/spacevim',
+    pre = function()
+      vim.g.spacevim_enabled_layers = {
+        'core/buffers',
+        'core/buffers/move',
+        'core/quit',
+        'core/root',
+        'core/toggles',
+        'core/toggles/colors',
+        'core/toggles/highlight',
+        'core/windows',
+        'syntax-checking',
+      }
+    end,
+  },
+
   {
     'vim-airline/vim-airline',
     pre = function()
+      vim.g.airline_powerline_fonts = 1
       vim.g.airline_left_sep = ''
       vim.g.airline_left_alt_sep = ''
       vim.g.airline_right_sep = ''
@@ -248,30 +266,27 @@ packages = {
       -- https://github.com/vim-airline/vim-airline#smarter-tab-line
       vim.g['airline#extensions#tabline#enabled'] = 1
       vim.g['airline#extensions#tabline#formatter'] = 'short_path'
-      vim.g['airline#extensions#tabline#left_sep'] = ' '
+      vim.g['airline#extensions#tabline#left_sep'] = ''
       vim.g['airline#extensions#tabline#left_alt_sep'] = ''
-      vim.g['airline#extensions#tabline#right_sep'] = ''
-      vim.g['airline#extensions#tabline#right_alt_sep'] = ''
+      vim.g['airline#extensions#tabline#right_sep'] = ' '
+      vim.g['airline#extensions#tabline#right_alt_sep'] = ' '
+      --
+      vim.g['airline#extensions#tabline#buffer_idx_mode'] = 1
+      vim.cmd([[
+        nmap <leader>1 <Plug>AirlineSelectTab1
+        nmap <leader>2 <Plug>AirlineSelectTab2
+        nmap <leader>3 <Plug>AirlineSelectTab3
+        nmap <leader>4 <Plug>AirlineSelectTab4
+        nmap <leader>5 <Plug>AirlineSelectTab5
+        nmap <leader>6 <Plug>AirlineSelectTab6
+        nmap <leader>7 <Plug>AirlineSelectTab7
+        nmap <leader>8 <Plug>AirlineSelectTab8
+        nmap <leader>9 <Plug>AirlineSelectTab9
+        nmap <leader>0 <Plug>AirlineSelectTab0
+      ]])
     end,
   },
   {'vim-airline/vim-airline-themes'},
-
-  {
-    'ctjhoa/spacevim',
-    pre = function()
-      vim.g.spacevim_enabled_layers = {
-        'core/buffers',
-        'core/buffers/move',
-        'core/quit',
-        'core/root',
-        'core/toggles',
-        'core/toggles/colors',
-        'core/toggles/highlight',
-        'core/windows',
-        'syntax-checking',
-      }
-    end,
-  },
 
   {
     'NLKNguyen/papercolor-theme',
@@ -628,6 +643,12 @@ cmap('%/', '<C-R>=expand("%:p:h")."/"<CR>')
 -- Reformat current paragraph
 nmap('Q', '}{gq}')
 vmap('Q', 'gq')
+
+-- Next and previous buffer
+vim.cmd([[
+  nmap <tab> <Plug>AirlineSelectNextTab
+  nmap <s-tab> <Plug>AirlineSelectPrevTab
+]])
 
 ------------------------------------------------------------------------
 -- Final
