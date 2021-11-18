@@ -20,6 +20,17 @@ main() {
     ghettopt "$@" || exit
     set -- "${params[@]}"
 
+    declare -a all_theme_vars
+    all_theme_vars=(
+        bat_theme
+        emacs_theme
+        gnome_theme
+        gtk_theme
+        iterm2_scheme
+        vim_theme
+        xterm_colors
+    )
+
     load_default_schemes
 
     if [[ -e $opt_config ]] && ! source "$opt_config"; then
@@ -66,7 +77,7 @@ get_state() {
 
 set_scheme() {
     declare scheme="$1"
-    declare background iterm2_scheme xterm_colors emacs_theme vim_theme
+    declare background "${all_theme_vars[@]}"
 
     eval "$(get_scheme_vars "$scheme")"
 
@@ -79,11 +90,14 @@ set_scheme() {
     update_iterm2 "$iterm2_scheme" &
     update_kitty "$xterm_colors" # not backgrounded
     update_alacritty "$xterm_colors" # not backgrounded
+    update_gnome "$gnome_theme" "$background" &
     update_gtk "$gtk_theme" "$background" &
 
     update_emacs "$emacs_theme" "$background" &
     update_vim "$vim_theme" "$background" &
     #update_tmux "$scheme" "$background" &
+    update_bat "$bat_theme"
+    update_delta "$bat_theme"
 
     after_update_hook "${parsed_opts[@]}" "${params[@]}"
 
@@ -94,7 +108,7 @@ set_scheme() {
 get_scheme_vars() {
     declare v scheme="$1"
 
-    for v in background iterm2_scheme xterm_colors emacs_theme vim_theme; do
+    for v in background "${all_theme_vars[@]}"; do
         printf '%s=%q;\n' $v "$(get_scheme_var "$scheme" $v)"
     done
 }
@@ -145,8 +159,9 @@ load_default_schemes() {
     light_xterm_colors="#ffffff #000000 #000000 #8b4b4b #4b8b4b #8b8b4b
                         #4b4b8b #8b4b8b #4b8b8b #d9d9d9 #262626 #c99b9b
                         #9bc99b #c9c99b #9b9bc9 #c99bc9 #9bc9c9 #ffffff"
-    light_emacs_theme=spacemacs-light
+    light_emacs_theme=spacemacs-light # doom-one-light
     light_vim_theme=PaperColor # default
+    light_bat_theme=GitHub
     light_toggle=dark
 
     dark_background=dark
@@ -154,8 +169,9 @@ load_default_schemes() {
     dark_xterm_colors="#000000 #e8e8d3 #2e3436 #cc0000 #4e9a06 #edd400
                        #3465a4 #92659a #07c7ca #d3d7cf #6e706b #ef2929
                        #8ae234 #fce94f #729fcf #c19fbe #63e9e9 #eeeeec"
-    dark_emacs_theme=spacemacs-dark
+    dark_emacs_theme=spacemacs-dark # doom-one
     dark_vim_theme=PaperColor # inkpot
+    dark_bat_theme='Monokai Extended' # default
     dark_toggle=light
 
     solarized_light_background=light
@@ -168,6 +184,7 @@ load_default_schemes() {
     #xterm_cursor="#586e75"  XXX
     solarized_light_emacs_theme=solarized
     solarized_light_vim_theme=solarized8
+    solarized_light_bat_theme='Solarized (light)'
     solarized_light_toggle=solarized_dark
 
     solarized_dark_background=dark
@@ -179,6 +196,7 @@ load_default_schemes() {
     #xterm_cursor="#93a1a1"  XXX
     solarized_dark_emacs_theme=solarized
     solarized_dark_vim_theme=solarized8
+    solarized_light_bat_theme='Solarized (dark)'
     solarized_dark_toggle=solarized_light
 
     darcula_background=dark
@@ -198,10 +216,63 @@ load_default_schemes() {
         #b8bb26 #fabd2f #83a598 #d3869b #8ec07c #ebdbb2"
     gruvbox_vim_theme="gruvbox"
     gruvbox_toggle=light
+
+    # https://raw.githubusercontent.com/kdrag0n/base16-kitty/master/colors/base16-github.conf
+    base16_light_background=light
+    # background foreground then ANSI 0-15
+    base16_light_xterm_colors="
+        #ffffff #333333 #ffffff #ed6a43 #183691 #795da3
+        #795da3 #a71d5d #183691 #333333 #969896 #0086b3
+        #f5f5f5 #c8c8fa #e8e8e8 #ffffff #333333 #ffffff"
+    base16_light_emacs_theme=base16
+    base16_light_vim_theme=base16-github
+    base16_light_bat_theme=base16
+    base16_light_toggle=base16_dark
+
+    # https://raw.githubusercontent.com/kdrag0n/base16-kitty/master/colors/base16-chalk.conf
+    base16_dark_background=dark
+    # background foreground then ANSI 0-15
+    base16_dark_xterm_colors="
+        #151515 #d0d0d0 #151515 #fb9fb1 #acc267 #ddb26f
+        #6fc2ef #e1a3ee #12cfc0 #d0d0d0 #505050 #eda987
+        #202020 #303030 #b0b0b0 #e0e0e0 #deaf8f #f5f5f5"
+    base16_dark_emacs_theme=base16
+    base16_dark_vim_theme=base16-chalk
+    base16_dark_bat_theme=base16
+    base16_dark_toggle=base16_light
 }
 
 update_state() {
     echo "$1" > ~/.scheme
+}
+
+update_bat() {
+  declare theme="$1"
+  [[ -n $theme ]] || return
+
+  declare batfig=$(bat --config-file 2>/dev/null)
+  [[ -n $batfig ]] || return
+
+  if [[ ! -f $batfig ]]; then
+    mkdir -p "$(dirname "$batfig")"
+    touch "$batfig"
+  fi
+
+  declare begin="# BEGIN SCHEME MANAGED BLOCK"
+  declare end="# END SCHEME MANAGED BLOCK"
+  declare rest=$(sed "/^$begin/,/^$end/d" < "$batfig")
+
+  printf '%s\n--theme="%s"\n--italic-text=always\n%s\n%s\n' > "$batfig" \
+    "$begin" "$theme" "$end" "$rest"
+}
+
+update_delta() {
+  declare theme="$1"
+  [[ -n $theme ]] || return
+
+  which git &> /dev/null || return
+
+  git config --file ~/.gitconfig.mine delta.syntax-theme "$theme"
 }
 
 update_emacs() {
@@ -455,6 +526,15 @@ update_kitty() {
     # kitty @ check is supplied by my wrapper.
     if type kitty &>/dev/null && ([[ -n $KITTY_WINDOW_ID ]] || kitty @ check); then
         kitty @ set-colors --all --configured "${kolors[@]}"
+    fi
+}
+
+update_gnome() {
+    declare gnome_theme="$1" background="$2"
+    if [[ -n $gnome_theme ]]; then
+        gsettings set org.gnome.shell.extensions.user-theme name "$gnome_theme"
+    else
+        gsettings reset org.gnome.shell.extensions.user-theme name
     fi
 }
 

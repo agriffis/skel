@@ -127,6 +127,8 @@ local function nmap(...) keymap('n', ...) end
 local function vmap(...) keymap('v', ...) end
 local function xmap(...) keymap('x', ...) end
 
+my = {}
+
 --------------------------------------------------------------------------------
 -- Settings
 --------------------------------------------------------------------------------
@@ -287,6 +289,14 @@ packages = {
     end,
   },
   {'vim-airline/vim-airline-themes'},
+
+  -- provides :Bdelete other and :Bdelete hidden
+  {
+    'Asheq/close-buffers.vim',
+    post = function()
+      nmap('<leader>bD', ':Bdelete hidden<cr>')
+    end,
+  },
 
   {
     'NLKNguyen/papercolor-theme',
@@ -513,7 +523,13 @@ packages = {
     'agriffis/vim-codefmt',
     branch = 'scampersand',
     post = function()
-      vim.cmd('Glaive codefmt plugin[mappings]')
+      vim.cmd([[
+        Glaive codefmt plugin[mappings]
+      ]])
+      -- Don't do this, because it's 6x slower (1.2s vs 0.2s) than the default
+      -- npx in vim-codefmt upstream. Unfortunately npx doesn't work with yarn
+      -- v2 pnp, but it does work fine with yarn in general.
+      -- Glaive codefmt prettier_executable=`['yarn', 'prettier']`
     end,
   },
 
@@ -694,11 +710,53 @@ cmap('%/', '<C-R>=expand("%:p:h")."/"<CR>')
 nmap('Q', '}{gq}')
 vmap('Q', 'gq')
 
+my.reformat_paragraph = function(type)
+  if type == nil then
+    vim.opt.opfunc = 'v:lua.my.reformat_paragraph'
+    return 'g@' -- calls back to this function
+  end
+
+  -- override textwidth, this is the point
+  local tw_save = vim.opt.textwidth
+  vim.opt.textwidth = 80
+
+  -- boilerplate save, see :help g@
+  local cb_save = vim.opt.clipboard
+  local sel_save = vim.opt.selection
+  local visual_marks_save = {vim.fn.getpos("'<"), vim.fn.getpos("'>")}
+  vim.opt.clipboard = ''
+  vim.opt.selection = 'inclusive'
+
+  local commands = {
+    char = [[`[v`]gw]],
+    line = [[`[V`]gw]],
+    block = [[`[\<c-v>`]gw]],
+  }
+  vim.cmd([[noautocmd keepjumps normal! ]] .. commands[type] .. [[gw]])
+
+  -- boilerplate restore
+  vim.fn.setreg('"', reg_save)
+  vim.fn.setpos("'<", visual_marks_save[0])
+  vim.fn.setpos("'>", visual_marks_save[1])
+  vim.opt.clipboard = cb_save
+  vim.opt.selection = sel_save
+
+  -- restore textwidth
+  vim.opt.textwidth = tw_save
+end
+
+nmap('gw', 'v:lua.my.reformat_paragraph()', {expr = true})
+xmap('gw', 'v:lua.my.reformat_paragraph()', {expr = true})
+nmap('gwgw', "v:lua.my.reformat_paragraph() .. '_'", {expr = true})
+
 -- Next and previous buffer
 vim.cmd([[
   nmap <tab> <Plug>AirlineSelectNextTab
   nmap <s-tab> <Plug>AirlineSelectPrevTab
 ]])
+
+-- Stop highlighting matches
+nmap('<leader><space>', ':nohl<cr>')
 
 ------------------------------------------------------------------------
 -- Final

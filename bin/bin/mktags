@@ -10,7 +10,7 @@ import sys
 import tempfile
 
 paths = [os.getcwd()]
-exclude_globs = ['.?*', '_[^_]*', '*.log']
+exclude_globs = ['.?*', '_[^_]*', '*.log', 'target', 'target-build', 'SearchCss*']
 
 # Look for a virtualenv path to append.
 for path in reversed(sys.path):
@@ -20,15 +20,15 @@ for path in reversed(sys.path):
         paths.append(match.group(1) + '/src')
         break
 
-def run(cmd, check_output=True):
+def run(cmd, **kwargs):
     print(' '.join(shlex.quote(a) for a in cmd))
-    if check_output:
-        return subprocess.check_output(cmd).decode('utf-8')
-    return subprocess.call(cmd)
+    out = subprocess.run(cmd, **kwargs).stdout
+    if out is not None:
+        return out.decode('utf-8')
 
 # Find the glob list that ctags includes by default.
 include_globs = []
-output = run(['ctags', '--list-maps'])
+output = run(['ctags', '--list-maps'], stdout=subprocess.PIPE)
 for line in output.split('\n'):
     if line:
         include_globs.extend(line.split()[1:])
@@ -51,10 +51,7 @@ for path in paths:
     grep_cmd.extend('--include=' + x for x in include_globs)
     grep_cmd.extend('--exclude=' + x for x in exclude_globs)
     grep_cmd.extend('--exclude-dir=' + x for x in exclude_globs)
-    try:
-        output = run(grep_cmd)
-    except subprocess.CalledProcessError as e:
-        output = e.output
+    output = run(grep_cmd, stdout=subprocess.PIPE, check=False)
     exclude_files = filter(None, output.split('\n'))
     exclude_files = [path + x[1:] for x in exclude_files]
 
@@ -70,5 +67,5 @@ for path in paths:
     ]
     ctags_options.extend('--exclude=' + x for x in exclude_globs)
     ctags_options.extend('--exclude=' + x for x in exclude_files)
-    run(['ctags'] + ctags_options + [path], False)
-    run(['ctags', '-e'] + ctags_options + [path], False)
+    run(['ctags'] + ctags_options + [path], check=False)
+    run(['ctags', '-e'] + ctags_options + [path], check=False)

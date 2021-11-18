@@ -130,5 +130,10 @@
 [mergetool]
     keepBackup = false
 
+[tig "bind"]
+    status = C !git ci
+
 [include]
     path = .gitconfig.mine
+[init]
+	defaultBranch = main
