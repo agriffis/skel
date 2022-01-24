@@ -31,6 +31,12 @@ source ~/.bashrc.pathfuncs
 frontpath PATH /usr/local/bin /usr/local/sbin
 addpath PATH /usr/bin /bin /usr/sbin /sbin
 
+# ccache on Gentoo and Debian respectively
+frontpath PATH /usr/lib{64,}/ccache/bin /usr/lib{64,}/ccache
+
+# flatpak so you don't have to "flatpak run ..."
+addpath PATH /var/lib/flatpak/exports/bin
+
 if [[ $HOME != / ]]; then
   frontpath PATH ~/.cargo/bin # cargo install
   frontpath PATH ~/.cask/bin # homebrew
@@ -41,9 +47,6 @@ if [[ $HOME != / ]]; then
   frontpath PATH ~/.local/bin # npm i -g, make install
   frontpath PATH ~/bin # personal and overrides
 fi
-
-# ccache on Gentoo and Debian respectively
-frontpath PATH /usr/lib{64,}/ccache/bin /usr/lib{64,}/ccache
 
 # remove . security hole from PATH, added by some foolish sysadmins
 rmpath PATH .

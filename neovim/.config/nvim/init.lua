@@ -113,9 +113,10 @@ end
 
 local function keymap(mode, lhs, rhs, opts)
   local options = merge({noremap = true}, opts or {})
+  local buffer = options.buffer == true and 0 or options.buffer
   options.buffer = nil
-  if (opts or {}).buffer then
-    vim.api.nvim_buf_set_keymap(buffer == true and 0 or buffer, mode, lhs, rhs, options)
+  if buffer then
+    vim.api.nvim_buf_set_keymap(buffer, mode, lhs, rhs, options)
   else
     vim.api.nvim_set_keymap(mode, lhs, rhs, options)
   end
@@ -127,7 +128,14 @@ local function nmap(...) keymap('n', ...) end
 local function vmap(...) keymap('v', ...) end
 local function xmap(...) keymap('x', ...) end
 
-my = {}
+my = {
+  -- Make these callable by other files like ftplugin/java.lua
+  cmap = cmap,
+  imap = imap,
+  nmap = nmap,
+  vmap = vmap,
+  xmap = xmap,
+}
 
 --------------------------------------------------------------------------------
 -- Settings
@@ -455,7 +463,8 @@ packages = {
     post = function()
       local lspconfig = require('lspconfig')
 
-      local function on_attach(client, bufnr)
+      -- reused for jdtls below
+      my.on_lsp_attach = function(client, bufnr)
         local function setlocal(...) vim.api.nvim_buf_set_option(bufnr, ...) end
         for lhs, rhs in pairs({
           gA = 'code_action',
@@ -483,16 +492,41 @@ packages = {
 
       for _, entry in ipairs({
         {lsp = 'cssls', exe = 'css-languageserver'},
-        {lsp = 'jdtls', exe = 'jdtls', opts = {cmd = {'jdtls'}}},
+        {lsp = 'jdtls'},
         {lsp = 'tsserver', exe = 'typescript-language-server'},
         {lsp = 'vuels', exe = 'vls'},
       }) do
-        if vim.fn.executable(entry.exe) == 1 then
-          lspconfig[entry.lsp].setup(merge({on_attach = on_attach}, entry.opts or {}))
+        if entry.exe == nil or vim.fn.executable(entry.exe) == 1 then
+          lspconfig[entry.lsp].setup(merge({on_attach = my.on_lsp_attach}, entry.opts or {}))
         end
       end
     end,
   },
+
+--  {
+--    'mfussenegger/nvim-jdtls',
+--
+--    post = function()
+--      my.start_jdtls = function()
+--        --- https://github.com/mfussenegger/nvim-jdtls#configuration
+--        local config= {
+--          cmd = {
+--            'jdtls',
+--            '-data',
+--            vim.fn.FindRootDirectory() .. '.workspace',
+--          },
+--          on_attach = my.on_lsp_attach,
+--          root_dir = vim.fn.FindRootDirectory(),
+--        }
+--        -- Start a new client & server, or attach to an existing client & server
+--        -- depending on the `root_dir`.
+--        require('jdtls').start_or_attach(config)
+--      end
+--      vim.cmd([[
+--        autocmd FileType java call v:lua.my.start_jdtls()
+--      ]])
+--    end,
+--  },
 
   -- syntax hilighting via tree-sitter
   {
@@ -529,7 +563,9 @@ packages = {
       -- Don't do this, because it's 6x slower (1.2s vs 0.2s) than the default
       -- npx in vim-codefmt upstream. Unfortunately npx doesn't work with yarn
       -- v2 pnp, but it does work fine with yarn in general.
-      -- Glaive codefmt prettier_executable=`['yarn', 'prettier']`
+      vim.cmd([[
+	Glaive codefmt prettier_executable=`['yarn', 'prettier']`
+      ]])
     end,
   },
 
@@ -634,7 +670,29 @@ packages = {
           nmap <buffer> >>  <Plug>(sexp_capture_next_element)
         endfunction
         autocmd FileType clojure,lisp,scheme call MySexpMappings()
-        autocmd FileType clojure nmap <buffer> <silent> <leader>== <leader>=iF
+
+        Glaive codefmt zprint_options=`[]`
+        function! RespectableZprint(respect, what) abort
+          if a:respect == 'nl'
+            Glaive codefmt zprint_options=`['{:style [:respect-nl]}']`
+          else
+            Glaive codefmt zprint_options=`['{:style [:respect-bl]}']`
+          endif
+          try
+            if a:what == 'buffer'
+              FormatCode zprint
+            else
+              exe "normal vaF:FormatLines zprint\<cr>"
+            endif
+          finally
+            Glaive codefmt zprint_options=`[]`
+          endtry
+        endfunction
+        autocmd FileType clojure nmap <buffer> <silent> <leader>== :call RespectableZprint('nl', 'fn')<cr>
+        autocmd FileType clojure nmap <buffer> <silent> <leader>=+ :call RespectableZprint('bl', 'fn')<cr>
+        autocmd FileType clojure nmap <buffer> <silent> <leader>++ :call RespectableZprint('bl', 'fn')<cr>
+        autocmd FileType clojure nmap <buffer> <silent> <leader>=b :call RespectableZprint('nl', 'buffer')<cr>
+        autocmd FileType clojure nmap <buffer> <silent> <leader>=B :call RespectableZprint('bl', 'buffer')<cr>
       ]])
     end,
   },

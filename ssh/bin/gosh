@@ -10,6 +10,7 @@ main() {
   shift
 
   case $host in
+    advent) host=gargan session=advent ;;
     gargan|gg) host=gargan session=scampersand ;;
     ggx) host=gargan session=ggx ;;
     jasperodus|jj) host=jasperodus session=scamperjam ;;

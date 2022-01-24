@@ -82,6 +82,8 @@
     spush = push --recurse-submodules=on-demand
     supdate = submodule update --remote --rebase
 
+    cleanup = !git branch --merged | grep -Ev '^[*] (main|master)$' | xargs -n 1 -r git branch -d
+
 [pretty]
     #lol = "%C(yellow bold)%h%C(reset) %C(red)(%an)%C(reset)%C(blue bold)%d%C(reset) %s %C(cyan)(%as)%C(reset)"
     lol = "%as %C(bold blue)%h%Creset%C(bold red)%d%Creset %C(bold yellow)(%an)%Creset %s"

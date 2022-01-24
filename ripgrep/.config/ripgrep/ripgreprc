@@ -1,2 +1,4 @@
+# https://github.com/BurntSushi/ripgrep/blob/master/GUIDE.md#configuration-file
+--hidden
 --type-add=freemarker:*.ftl
 --sort=path

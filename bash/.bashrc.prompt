@@ -474,7 +474,7 @@ ps1_mod_terminal_title() {
   declare start end title="$(ps1_get_terminal_title)"
   case $TERM in
     gnome*|rxvt*|screen*|vte*|xterm*) start=$'\[\033]0;' end=$'\007\]' ;;
-    tmux*) tmux rename-window "$title"; return ;;
+    tmux*) tmux rename-window "$title" &>/dev/null; return ;;
     *) return ;;
   esac
   PS1+="$start$(ps1_get_terminal_title)$end"
