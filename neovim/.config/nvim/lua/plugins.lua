@@ -355,13 +355,9 @@ require('packer').startup(function(use)
   ----------------------------------------------------------------------
 
   -- HTML --------------------------------------------------------------
-  use {
-    setup = function()
-      -- Assume <p> will include closing </p> and content should be indented.
-      -- If more are needed, this should be a comma-separated list.
-      vim.g.html_indent_inctags = 'p,main'
-    end,
-  }
+  -- Assume <p> will include closing </p> and content should be indented.
+  -- If more are needed, this should be a comma-separated list.
+  vim.g.html_indent_inctags = 'p,main'
   -- {'agriffis/vim-jinja'}
   -- {'mustache/vim-mustache-handlebars'}
   -- {'windwp/nvim-ts-autotag'}
@@ -387,13 +383,9 @@ require('packer').startup(function(use)
   ]])
 
   -- Markdown ----------------------------------------------------------
-  use {
-    -- vim bundles vim-markdown (by tpope)
-    setup = function()
-      vim.g.markdown_fenced_languages = {'html', 'python', 'bash=sh', 'clojure', 'sql'}
-      vim.g.markdown_minlines = 500
-    end,
-  }
+  -- vim bundles vim-markdown (by tpope)
+  vim.g.markdown_fenced_languages = {'html', 'python', 'bash=sh', 'clojure', 'sql'}
+  vim.g.markdown_minlines = 500
   -- {'jxnblk/vim-mdx-js'}
 
   -- JavaScript and Vue ------------------------------------------------
