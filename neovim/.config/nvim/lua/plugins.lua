@@ -447,5 +447,5 @@ require('packer').startup(function(use)
       ]])
     end,
   }
-  use {'tpope/vim-fireplace'}
+  use {'Olical/conjure'}
 end)
