@@ -312,18 +312,26 @@ require('packer').startup(function(use)
   use {
     'agriffis/vim-codefmt',
     branch = 'scampersand',
+    requires = {'google/vim-glaive'},
+
     config = function()
       vim.cmd([[
         Glaive codefmt plugin[mappings]
       ]])
-      -- Don't do this, because it's 6x slower (1.2s vs 0.2s) than the default
+
+      -- Extra setup for prettier
+      --
+      -- Don't do this unilaterally:
+      --   Glaive codefmt prettier_executable=`['yarn', 'prettier']`
+      -- because it's 6x slower (1.2s vs 0.2s) than the default
       -- npx in vim-codefmt upstream. Unfortunately npx doesn't work with yarn
       -- v2 pnp, but it does work fine with yarn in general.
-      vim.cmd([[
-	Glaive codefmt prettier_executable=`['yarn', 'prettier']`
-      ]])
+      if vim.fn.executable('proxier') == 1 then
+        vim.cmd([[
+          Glaive codefmt prettier_executable=`['proxier']`
+        ]])
+      end
     end,
-    requires = {'google/vim-glaive'},
   }
 
   -- This is the official editorconfig plugin. There is also an alternative

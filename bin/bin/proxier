@@ -1,0 +1,21 @@
+#!/bin/bash
+
+main() {
+  local d=$(topdir); d=${d:-$PWD}
+
+  if [[ -e $d/node_modules/.bin/prettier ]]; then
+    exec "$d/node_modules/.bin/prettier" "$@"
+    exit
+  fi
+
+  shopt -s nullglob
+  for f in "$d"/.yarn/cache/prettier-*; do
+    exec yarn prettier "$@"
+    exit
+  done
+
+  exec prettier "$@"
+  exit
+}
+
+main "$@"
