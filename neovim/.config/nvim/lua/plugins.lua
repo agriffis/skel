@@ -331,6 +331,36 @@ require('packer').startup(function(use)
           Glaive codefmt prettier_executable=`['proxier']`
         ]])
       end
+
+      -- Extra setup for zprint
+      --
+      -- Default formatting keys <leader>== and <leader>=b respect existing
+      -- newlines for minimal disruption. Extra formatting keys <leader>=+ and
+      -- <leader>++ and <leader>=B respect blank lines only.
+      vim.cmd([[
+        Glaive codefmt zprint_options=`[]`
+        function! RespectableZprint(respect, what) abort
+          if a:respect == 'nl'
+            Glaive codefmt zprint_options=`['{:style [:respect-nl]}']`
+          else
+            Glaive codefmt zprint_options=`['{:style [:respect-bl]}']`
+          endif
+          try
+            if a:what == 'buffer'
+              FormatCode zprint
+            else
+              exe "normal vaF:FormatLines zprint\<cr>"
+            endif
+          finally
+            Glaive codefmt zprint_options=`[]`
+          endtry
+        endfunction
+        autocmd FileType clojure nmap <buffer> <silent> <leader>== :call RespectableZprint('nl', 'fn')<cr>
+        autocmd FileType clojure nmap <buffer> <silent> <leader>=+ :call RespectableZprint('bl', 'fn')<cr>
+        autocmd FileType clojure nmap <buffer> <silent> <leader>++ :call RespectableZprint('bl', 'fn')<cr>
+        autocmd FileType clojure nmap <buffer> <silent> <leader>=b :call RespectableZprint('nl', 'buffer')<cr>
+        autocmd FileType clojure nmap <buffer> <silent> <leader>=B :call RespectableZprint('bl', 'buffer')<cr>
+      ]])
     end,
   }
 
@@ -421,29 +451,6 @@ require('packer').startup(function(use)
           nmap <buffer> >>  <Plug>(sexp_capture_next_element)
         endfunction
         autocmd FileType clojure,lisp,scheme call MySexpMappings()
-
-        Glaive codefmt zprint_options=`[]`
-        function! RespectableZprint(respect, what) abort
-          if a:respect == 'nl'
-            Glaive codefmt zprint_options=`['{:style [:respect-nl]}']`
-          else
-            Glaive codefmt zprint_options=`['{:style [:respect-bl]}']`
-          endif
-          try
-            if a:what == 'buffer'
-              FormatCode zprint
-            else
-              exe "normal vaF:FormatLines zprint\<cr>"
-            endif
-          finally
-            Glaive codefmt zprint_options=`[]`
-          endtry
-        endfunction
-        autocmd FileType clojure nmap <buffer> <silent> <leader>== :call RespectableZprint('nl', 'fn')<cr>
-        autocmd FileType clojure nmap <buffer> <silent> <leader>=+ :call RespectableZprint('bl', 'fn')<cr>
-        autocmd FileType clojure nmap <buffer> <silent> <leader>++ :call RespectableZprint('bl', 'fn')<cr>
-        autocmd FileType clojure nmap <buffer> <silent> <leader>=b :call RespectableZprint('nl', 'buffer')<cr>
-        autocmd FileType clojure nmap <buffer> <silent> <leader>=B :call RespectableZprint('bl', 'buffer')<cr>
       ]])
     end,
   }
