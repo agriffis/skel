@@ -434,25 +434,6 @@ require('packer').startup(function(use)
 
   -- Java and Clojure --------------------------------------------------
   use {'tpope/vim-classpath'}
-  use {
-    'guns/vim-sexp',
-    setup = function()
-      vim.g.sexp_insert_after_wrap = 0
-    end,
-  }
-  use {
-    'tpope/vim-sexp-mappings-for-regular-people',
-    config = function()
-      vim.cmd([[
-        function! MySexpMappings() abort
-          nmap <buffer> ><  <Plug>(sexp_emit_head_element)
-          nmap <buffer> <>  <Plug>(sexp_emit_tail_element)
-          nmap <buffer> <<  <Plug>(sexp_capture_prev_element)
-          nmap <buffer> >>  <Plug>(sexp_capture_next_element)
-        endfunction
-        autocmd FileType clojure,lisp,scheme call MySexpMappings()
-      ]])
-    end,
-  }
+  use {'eraserhd/parinfer-rust', run = 'cargo build --release'}
   use {'Olical/conjure'}
 end)
