@@ -434,6 +434,29 @@ require('packer').startup(function(use)
 
   -- Java and Clojure --------------------------------------------------
   use {'tpope/vim-classpath'}
-  use {'eraserhd/parinfer-rust', run = 'cargo build --release'}
   use {'Olical/conjure'}
+  use {'eraserhd/parinfer-rust', run = 'cargo build --release'}
+  use {
+    'guns/vim-sexp',
+    setup = function()
+      -- Disable insert mode mappings because they conflict with parinfer
+      vim.g.sexp_enable_insert_mode_mappings = 0
+      -- And always disable this one, regardless of parinfer
+      vim.g.sexp_insert_after_wrap = 0
+    end,
+  }
+  use {
+    'tpope/vim-sexp-mappings-for-regular-people',
+    config = function()
+      vim.cmd([[
+        function! MySexpMappings() abort
+          nmap <buffer> <(  <Plug>(sexp_capture_prev_element)
+          nmap <buffer> >(  <Plug>(sexp_emit_head_element)
+          nmap <buffer> >)  <Plug>(sexp_capture_next_element)
+          nmap <buffer> <)  <Plug>(sexp_emit_tail_element)
+        endfunction
+        autocmd FileType clojure,lisp,scheme call MySexpMappings()
+      ]])
+    end,
+  }
 end)
