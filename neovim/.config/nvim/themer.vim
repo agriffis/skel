@@ -16,11 +16,12 @@ function! TryTheme(theme, background)
   endif
 endfunction
 
+let s:background_file = expand('~/.vim/background')
+let s:theme_file = expand('~/.vim/theme')
+
 function! LoadTheme(from_timer)
-  let l:background_file = expand('~/.vim/background')
-  let l:theme_file = expand('~/.vim/theme')
-  let l:background = filereadable(l:background_file) ? readfile(l:background_file)[0] : ''
-  let l:theme = filereadable(l:theme_file) ? readfile(l:theme_file)[0] : 'default'
+  let l:background = filereadable(s:background_file) ? readfile(s:background_file)[0] : ''
+  let l:theme = filereadable(s:theme_file) ? readfile(s:theme_file)[0] : 'default'
   if (a:from_timer &&
         \ (exists('g:tried_theme') && l:theme == g:tried_theme) &&
         \ (exists('g:tried_background') && l:background == g:tried_background))
