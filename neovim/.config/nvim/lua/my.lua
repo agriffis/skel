@@ -11,8 +11,6 @@
 -- http://creativecommons.org/publicdomain/zero/1.0/
 --------------------------------------------------------------------------------
 
-local wk = require('which-key')
-
 local my = {}
 
 -- lua 5.1 is buggy for the specific case of table with nils past the first
@@ -146,7 +144,7 @@ end
 
 function my.spacekeys(mappings, options)
   options = my.merge({prefix = '<leader>'}, options or {})
-  wk.register(mappings, options)
+  require('which-key').register(mappings, options)
 end
 
 return my
