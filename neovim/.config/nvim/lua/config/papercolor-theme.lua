@@ -17,4 +17,23 @@ function M.setup()
   }
 end
 
+function M.config()
+  vim.cmd([[
+    augroup config_papercolor_theme
+      autocmd!
+
+      " Underlining doesn't look good in tmux, which changes the curly
+      " underlines to plain. Instead rely on PaperColor to set the
+      " background colors.
+      autocmd ColorScheme PaperColor hi SpellBad cterm=NONE gui=NONE
+      autocmd ColorScheme PaperColor hi SpellCap cterm=NONE gui=NONE
+      autocmd ColorScheme PaperColor hi SpellRare cterm=NONE gui=NONE
+      autocmd ColorScheme PaperColor hi link LspDiagnosticsUnderlineError SpellBad
+      autocmd ColorScheme PaperColor hi link LspDiagnosticsUnderlineWarning SpellCap
+      autocmd ColorScheme PaperColor hi link LspDiagnosticsUnderlineHint SpellRare
+      autocmd ColorScheme PaperColor hi link LspDiagnosticsUnderlineInformation SpellRare
+    augroup END
+  ]])
+end
+
 return M

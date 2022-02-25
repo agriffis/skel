@@ -2,7 +2,7 @@ local M = {}
 
 function M.config()
   vim.cmd([[
-    augroup my_papercolor_theme_slim
+    augroup config_papercolor_theme_slim
       autocmd!
 
       " https://github.com/pappasam/papercolor-theme-slim#transparent-background
@@ -23,7 +23,7 @@ function M.config()
       autocmd ColorScheme PaperColorSlim let g:airline_theme = 'papercolor'
     augroup END
 
-    " In case the theme is already set?
+    " Not sure there's actually a race here, but...
     if exists('g:colors_name') && g:colors_name == 'PaperColorSlim'
       let g:airline_theme = 'papercolor'
     endif

@@ -10,10 +10,9 @@
 -- CC0 Public Domain Dedication at
 -- http://creativecommons.org/publicdomain/zero/1.0/
 --------------------------------------------------------------------------------
-
 local my = require('my')
 
--- Packer config
+-- Packer config.
 local config = {
   -- Move compilation output out of stow-managed dir
   -- (but still in default runtimepath)
@@ -29,98 +28,52 @@ local config = {
 
 -- Packer plugins
 local function plugins(use)
-  vim.cmd([[
-    augroup my_plugins
-      autocmd!
-    augroup END
-  ]])
-
   -- Packer can manage itself
   use 'wbthomason/packer.nvim'
 
+  -- Discoverable key binding manager. Individual plugin configs add their own
+  -- bindings.
   use {
     'folke/which-key.nvim',
-    config = function()
-      require('which-key').setup()
-      require('my').spacekeys({
-        b = {
-          name = 'Buffer operations',
-          d = {'<cmd>bd<cr>', 'Delete current buffer'},
-        },
-        f = {
-          name = 'File operations',
-        },
-        g = {
-          name = 'Code operations',
-        },
-        p = {
-          name = 'Project operations',
-        },
-        s = {
-          name = 'Search operations',
-        },
-        w = {
-          name = 'Window operations',
-          c = {'<c-w>c', 'Close window'},
-          h = {'<c-w>h', 'Switch to window left'},
-          j = {'<c-w>j', 'Switch to window below'},
-          k = {'<c-w>k', 'Switch to window above'},
-          l = {'<c-w>l', 'Switch to window right'},
-          s = {'<c-w>s', 'Split window into rows'},
-          v = {'<c-w>v', 'Split window into columns'},
-          H = {'<c-w>H', 'Move window to far left'},
-          L = {'<c-w>L', 'Move window to far right'},
-          J = {'<c-w>J', 'Move window to bottom'},
-          K = {'<c-w>K', 'Move window to top'},
-          o = {'<c-w>o', 'Close other windows'},
-        },
-      })
-    end
+    config = function() require('config.which-key').config() end,
   }
 
+  -- Status line. Consider replacing with LuaLine eventually.
   use {
     'vim-airline/vim-airline',
-    requires = {'folke/which-key.nvim'},
-    config = function()
-      require('config.vim-airline').config()
-      require('my').spacekeys({
-        ['1'] = {'<Plug>AirlineSelectTab1', 'Switch to buffer 1'},
-        ['2'] = {'<Plug>AirlineSelectTab2', 'Switch to buffer 2'},
-        ['3'] = {'<Plug>AirlineSelectTab3', 'Switch to buffer 3'},
-        ['4'] = {'<Plug>AirlineSelectTab4', 'Switch to buffer 4'},
-        ['5'] = {'<Plug>AirlineSelectTab5', 'Switch to buffer 5'},
-        ['6'] = {'<Plug>AirlineSelectTab6', 'Switch to buffer 6'},
-        ['7'] = {'<Plug>AirlineSelectTab7', 'Switch to buffer 7'},
-        ['8'] = {'<Plug>AirlineSelectTab8', 'Switch to buffer 8'},
-        ['9'] = {'<Plug>AirlineSelectTab9', 'Switch to buffer 9'},
-        ['0'] = {'<Plug>AirlineSelectTab0', 'Switch to buffer 10'},
-      })
-    end,
+    wants = {'which-key.nvim'}, -- might not be effective #615
+    config = function() require('config.vim-airline').config() end,
   }
-
   use {
     'vim-airline/vim-airline-themes',
+    wants = {'vim-airline'}, -- might not be effective #615
     config = function() require('config.vim-airline-themes').config() end,
   }
 
+  -- File explorer.
   use {
-    'Asheq/close-buffers.vim',
-    requires = {'folke/which-key.nvim'},
-    config = function()
-      require('my').spacekeys({
-        b = {
-          D = {'<cmd>Bdelete hidden<cr>', 'Delete hidden buffers'},
-          O = {'<cmd>Bdelete other<cr>', 'Delete other buffers'},
-        },
-      })
-    end
+    'kyazdani42/nvim-tree.lua',
+    requires = {'kyazdani42/nvim-web-devicons'},
+    wants = {'which-key.nvim'}, -- might not be effective #615
+    config = function() require('config.nvim-tree').config() end,
   }
 
+  -- Notifications.
+  use {
+    'rcarriga/nvim-notify',
+    config = function() require('config.notify').config() end,
+  }
+
+  -- Themes.
+  use {
+    'pappasam/papercolor-theme-slim',
+    config = function() require('config.papercolor-theme-slim').config() end,
+  }
   use {
     'NLKNguyen/papercolor-theme',
     setup = function() require('config.papercolor-theme').setup() end,
+    config = function() require('config.papercolor-theme').config() end,
   }
-
   use {
     'nanotech/jellybeans.vim',
     setup = function()
@@ -129,11 +82,7 @@ local function plugins(use)
     end,
   }
 
-  use {
-    'pappasam/papercolor-theme-slim',
-    config = function() require('config.papercolor-theme-slim').config() end,
-  }
-
+  -- Colorize named and hex colors.
   use {
     'norcalli/nvim-colorizer.lua',
     config = function()
@@ -142,25 +91,26 @@ local function plugins(use)
     end,
   }
 
-  ----------------------------------------------------------------------
-  -- global utilities
-  ----------------------------------------------------------------------
+  -- Add commands for deleting hidden and other buffers.
+  use {
+    'Asheq/close-buffers.vim',
+    wants = {'which-key.nvim'}, -- might not be effective #615
+    config = function()
+      require('my').spacekeys({
+        b = {
+          D = {'<cmd>Bdelete hidden<cr>', 'Delete hidden buffers'},
+          O = {'<cmd>Bdelete other<cr>', 'Delete other buffers'},
+        },
+      })
+    end,
+  }
+
   use {'tpope/vim-commentary'} -- gcc toggle comments
   use {'tpope/vim-fugitive'} -- :Gvdiffsplit
   use {'tpope/vim-rhubarb'} -- :Gbrowse for github
   use {'tpope/vim-surround'} -- dst ysiw<h1>
 
---use {
---  'junegunn/vim-easy-align',
---  config = function()
---    local my = require('my')
---    my.xmap('ga', '<Plug>(EasyAlign)')
---  end,
---}
-
-  ----------------------------------------------------------------------
-  -- projects
-  ----------------------------------------------------------------------
+  -- Always change working dir to top of project.
   use {
     'airblade/vim-rooter',
     setup = function()
@@ -169,56 +119,68 @@ local function plugins(use)
     end,
   }
 
+  -- Fuzzy finder.
   use {'junegunn/fzf', run = './install --bin'}
   use {
     'ibhagwan/fzf-lua',
     requires = {'kyazdani42/nvim-web-devicons'},
-    config = function()
-      require('my').spacekeys({
-        b = {
-          b = {'<cmd>FzfLua <cr>', 'Choose from open buffers'},
-        },
-        f = {
-          f = {'<cmd>FZF <c-r>=expand("%:p:h")<cr><cr>', 'Open file in current dir'},
-          g = {'<cmd>GFiles?<cr>', 'Open modified file (git)'},
-          h = {'<cmd>History<cr>', 'Open recent file'},
-        },
-        p = {
-          f = {'<cmd>ProjectFiles<cr>', 'Find file in project'},
-        },
-        s = {
-          p = {'<cmd>ProjectRg<cr>', 'Search in project'},
-          P = {'<cmd>ProjectRg <c-r>=expand("<cword>")<cr><cr>', 'Search in project for cursor word'},
-        },
-        ['/'] = {'<cmd>ProjectRg<cr>', 'Search in project'},
-        ['*'] = {'<cmd>ProjectRg <c-r>=expand("<cword>")<cr><cr>', 'Search in project for cursor word'},
-      })
-      require('my').nmap('<c-p>', ':ProjectFiles<cr>')
-    end,
+    wants = {'which-key.nvim'},
+    config = function() require('config.fzf-lua').config() end,
   }
 
-  ----------------------------------------------------------------------
-  -- programming: lsp, tree-sitter, formatting
-  ----------------------------------------------------------------------
+  -- Language server protocol.
   use {
     'neovim/nvim-lspconfig',
+    requires = {
+      'williamboman/nvim-lsp-installer', -- auto-install of servers
+      'folke/lua-dev.nvim', -- signature help for Neovim API
+      'jose-elias-alvarez/nvim-lsp-ts-utils', -- more stuff for TS
+      {
+        'j-hui/fidget.nvim', -- LSP progress
+        config = function() require('fidget').setup {} end,
+      },
+      {
+        'jose-elias-alvarez/null-ls.nvim',
+        requires = {'nvim-lua/plenary.nvim'},
+      },
+    },
+    wants = {'fidget.nvim', 'lua-dev.nvim', 'nvim-lsp-installer', 'nvim-lsp-ts-utils'},
+    event = 'BufReadPre',
     setup = function() require('config.lsp').setup() end,
     config = function() require('config.lsp').config() end,
   }
 
-  -- syntax hilighting via tree-sitter
+  -- Syntax hilighting and indentation via tree-sitter.
   use {
     'nvim-treesitter/nvim-treesitter',
-    run = function()
-      vim.cmd('TSUpdate')
-    end,
+    run = function() vim.cmd('TSUpdate') end,
     config = function()
       require('nvim-treesitter.configs').setup {
         ensure_installed = 'maintained',
+        autotag = {enabled = true}, -- plugin below
+        endwise = {enable = true}, -- plugin below
         highlight = {enable = true},
         indent = {enable = true},
       }
     end,
+  }
+
+  -- Auto pair completion.
+  use {
+    'windwp/nvim-autopairs',
+    wants = {'nvim-treesitter'},
+    event = 'InsertEnter',
+    config = function() require('config.nvim-autopairs').config() end,
+  }
+  use {
+    'windwp/nvim-ts-autotag',
+    wants = {'nvim-treesitter'},
+    event = 'InsertEnter',
+  }
+  use {
+    'RRethy/nvim-treesitter-endwise',
+    wants = {'nvim-treesitter'},
+    event = 'InsertEnter',
   }
 
 --  -- code formatting
@@ -299,8 +261,11 @@ local function plugins(use)
     config = function()
       vim.cmd([[
         function! EditorConfigAutoformatHook(config)
-          if has_key(a:config, 'autoformat') && exists(':AutoFormatBuffer')
-            exec 'AutoFormatBuffer' a:config['autoformat']
+          if a:config['autoformat'] == 'true'
+            augroup LspFormatting
+              autocmd! * <buffer>
+              autocmd BufWritePre <buffer> lua my.format_code()
+            augroup END
           endif
           return 0
         endfunction
@@ -324,25 +289,21 @@ local function plugins(use)
     'agriffis/closetag.vim',
     config = function()
       vim.cmd([[
-        augroup my_plugins
-          " The closetag.vim script is kinda broken... it requires b:unaryTagsStack
-          " per buffer but only sets it once, on script load.
-          autocmd BufNewFile,BufReadPre * let b:unaryTagsStack=""
-          autocmd BufNewFile,BufReadPre *.html,*.md let b:unaryTagsStack="area base br dd dt hr img input link meta param"
-          autocmd FileType javascriptreact,markdown,xml let b:unaryTagsStack=""
+        " The closetag.vim script is kinda broken... it requires b:unaryTagsStack
+        " per buffer but only sets it once, on script load.
+        autocmd BufNewFile,BufReadPre * let b:unaryTagsStack=""
+        autocmd BufNewFile,BufReadPre *.html,*.md let b:unaryTagsStack="area base br dd dt hr img input link meta param"
+        autocmd FileType javascriptreact,markdown,xml let b:unaryTagsStack=""
 
-          " Replace the default closetag maps with c-/ in insert mode only.
-          autocmd FileType html,javascriptreact,markdown,vue,xml inoremap <buffer> <C-/> <C-r>=GetCloseTag()<CR>
-        augroup END
+        " Replace the default closetag maps with c-/ in insert mode only.
+        autocmd FileType html,javascriptreact,markdown,vue,xml inoremap <buffer> <C-/> <C-r>=GetCloseTag()<CR>
       ]])
     end,
   }
 
   -- CSS ---------------------------------------------------------------
   vim.cmd([[
-    augroup my_plugins
-      autocmd BufNewFile,BufReadPost *.overrides,*.variables set ft=less
-    augroup END
+    autocmd BufNewFile,BufReadPost *.overrides,*.variables set ft=less
   ]])
 
   -- Markdown ----------------------------------------------------------
@@ -353,10 +314,8 @@ local function plugins(use)
 
   -- JavaScript and Vue ------------------------------------------------
   vim.cmd([[
-    augroup my_plugins
-      autocmd BufNewFile,BufReadPost *.js set filetype=javascriptreact
-      autocmd FileType vue setl comments=s:<!--,m:\ \ \ \ \ ,e:-->,s1:/*,mb:*,ex:*/,://
-    augroup END
+    autocmd BufNewFile,BufReadPost *.js set filetype=javascriptreact
+    autocmd FileType vue setl comments=s:<!--,m:\ \ \ \ \ ,e:-->,s1:/*,mb:*,ex:*/,://
   ]])
 
   -- Java and Clojure --------------------------------------------------
@@ -378,9 +337,7 @@ local function plugins(use)
           nmap <buffer> <<  <Plug>(sexp_capture_prev_element)
           nmap <buffer> >>  <Plug>(sexp_capture_next_element)
         endfunction
-        augroup my_plugins
-          autocmd FileType clojure,lisp,scheme call MySexpMappings()
-        augroup END
+        autocmd FileType clojure,lisp,scheme call MySexpMappings()
       ]])
     end,
   }
@@ -414,24 +371,26 @@ if installed then
     local stale = vim.fn.filereadable(config.compile_path) == 0 or
       vim.fn.getftime(plugins_lua) > vim.fn.getftime(config.compile_path)
     if stale then
-      print "Compiling plugins"
+      my.info('Compiling plugins')
       packer.compile()
     end
 
     -- Packer compile when this file is written. This just re-reads, it will
     -- rebuild thanks to stale check above.
+    local autocmd_patt = plugins_lua
+    local abs_plugins_lua = vim.fn.resolve(plugins_lua)
+    if abs_plugins_lua ~= plugins_lua then
+      autocmd_patt = autocmd_patt .. ',' .. abs_plugins_lua
+    end
     vim.cmd(string.format([[
         augroup reload_plugins_lua
           autocmd!
-          autocmd BufWritePost %s,%s source %s
+          autocmd BufWritePost %s source %s
         augroup END
       ]],
-      -- First match, abs path to this script.
-      plugins_lua,
-      -- Second match, absolute resolved path because this file is in two
-      -- locations via symlink/stow, and I don't want to match on generic
-      -- plugins.lua
-      vim.fn.resolve(plugins_lua),
+      -- Match script or abs path, because this file is in two locations via
+      -- symlink/stow, and I don't want to match on generic plugins.lua
+      abs_plugins_lua,
       -- What to load, don't use <afile> because that loads from both locations.
       plugins_lua
     ))

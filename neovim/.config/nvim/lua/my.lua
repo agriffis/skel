@@ -11,6 +11,15 @@
 -- http://creativecommons.org/publicdomain/zero/1.0/
 --------------------------------------------------------------------------------
 
+_G.dump = function(...)
+  print(vim.inspect(...))
+end
+
+_G.prequire = function(...)
+  local status, lib = pcall(require, ...)
+  return status and lib
+end
+
 local my = {}
 
 -- lua 5.1 is buggy for the specific case of table with nils past the first
@@ -99,6 +108,16 @@ my.filter = my.curry(function(fn, t)
   return r
 end)
 
+-- Prepend a to b. Returns new table, does not mutate.
+my.prepend = my.curry(function(a, b)
+  return vim.tbl_flatten({a, b})
+end)
+
+-- Append a to b. Returns new table, does not mutate.
+my.append = my.curry(function(a, b)
+  return vim.tbl_flatten({b, a})
+end)
+
 function my.compose(...)
   local fns = {...}
   return function(x)
@@ -145,6 +164,76 @@ end
 function my.spacekeys(mappings, options)
   options = my.merge({prefix = '<leader>'}, options or {})
   require('which-key').register(mappings, options)
+end
+
+function my.t(s)
+  return vim.api.nvim_replace_termcodes(s, true, true, true)
+end
+
+function my.log(msg, hl, name)
+  name = name or 'Neovim'
+  hl = hl or 'Todo'
+  vim.api.nvim_echo({{name .. ': ', hl}, {msg}}, true, {})
+end
+
+function my.info(msg, name)
+  vim.notify(msg, vim.log.levels.INFO, {title=name})
+end
+
+function my.warn(msg, name)
+  vim.notify(msg, vim.log.levels.WARN, {title=name})
+end
+
+function my.error(msg, name)
+  vim.notify(msg, vim.log.levels.ERROR, {title=name})
+end
+
+-- https://github.com/jose-elias-alvarez/nvim-lsp-ts-utils/discussions/109
+function my.format_code()
+  local bufnr = vim.api.nvim_get_current_buf()
+  local tsserver_is_attached = false
+  for _, client in ipairs(vim.lsp.buf_get_clients(bufnr)) do
+    if client.name == "tsserver" then
+      tsserver_is_attached = true
+      break
+    end
+  end
+  if tsserver_is_attached then
+    require('nvim-lsp-ts-utils').organize_imports_sync(bufnr)
+  end
+  vim.lsp.buf.formatting_seq_sync(nil, 5000)
+end
+
+function my.operator_register(name, fn)
+  _G[name] = function(type)
+    if type == nil then
+      vim.opt.opfunc = 'v:lua.' .. name
+      return 'g@' -- calls back to this function
+    end
+
+    -- boilerplate save, see :help g@
+    local sel_save = vim.opt.selection
+    local reg_save = vim.fn.getreginfo('"')
+    local cb_save = vim.opt.clipboard
+    local visual_marks_save = {vim.fn.getpos("'<"), vim.fn.getpos("'>")}
+
+    -- boilerplate setup
+    vim.opt.clipboard = ''
+    vim.opt.selection = 'inclusive'
+
+    local status, err = pcall(fn, type)
+
+    -- boilerplate restore
+    vim.fn.setreg('"', reg_save)
+    vim.fn.setpos("'<", visual_marks_save[0])
+    vim.fn.setpos("'>", visual_marks_save[1])
+    vim.opt.clipboard = cb_save
+    vim.opt.selection = sel_save
+
+    if not status then
+      error(err)
+    end
+  end
 end
 
 return my

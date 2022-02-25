@@ -33,6 +33,25 @@ function M.config()
   vim.cmd([[
     autocmd User AirlineAfterInit call v:lua.AirlineFinal()
   ]])
+
+  require('my').spacekeys({
+    ['1'] = {'<Plug>AirlineSelectTab1', 'Switch to buffer 1'},
+    ['2'] = {'<Plug>AirlineSelectTab2', 'Switch to buffer 2'},
+    ['3'] = {'<Plug>AirlineSelectTab3', 'Switch to buffer 3'},
+    ['4'] = {'<Plug>AirlineSelectTab4', 'Switch to buffer 4'},
+    ['5'] = {'<Plug>AirlineSelectTab5', 'Switch to buffer 5'},
+    ['6'] = {'<Plug>AirlineSelectTab6', 'Switch to buffer 6'},
+    ['7'] = {'<Plug>AirlineSelectTab7', 'Switch to buffer 7'},
+    ['8'] = {'<Plug>AirlineSelectTab8', 'Switch to buffer 8'},
+    ['9'] = {'<Plug>AirlineSelectTab9', 'Switch to buffer 9'},
+    ['0'] = {'<Plug>AirlineSelectTab0', 'Switch to buffer 10'},
+  })
+
+  -- Next and previous buffer
+  vim.cmd([[
+    nmap <tab> <Plug>AirlineSelectNextTab
+    nmap <s-tab> <Plug>AirlineSelectPrevTab
+  ]])
 end
 
 return M

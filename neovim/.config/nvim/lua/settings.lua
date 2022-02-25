@@ -2,7 +2,7 @@ local my = require('my')
 
 -- Set up the clipboard provider first, because the associated settings are
 -- sticky; they cannot be reconfigured effectively once set.
-my.source('clipboard.vim')
+require('clipboard')
 
 --------------------------------------------------------------------------------
 -- Settings
@@ -28,7 +28,7 @@ vim.opt.showcmd = true        -- show (partial) command in status line
 vim.opt.showmode = true       -- message on status line to show current mode
 vim.opt.showmatch = true      -- briefly jump to matching bracket
 vim.opt.warn = false          -- don't warn for shell command when buffer changed
-vim.opt.timeoutlen = 300      -- ms to wait for a mapped sequence to complete
+vim.opt.timeoutlen = 1000     -- ms to wait for a mapped sequence to complete
 vim.opt.updatetime = 2000
 vim.opt.wildmode = {'longest', 'list', 'full'}
 vim.opt.wrap = false
