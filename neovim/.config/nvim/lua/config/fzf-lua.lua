@@ -7,6 +7,17 @@ function M.config()
     -- Try using built-in first, see if it's too slow.
     -- Built-in has the advantage of syncing with colors, I think.
     --winopts = {preview = {default = 'bat'}},
+    grep = {
+      rg_opts = table.concat({
+        '--column',
+        '--line-number',
+        '--no-heading',
+        '--color=always',
+        '--smart-case',
+        '--max-columns=512',
+        '-g !.git',
+      }, ' '),
+    },
   })
 
   local function search_cword()
