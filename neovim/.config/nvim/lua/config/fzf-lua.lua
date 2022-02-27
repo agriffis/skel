@@ -4,9 +4,14 @@ function M.config()
   local fzf = require('fzf-lua')
 
   fzf.setup({
-    -- Try using built-in first, see if it's too slow.
-    -- Built-in has the advantage of syncing with colors, I think.
-    --winopts = {preview = {default = 'bat'}},
+    fzf_opts = {
+      ['--ansi'] = '',
+      ['--prompt'] = '> ',
+      ['--info'] = 'inline',
+      ['--height'] = '100%',
+      ['--layout'] = 'reverse',
+      ['--keep-right'] = '', -- https://github.com/ibhagwan/fzf-lua/issues/269
+    },
     grep = {
       rg_opts = table.concat({
         '--column',
