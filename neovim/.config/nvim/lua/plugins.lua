@@ -183,75 +183,8 @@ local function plugins(use)
     event = 'InsertEnter',
   }
 
---  -- code formatting
---  use {'google/vim-maktaba'}
---  use {
---    'google/vim-glaive',
---    config = function()
---      vim.fn['glaive#Install']()
---    end,
---    requires = {'google/vim-maktaba'},
---  }
---  use {
---    'agriffis/vim-codefmt',
---    branch = 'scampersand',
---    requires = {'google/vim-glaive'},
---
---    config = function()
---      vim.cmd([[
---        Glaive codefmt plugin[mappings]
---      ]])
---
---      -- Extra setup for prettier
---      --
---      -- Don't do this unilaterally:
---      --   Glaive codefmt prettier_executable=`['yarn', 'prettier']`
---      -- because it's 6x slower (1.2s vs 0.2s) than the default
---      -- npx in vim-codefmt upstream. Unfortunately npx doesn't work with yarn
---      -- v2 pnp, but it does work fine with yarn in general.
---      if vim.fn.executable('proxier') == 1 then
---        vim.cmd([[
---          Glaive codefmt prettier_executable=`['proxier']`
---        ]])
---      end
---
---      -- Extra setup for zprint
---      --
---      -- Default formatting keys <leader>== and <leader>=b respect existing
---      -- newlines for minimal disruption. Extra formatting keys <leader>=+ and
---      -- <leader>++ and <leader>=B respect blank lines only.
---      vim.cmd([[
---        Glaive codefmt zprint_options=`[]`
---        function! RespectableZprint(respect, what) abort
---          if a:respect == 'nl'
---            Glaive codefmt zprint_options=`['{:style [:respect-nl]}']`
---          else
---            Glaive codefmt zprint_options=`['{:style [:respect-bl]}']`
---          endif
---          try
---            if a:what == 'buffer'
---              FormatCode zprint
---            else
---              exe "normal vaF:FormatLines zprint\<cr>"
---            endif
---          finally
---            Glaive codefmt zprint_options=`[]`
---          endtry
---        endfunction
---        autocmd FileType clojure nmap <buffer> <silent> <leader>== :call RespectableZprint('nl', 'fn')<cr>
---        autocmd FileType clojure nmap <buffer> <silent> <leader>=+ :call RespectableZprint('bl', 'fn')<cr>
---        autocmd FileType clojure nmap <buffer> <silent> <leader>++ :call RespectableZprint('bl', 'fn')<cr>
---        autocmd FileType clojure nmap <buffer> <silent> <leader>=b :call RespectableZprint('nl', 'buffer')<cr>
---        autocmd FileType clojure nmap <buffer> <silent> <leader>=B :call RespectableZprint('bl', 'buffer')<cr>
---      ]])
---    end,
---  }
-
-  -- This is the official editorconfig plugin. There is also an alternative
-  -- sgur/vim-editorconfig which used to be preferable because it was pure VimL
-  -- whereas the official plugin required Python. Now the official plugin
-  -- doesn't require Python, and it provides an API for fetching domain-specific
-  -- keys, see :help editorconfig-advanced
+  -- editorconfig plugin with domain-specific key for setting what files should
+  -- be autoformatted on save. See :help editorconfig-advanced
   use {
     'editorconfig/editorconfig-vim',
     setup = function()
