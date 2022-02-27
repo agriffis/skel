@@ -145,7 +145,7 @@ local function plugins(use)
       },
     },
     wants = {'fidget.nvim', 'lua-dev.nvim', 'nvim-lsp-installer', 'nvim-lsp-ts-utils'},
-    event = 'BufReadPre',
+    event = 'BufNewFile,BufReadPre',
     setup = function() require('config.lsp').setup() end,
     config = function() require('config.lsp').config() end,
   }
@@ -154,11 +154,13 @@ local function plugins(use)
   use {
     'nvim-treesitter/nvim-treesitter',
     run = function() vim.cmd('TSUpdate') end,
+    requires = {'RRethy/nvim-treesitter-endwise'},
+    -- wants = {'nvim-treesitter-endwise'},
+    -- event = 'BufNewFile,BufReadPre',
     config = function()
       require('nvim-treesitter.configs').setup {
         ensure_installed = 'maintained',
-        autotag = {enabled = true}, -- plugin below
-        endwise = {enable = true}, -- plugin below
+        endwise = {enable = true},
         highlight = {enable = true},
         indent = {enable = true},
       }
@@ -168,19 +170,25 @@ local function plugins(use)
   -- Auto pair completion.
   use {
     'windwp/nvim-autopairs',
-    wants = {'nvim-treesitter'},
-    event = 'InsertEnter',
-    config = function() require('config.nvim-autopairs').config() end,
+    -- wants = {'nvim-treesitter', 'nvim-treesitter-endwise'},
+    -- event = 'InsertEnter',
+    config = function()
+      local autopairs = require('nvim-autopairs')
+      autopairs.setup {
+        check_ts = true,
+        disable_filetype = {
+          '', 'markdown', 'text', -- plain text
+          'TelescopePrompt', -- default
+        },
+      }
+      autopairs.add_rules(require('nvim-autopairs.rules.endwise-lua'))
+    end,
   }
   use {
     'windwp/nvim-ts-autotag',
-    wants = {'nvim-treesitter'},
-    event = 'InsertEnter',
-  }
-  use {
-    'RRethy/nvim-treesitter-endwise',
-    wants = {'nvim-treesitter'},
-    event = 'InsertEnter',
+    -- wants = {'nvim-treesitter'},
+    -- event = 'InsertEnter',
+    config = function() require('nvim-ts-autotag').setup() end,
   }
 
   -- editorconfig plugin with domain-specific key for setting what files should
