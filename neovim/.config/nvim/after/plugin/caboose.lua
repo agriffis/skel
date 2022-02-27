@@ -37,8 +37,8 @@ my.nmap('<up>',   'winnr() == winnr("j") ? ":resize +1<cr>" : ":resize -1<cr>"',
 my.cmap('%/', '<C-R>=expand("%:p:h")."/"<CR>', {silent = false})
 
 -- Reformat current paragraph
---my.nmap('Q', '}{gq}')
---my.vmap('Q', 'gq')
+my.nmap('Q', '}{gq}')
+my.vmap('Q', 'gq')
 
 -- Reformat current paragraph with 80 textwidth
 my.operator_register('op_reformat_prose', function(type)

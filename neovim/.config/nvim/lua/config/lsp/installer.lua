@@ -64,7 +64,7 @@ function M.on_attach(client, bufnr)
     ['<leader>E'] = {'<cmd>lua vim.lsp.diagnostic.set_qflist()<cr>', 'Diagnostics in quickfix list'},
     K = {'<cmd>lua vim.lsp.buf.hover()<cr>', 'Show hover info'},
     ['<c-k>'] = {'<cmd>lua vim.lsp.buf.signature_help()<cr>', 'Show signature help'},
-    Q = {my.format_code, 'Format buffer'},
+    -- Q = {my.format_code, 'Format buffer'},
     ['<leader>=b'] = {my.format_code, 'Format buffer'},
   }, {buffer = bufnr})
 
@@ -76,10 +76,10 @@ function M.on_attach(client, bufnr)
     vim.lsp.buf.range_formatting({}, start, finish)
   end)
 
-  my.nmap('gq', 'v:lua.op_format_code()', {expr = true})
-  my.xmap('gq', 'v:lua.op_format_code()', {expr = true})
-  my.nmap('gqq', "v:lua.op_format_code() .. '_'", {expr = true})
-  my.nmap('gqgq', "v:lua.op_format_code() .. '_'", {expr = true})
+  --my.nmap('gq', 'v:lua.op_format_code()', {expr = true})
+  --my.xmap('gq', 'v:lua.op_format_code()', {expr = true})
+  --my.nmap('gqq', "v:lua.op_format_code() .. '_'", {expr = true})
+  --my.nmap('gqgq', "v:lua.op_format_code() .. '_'", {expr = true})
 
   my.nmap('<leader>=', 'v:lua.op_format_code()', {expr = true})
   my.xmap('<leader>=', 'v:lua.op_format_code()', {expr = true})
