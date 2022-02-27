@@ -13,7 +13,7 @@
 local my = require('my')
 
 -- Continuously sync theme with desktop/terminal scheme (dark/light)
-my.source('themer.vim')
+require('themer')
 
 -- Up/down through wrapped lines.
 my.nmap('k', 'v:count == 0 ? "gk" : "k"', {expr = true})
