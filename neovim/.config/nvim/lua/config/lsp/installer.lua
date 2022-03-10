@@ -48,9 +48,8 @@ function M.on_attach(client, bufnr)
   --setlocal('formatexpr', 'v:lua.vim.lsp.formatexpr()')
 
   require('which-key').register({
-    gd = {'<cmd>lua vim.lsp.buf.definition()<cr>', 'Jump to definition'},
-    gD = {'<cmd>lua vim.lsp.buf.declaration()<cr>', 'Jump to declaration'},
-    gI = {'<cmd>lua vim.lsp.buf.implementation()<cr>', 'Jump to implementation'},
+    gd = {'<cmd>lua vim.lsp.buf.implementation()<cr>', 'Jump to implementation'},
+    gD = {'<cmd>lua vim.lsp.buf.definition()<cr>', 'Jump to definition'},
     gT = {'<cmd>lua vim.lsp.buf.type_definition()<cr>', 'Jump to type definition'},
     gs = {'<cmd>lua vim.lsp.buf.references()<cr>', 'Show references'},
     gS = {'<cmd>lua vim.lsp.buf.document_symbol()<cr>', 'Show all symbols in document'},
@@ -88,7 +87,9 @@ function M.on_attach(client, bufnr)
   -- https://github.com/jose-elias-alvarez/nvim-lsp-ts-utils
   if client.name == 'tsserver' then
     local ts_utils = require('nvim-lsp-ts-utils')
-    ts_utils.setup({})
+    ts_utils.setup({
+      auto_inlay_hints = false,
+    })
     ts_utils.setup_client(client)
     require('which-key').register({
       gI = {'<cmd>TSLspImportAll<cr>', 'Auto-import all missing symbols'},

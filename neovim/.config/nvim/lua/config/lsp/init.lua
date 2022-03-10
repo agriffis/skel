@@ -12,17 +12,6 @@ local function each_config(name, ...)
   end
 end
 
-function M.setup()
-  vim.lsp.handlers["textDocument/publishDiagnostics"] = vim.lsp.with(
-    vim.lsp.diagnostic.on_publish_diagnostics, {
-      signs = false,
-      underline = true,
-      virtual_text = false,
-    }
-  )
-  each_config('setup')
-end
-
 local function on_attach(client, bufnr)
   each_config('on_attach', client, bufnr)
 end

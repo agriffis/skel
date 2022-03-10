@@ -12,24 +12,16 @@
 --------------------------------------------------------------------------------
 local my = require('my')
 
--- Packer config.
-local config = {
-  -- Move compilation output out of stow-managed dir
-  -- (but still in default runtimepath)
-  compile_path = vim.fn.expand('~/.local/share/nvim/site/plugin/packer_compiled.lua'),
-  display = {
-    open_fn = function()
-      return require('packer.util').float {
-        border = "rounded"
-      }
-    end,
-  },
-}
+local plugin_manager = 'packer'
 
 -- Packer plugins
 local function plugins(use)
   -- Packer can manage itself
-  use 'wbthomason/packer.nvim'
+  if plugin_manager == 'packer' then
+    use 'wbthomason/packer.nvim'
+  elseif plugin_manager == 'paq' then
+    use 'savq/paq-nvim'
+  end
 
   -- Discoverable key binding manager. Individual plugin configs add their own
   -- bindings.
@@ -41,12 +33,12 @@ local function plugins(use)
   -- Status line. Consider replacing with LuaLine eventually.
   use {
     'vim-airline/vim-airline',
-    wants = {'which-key.nvim'}, -- might not be effective #615
+    --wants = {'which-key.nvim'}, -- might not be effective #615
     config = function() require('config.vim-airline').config() end,
   }
   use {
     'vim-airline/vim-airline-themes',
-    wants = {'vim-airline'}, -- might not be effective #615
+    --wants = {'vim-airline'}, -- might not be effective #615
     config = function() require('config.vim-airline-themes').config() end,
   }
 
@@ -54,7 +46,7 @@ local function plugins(use)
   use {
     'kyazdani42/nvim-tree.lua',
     requires = {'kyazdani42/nvim-web-devicons'},
-    wants = {'which-key.nvim'}, -- might not be effective #615
+    --wants = {'which-key.nvim'}, -- might not be effective #615
     config = function() require('config.nvim-tree').config() end,
   }
 
@@ -94,7 +86,7 @@ local function plugins(use)
   -- Add commands for deleting hidden and other buffers.
   use {
     'Asheq/close-buffers.vim',
-    wants = {'which-key.nvim'}, -- might not be effective #615
+    --wants = {'which-key.nvim'}, -- might not be effective #615
     config = function()
       require('my').spacekeys({
         b = {
@@ -113,7 +105,7 @@ local function plugins(use)
   -- Always change working dir to top of project.
   use {
     'airblade/vim-rooter',
-    setup = function()
+    config = function()
       vim.g.rooter_patterns = {'.git', '.project', '.hg', '.bzr', '.svn', 'package.json'}
       vim.g.rooter_silent_chdir = 1
     end,
@@ -124,17 +116,28 @@ local function plugins(use)
   use {
     'ibhagwan/fzf-lua',
     requires = {'kyazdani42/nvim-web-devicons'},
-    wants = {'which-key.nvim'},
+    --wants = {'which-key.nvim'},
     config = function() require('config.fzf-lua').config() end,
   }
 
   -- Language server protocol.
+  --
+  -- Following extracted from setup function, but could this be moved to config?
+  -- Does it really need to run before loading plugins?
+  vim.lsp.handlers["textDocument/publishDiagnostics"] = vim.lsp.with(
+    vim.lsp.diagnostic.on_publish_diagnostics, {
+      signs = false,
+      underline = true,
+      virtual_text = false,
+    }
+  )
+  -- end extracted
   use {
     'neovim/nvim-lspconfig',
     requires = {
       'williamboman/nvim-lsp-installer', -- auto-install of servers
       'folke/lua-dev.nvim', -- signature help for Neovim API
-      'jose-elias-alvarez/nvim-lsp-ts-utils', -- more stuff for TS
+      'jose-elias-alvarez/nvim-lsp-ts-utils', -- more stuff for TypeScript
       {
         'j-hui/fidget.nvim', -- LSP progress
         config = function() require('fidget').setup {} end,
@@ -144,10 +147,18 @@ local function plugins(use)
         requires = {'nvim-lua/plenary.nvim'},
       },
     },
-    wants = {'fidget.nvim', 'lua-dev.nvim', 'nvim-lsp-installer', 'nvim-lsp-ts-utils'},
-    event = 'BufNewFile,BufReadPre',
-    setup = function() require('config.lsp').setup() end,
+    --wants = {'fidget.nvim', 'lua-dev.nvim', 'nvim-lsp-installer', 'nvim-lsp-ts-utils'},
+    --event = 'BufNewFile,BufReadPre',
     config = function() require('config.lsp').config() end,
+  }
+
+  -- LSP diagnostics navigator.
+  use {
+    'folke/trouble.nvim',
+    requires = {'kyazdani42/nvim-web-devicons'},
+    config = function()
+      require('trouble').setup {}
+    end
   }
 
   -- Syntax hilighting and indentation via tree-sitter.
@@ -155,8 +166,8 @@ local function plugins(use)
     'nvim-treesitter/nvim-treesitter',
     run = function() vim.cmd('TSUpdate') end,
     requires = {'RRethy/nvim-treesitter-endwise'},
-    -- wants = {'nvim-treesitter-endwise'},
-    -- event = 'BufNewFile,BufReadPre',
+    --wants = {'nvim-treesitter-endwise'},
+    --event = 'BufNewFile,BufReadPre',
     config = function()
       require('nvim-treesitter.configs').setup {
         ensure_installed = 'maintained',
@@ -168,43 +179,41 @@ local function plugins(use)
   }
 
   -- Auto pair completion.
-  use {
-    'windwp/nvim-autopairs',
-    -- wants = {'nvim-treesitter', 'nvim-treesitter-endwise'},
-    -- event = 'InsertEnter',
-    config = function()
-      local autopairs = require('nvim-autopairs')
-      autopairs.setup {
-        check_ts = true,
-        disable_filetype = {
-          '', 'markdown', 'text', -- plain text
-          'TelescopePrompt', -- default
-        },
-      }
-      autopairs.add_rules(require('nvim-autopairs.rules.endwise-lua'))
-    end,
-  }
-  use {
-    'windwp/nvim-ts-autotag',
-    -- wants = {'nvim-treesitter'},
-    -- event = 'InsertEnter',
-    config = function() require('nvim-ts-autotag').setup() end,
-  }
+--use {
+--  'windwp/nvim-autopairs',
+--  --wants = {'nvim-treesitter', 'nvim-treesitter-endwise'},
+--  --event = 'InsertEnter',
+--  config = function()
+--    local autopairs = require('nvim-autopairs')
+--    autopairs.setup {
+--      check_ts = true,
+--      disable_filetype = {
+--        '', 'markdown', 'text', -- plain text
+--        'TelescopePrompt', -- default
+--      },
+--    }
+--    autopairs.add_rules(require('nvim-autopairs.rules.endwise-lua'))
+--  end,
+--}
+--use {
+--  'windwp/nvim-ts-autotag',
+--  --wants = {'nvim-treesitter'},
+--  --event = 'InsertEnter',
+--  config = function() require('nvim-ts-autotag').setup() end,
+--}
 
   -- editorconfig plugin with domain-specific key for setting what files should
   -- be autoformatted on save. See :help editorconfig-advanced
   use {
     'editorconfig/editorconfig-vim',
-    setup = function()
+    config = function()
       vim.g.EditorConfig_exclude_patterns = {'fugitive://.*'}
       vim.g.EditorConfig_max_line_indicator = 'none'
-    end,
-    config = function()
       vim.cmd([[
         function! EditorConfigAutoformatHook(config)
           if a:config['autoformat'] == 'true'
             augroup LspFormatting
-              autocmd! * <buffer>
+              autocmd! BufWritePre <buffer>
               autocmd BufWritePre <buffer> lua my.format_code()
             augroup END
           endif
@@ -223,9 +232,9 @@ local function plugins(use)
   -- Assume <p> will include closing </p> and content should be indented.
   -- If more are needed, this should be a comma-separated list.
   vim.g.html_indent_inctags = 'p,main'
-  -- {'agriffis/vim-jinja'}
-  -- {'mustache/vim-mustache-handlebars'}
-  -- {'windwp/nvim-ts-autotag'}
+  --{'agriffis/vim-jinja'}
+  --{'mustache/vim-mustache-handlebars'}
+  --{'windwp/nvim-ts-autotag'}
   use {
     'agriffis/closetag.vim',
     config = function()
@@ -256,18 +265,15 @@ local function plugins(use)
   -- JavaScript and Vue ------------------------------------------------
   vim.cmd([[
     autocmd BufNewFile,BufReadPost *.js set filetype=javascriptreact
+    autocmd FileType typescript,typescriptreact setl makeprg=yarn\ tsc errorformat=%+A\ %#%f\ %#(%l\\\,%c):\ %m,%C%m
     autocmd FileType vue setl comments=s:<!--,m:\ \ \ \ \ ,e:-->,s1:/*,mb:*,ex:*/,://
   ]])
 
   -- Java and Clojure --------------------------------------------------
   use {'tpope/vim-classpath'}
-  use {'Olical/conjure'}
-  use {
-    'guns/vim-sexp',
-    setup = function()
-      vim.g.sexp_insert_after_wrap = 0
-    end,
-  }
+  use {'Olical/conjure', branch = 'develop'}
+  vim.g.sexp_insert_after_wrap = 0
+  use {'guns/vim-sexp'}
   use {
     'tpope/vim-sexp-mappings-for-regular-people',
     config = function()
@@ -284,58 +290,185 @@ local function plugins(use)
   }
 end
 
--- Packer bootstrap
-local install_path = vim.fn.stdpath('data') .. '/site/pack/packer/start/packer.nvim'
-local installed = vim.fn.isdirectory(install_path) == 1
-local bootstrapped = false
-if not installed then
-  vim.fn.system {'git', 'clone', '--depth=1', 'https://github.com/wbthomason/packer.nvim', install_path}
-  bootstrapped = vim.v.shell_error == 0
-  if bootstrapped then
-    vim.cmd('packadd packer.nvim')
-    installed = true
+local function load_packer()
+  -- Packer bootstrap
+  local install_path = vim.fn.stdpath('data') .. '/site/pack/packer/start/packer.nvim'
+  local installed = vim.fn.isdirectory(install_path) == 1
+  local bootstrapped = false
+  if not installed then
+    vim.fn.system {'git', 'clone', '--depth=1', 'https://github.com/wbthomason/packer.nvim', install_path}
+    bootstrapped = vim.v.shell_error == 0
+    if bootstrapped then
+      vim.cmd('packadd packer.nvim')
+      installed = true
+    end
   end
-end
 
--- Packer init
-if installed then
-  local packer = require('packer')
-  packer.init(config)
-  packer.startup(plugins)
+  -- Packer init
+  if installed then
+    local packer = require('packer')
+    local config = {
+      -- Move compilation output out of stow-managed dir
+      -- (but still in default runtimepath)
+      compile_path = vim.fn.expand('~/.local/share/nvim/site/plugin/packer_compiled.lua'),
+      display = {
+        open_fn = function()
+          return require('packer.util').float {
+            border = "rounded"
+          }
+        end,
+      },
+    }
+    packer.init(config)
+    packer.startup(plugins)
 
-  -- Packer sync after bootstrap
-  if bootstrapped then
-    packer.sync()
-  else
-    -- Packer compile when out of date
-    local plugins_lua = debug.getinfo(1, 'S').source:sub(2) -- trim leading @
-    local stale = vim.fn.filereadable(config.compile_path) == 0 or
+    -- Packer sync after bootstrap
+    if bootstrapped then
+      packer.sync()
+    else
+      -- Packer compile when out of date
+      local plugins_lua = debug.getinfo(1, 'S').source:sub(2) -- trim leading @
+      local stale = vim.fn.filereadable(config.compile_path) == 0 or
       vim.fn.getftime(plugins_lua) > vim.fn.getftime(config.compile_path)
-    if stale then
-      my.info('Compiling plugins')
-      packer.compile()
-    end
+      if stale then
+        my.info('Compiling plugins')
+        packer.compile()
+      end
 
-    -- Packer compile when this file is written. This just re-reads, it will
-    -- rebuild thanks to stale check above.
-    local autocmd_patt = plugins_lua
-    local abs_plugins_lua = vim.fn.resolve(plugins_lua)
-    if abs_plugins_lua ~= plugins_lua then
-      autocmd_patt = autocmd_patt .. ',' .. abs_plugins_lua
+      -- Packer compile when this file is written. This just re-reads, it will
+      -- rebuild thanks to stale check above.
+      local autocmd_patt = plugins_lua
+      local abs_plugins_lua = vim.fn.resolve(plugins_lua)
+      if abs_plugins_lua ~= plugins_lua then
+        autocmd_patt = autocmd_patt .. ',' .. abs_plugins_lua
+      end
+      vim.cmd(string.format([[
+          augroup reload_plugins_lua
+            autocmd!
+            autocmd BufWritePost %s source %s
+          augroup END
+        ]],
+        -- Match script or abs path, because this file is in two locations via
+        -- symlink/stow, and I don't want to match on generic plugins.lua
+        abs_plugins_lua,
+        -- What to load, don't use <afile> because that loads from both
+        -- locations.
+        plugins_lua
+      ))
     end
-    vim.cmd(string.format([[
-        augroup reload_plugins_lua
-          autocmd!
-          autocmd BufWritePost %s source %s
-        augroup END
-      ]],
-      -- Match script or abs path, because this file is in two locations via
-      -- symlink/stow, and I don't want to match on generic plugins.lua
-      abs_plugins_lua,
-      -- What to load, don't use <afile> because that loads from both locations.
-      plugins_lua
-    ))
   end
+
+  return installed
 end
 
-return installed
+local function load_paq()
+  local paqs_path = vim.fn.stdpath('data') .. '/site/pack/paqs'
+  local install_path = paqs_path .. '/start/paq-nvim'
+  local installed = vim.fn.isdirectory(install_path) == 1
+  local bootstrapped = false
+
+  local function infer_name(p)
+    -- This is effectively the precedence used in paq
+    return (
+      (type(p) == 'string' and infer_name({p})) or
+      p.as or
+      (p.url and p.url:gsub('.*/', ''):gsub('%.git$', '')) or
+      (p[1] and p[1]:gsub('.*/', ''))
+    )
+  end
+
+  local function infer_url(p)
+    return (
+      (type(p) == 'string' and 'https://github.com/' .. p) or
+      p.url or
+      (p[1] and 'https://github.com/' .. p[1])
+    )
+  end
+
+  local function is_installed(p)
+    local name = type(p) == 'string' and p or infer_name(p)
+    if name then
+      for _, path in ipairs({
+        paqs_path .. '/start/' .. name,
+        paqs_path .. '/opt/' .. name,
+      }) do
+        if vim.fn.isdirectory(path) == 1 then
+          return path
+        end
+      end
+    end
+  end
+
+  if not installed then
+    vim.fn.system({'git', 'clone', '--depth=1', 'https://github.com/savq/paq-nvim.git', install_path})
+    bootstrapped = vim.v.shell_error == 0
+    if bootstrapped then
+      vim.cmd('packadd paq-nvim')
+      installed = true
+    end
+  end
+
+  if installed then
+    -- Build packages table from plugins function.
+    local packages = {}
+    local seen = {}
+    local function use(p)
+      if type(p) == 'string' then
+        p = {p}
+      end
+      if type(p.requires) == 'string' then
+        use(p.requires)
+      elseif p.requires then
+        for _, req in ipairs(p.requires) do
+          use(req)
+        end
+      end
+      local name = infer_name(p)
+      if not seen[name] then
+        table.insert(packages, p)
+      end
+      seen[name] = true
+    end
+    plugins(use)
+
+    for _, p in ipairs(packages) do
+      if is_installed(p) and p.setup and not pcall(p.setup) then
+        print('setup failed for ' .. (p.label or p[1] or 'unknown'))
+      end
+    end
+
+    require('paq')(my.compose(
+      -- Skip packages that don't have a name
+      my.filter(infer_name),
+      -- Drop our special keys before passing to paq
+      my.map(my.filter(function(_, k)
+        return k ~= 'setup' and k ~= 'config'
+      end))
+    )(packages))
+
+    vim.cmd('packloadall')
+
+    for _, p in ipairs(packages) do
+      if is_installed(p) and p.config and not pcall(p.config) then
+        print('config failed for ' .. (p.label or p[1] or 'unknown'))
+      end
+    end
+
+    for _, p in ipairs(packages) do
+      if infer_name(p) and not is_installed(p) then
+        print('Please run :PaqSync (' .. infer_name(p) .. ')')
+        break
+      end
+    end
+  end
+
+  return installed
+end
+
+if plugin_manager == 'packer' then
+  return load_packer()
+end
+
+if plugin_manager == 'paq' then
+  return load_paq()
+end

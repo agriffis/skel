@@ -199,7 +199,10 @@ function my.format_code()
     end
   end
   if tsserver_is_attached then
-    require('nvim-lsp-ts-utils').organize_imports_sync(bufnr)
+    local status, err = require('nvim-lsp-ts-utils').organize_imports_sync(bufnr)
+    if not status then
+      my.error("organize_imports_sync failed with: " .. err)
+    end
   end
   vim.lsp.buf.formatting_seq_sync(nil, 5000)
 end

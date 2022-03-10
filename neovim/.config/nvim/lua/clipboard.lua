@@ -88,10 +88,10 @@ local function paste_provider(pasters)
       local _, json_lines = pcall(vim.fn.readfile, regtype_file)
       if json_lines then
         local _, info = pcall(vim.json.decode, table.concat(json_lines))
-	local checksum = vim.fn.sha256(table.concat(lines, '\n'))
-	if info.checksum == checksum then
-	  regtype = info.regtype
-	end
+        local checksum = vim.fn.sha256(table.concat(lines, '\n'))
+        if info.checksum == checksum then
+          regtype = info.regtype
+        end
       end
       return {lines, regtype}
     end
