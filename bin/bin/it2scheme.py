@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # https://iterm2.com/documentation-scripting.html
 # https://github.com/gnachman/iTerm2/blob/master/tests/example.osascript
 
