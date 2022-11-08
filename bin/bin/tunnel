@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -x
+
 main() {
     declare host session cmd
 
@@ -25,9 +27,10 @@ main() {
 
     set -- -t -Y "$@"
 
-    if [[ $HOSTNAME == penguin ]]; then
-        set -- -o 'GatewayPorts yes' "$@"
-    fi
+    case $HOSTNAME. in
+      penguin.*) set -- -o 'GatewayPorts yes' "$@" ;;
+      jasperodus.*) set -- -R /home/aron/.dbus-session-jasperodus:/run/user/10208/bus "$@" ;;
+    esac
 
     while true; do
         ssh "$@" "$host" "$cmd"
