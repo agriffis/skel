@@ -3,6 +3,7 @@ local M = {}
 local servers = {
   cssls = {},
   html = {},
+  intelephense = {},
   jdtls = {},
   jsonls = {},
   pyright = {},
@@ -37,7 +38,9 @@ function M.on_attach(client, bufnr)
   local function setlocal(...) vim.api.nvim_buf_set_option(bufnr, ...) end
 
   -- Enable completion with <c-x><c-o>.
-  setlocal('omnifunc', 'v:lua.vim.lsp.omnifunc')
+  if client.name ~= 'null-ls' then
+    setlocal('omnifunc', 'v:lua.vim.lsp.omnifunc')
+  end
 
   -- completeopt is global, not buffer-local
   vim.opt.completeopt:remove {'preview'}
@@ -48,19 +51,19 @@ function M.on_attach(client, bufnr)
   --setlocal('formatexpr', 'v:lua.vim.lsp.formatexpr()')
 
   require('which-key').register({
-    gd = {'<cmd>lua vim.lsp.buf.implementation()<cr>', 'Jump to implementation'},
-    gD = {'<cmd>lua vim.lsp.buf.definition()<cr>', 'Jump to definition'},
+    gd = {'<cmd>lua vim.lsp.buf.definition()<cr>', 'Jump to definition'},
+    gD = {'<cmd>lua vim.lsp.buf.implementation()<cr>', 'Jump to implementation'},
     gT = {'<cmd>lua vim.lsp.buf.type_definition()<cr>', 'Jump to type definition'},
     gs = {'<cmd>lua vim.lsp.buf.references()<cr>', 'Show references'},
     gS = {'<cmd>lua vim.lsp.buf.document_symbol()<cr>', 'Show all symbols in document'},
     gW = {'<cmd>lua vim.lsp.buf.workspace_symbol()<cr>', 'Show all symbols in workspace'},
     ga = {'<cmd>lua vim.lsp.buf.code_action()<cr>', 'Choose from available code actions'},
     gr = {'<cmd>lua vim.lsp.buf.rename()<cr>', 'Rename symbol'},
-    ge = {'<cmd>lua vim.lsp.diagnostic.show_position_diagnostics()<cr>', 'Show diagnostics at cursor'},
-    ['[e'] = {'<cmd>lua vim.lsp.diagnostic.goto_prev()<cr>', 'Jump to previous diagnostic'},
-    [']e'] = {'<cmd>lua vim.lsp.diagnostic.goto_next()<cr>', 'Jump to next diagnostic'},
-    ['<leader>e'] = {'<cmd>lua vim.lsp.diagnostic.set_loclist()<cr>', 'Diagnostics in location list'},
-    ['<leader>E'] = {'<cmd>lua vim.lsp.diagnostic.set_qflist()<cr>', 'Diagnostics in quickfix list'},
+    ge = {'<cmd>lua vim.diagnostic.open_float({scope = "c"})<cr>', 'Show diagnostics at cursor'},
+    ['[e'] = {'<cmd>lua vim.diagnostic.goto_prev()<cr>', 'Jump to previous diagnostic'},
+    [']e'] = {'<cmd>lua vim.diagnostic.goto_next()<cr>', 'Jump to next diagnostic'},
+    ['<leader>e'] = {'<cmd>lua vim.diagnostic.setloclist()<cr>', 'Diagnostics in location list'},
+    ['<leader>E'] = {'<cmd>lua vim.diagnostic.setqflist()<cr>', 'Diagnostics in quickfix list'},
     K = {'<cmd>lua vim.lsp.buf.hover()<cr>', 'Show hover info'},
     ['<c-k>'] = {'<cmd>lua vim.lsp.buf.signature_help()<cr>', 'Show signature help'},
     -- Q = {my.format_code, 'Format buffer'},
@@ -70,9 +73,12 @@ function M.on_attach(client, bufnr)
   -- Range formatting via motion.
   -- https://github.com/neovim/neovim/issues/14680
   my.operator_register('op_format_code', function(type)
-    local start = vim.api.nvim_buf_get_mark(0, '[')
-    local finish = vim.api.nvim_buf_get_mark(0, ']')
-    vim.lsp.buf.range_formatting({}, start, finish)
+    vim.lsp.buf.format {
+      range = {
+        ['start'] = vim.api.nvim_buf_get_mark(0, '['),
+        ['end'] = vim.api.nvim_buf_get_mark(0, ']'),
+      },
+    }
   end)
 
   --my.nmap('gq', 'v:lua.op_format_code()', {expr = true})
@@ -100,7 +106,7 @@ function M.on_attach(client, bufnr)
 
   -- Prefer null-ls formatting.
   if client.name == 'tsserver' or client.name == 'jdtls' then
-    client.resolved_capabilities.document_formatting = false
+    client.server_capabilities.document_formatting = false
   end
 end
 
@@ -113,7 +119,7 @@ function M.config(options)
       server:on_ready(function()
         local opts = my.merge(options, servers[server.name])
         if server.name == 'sumneko_lua' then
-          opts = require('lua-dev').setup({lspconfig = opts})
+          opts = require('neodev').setup({lspconfig = opts})
         elseif server.name == 'tsserver' then
           opts.init_options = require('nvim-lsp-ts-utils').init_options
         end

@@ -62,7 +62,7 @@ wayland-provider() {
 }
 
 xclip-provider() {
-    [[ -n $DISPLAY ]] && type -P xclip &>/dev/null || return
+    [[ -n $DISPLAY ]] && type -P xclip &>/dev/null && ! xdpyinfo | grep -q Apple || return
     case $1 in
         copy) spit | xclip -i -selection clipboard ;;
         paste) xclip -o -selection clipboard ;;

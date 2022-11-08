@@ -190,21 +190,27 @@ end
 
 -- https://github.com/jose-elias-alvarez/nvim-lsp-ts-utils/discussions/109
 function my.format_code()
-  local bufnr = vim.api.nvim_get_current_buf()
-  local tsserver_is_attached = false
-  for _, client in ipairs(vim.lsp.buf_get_clients(bufnr)) do
-    if client.name == "tsserver" then
-      tsserver_is_attached = true
-      break
-    end
-  end
-  if tsserver_is_attached then
-    local status, err = require('nvim-lsp-ts-utils').organize_imports_sync(bufnr)
-    if not status then
-      my.error("organize_imports_sync failed with: " .. err)
-    end
-  end
-  vim.lsp.buf.formatting_seq_sync(nil, 5000)
+--local bufnr = vim.api.nvim_get_current_buf()
+--local tsserver_is_attached = false
+--for _, client in ipairs(vim.lsp.buf_get_clients(bufnr)) do
+--  if client.name == "tsserver" then
+--    tsserver_is_attached = true
+--    break
+--  end
+--end
+--if tsserver_is_attached then
+--  local status, err = require('nvim-lsp-ts-utils').organize_imports_sync(bufnr, 2500)
+--  if status then
+--    vim.cmd('undo' .. 'join') -- for some reason undojoin breaks treesitter
+--  else
+--    my.error("organize_imports_sync failed with: " .. err)
+--  end
+--end
+  vim.lsp.buf.format({
+    -- Prefer null-ls formatting.
+    filter = function(client) return client.name ~= 'tsserver' and client.name ~= 'jdtls' end,
+    timeout_ms = 5000,
+  })
 end
 
 function my.operator_register(name, fn)

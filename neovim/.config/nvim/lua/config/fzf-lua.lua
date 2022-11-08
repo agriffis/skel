@@ -4,13 +4,19 @@ function M.config()
   local fzf = require('fzf-lua')
 
   fzf.setup({
+    winopts = {
+      preview = {
+        layout = 'vertical', -- default is 'flex'
+      },
+    },
     fzf_opts = {
       ['--ansi'] = '',
-      ['--prompt'] = '> ',
-      ['--info'] = 'inline',
+      ['--exact'] = '',
       ['--height'] = '100%',
-      ['--layout'] = 'reverse',
+      ['--info'] = 'inline',
       ['--keep-right'] = '', -- https://github.com/ibhagwan/fzf-lua/issues/269
+      ['--layout'] = 'reverse',
+      ['--prompt'] = '> ',
     },
     grep = {
       rg_opts = table.concat({

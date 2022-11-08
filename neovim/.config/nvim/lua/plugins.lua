@@ -73,6 +73,12 @@ local function plugins(use)
       vim.g.jellybeans_background_color_256 = 'NONE'
     end,
   }
+  use {
+    'overcache/NeoSolarized',
+    setup = function()
+      vim.g.neosolarized_contrast = 'high'
+    end
+  }
 
   -- Colorize named and hex colors.
   use {
@@ -101,6 +107,14 @@ local function plugins(use)
   use {'tpope/vim-fugitive'} -- :Gvdiffsplit
   use {'tpope/vim-rhubarb'} -- :Gbrowse for github
   use {'tpope/vim-surround'} -- dst ysiw<h1>
+
+  use {
+    'junegunn/vim-easy-align',
+    config = function()
+      require('my').xmap('gA', '<Plug>(EasyAlign)')
+      require('my').nmap('gA', '<Plug>(EasyAlign)')
+    end,
+  }
 
   -- Always change working dir to top of project.
   use {
@@ -136,7 +150,7 @@ local function plugins(use)
     'neovim/nvim-lspconfig',
     requires = {
       'williamboman/nvim-lsp-installer', -- auto-install of servers
-      'folke/lua-dev.nvim', -- signature help for Neovim API
+      'folke/neodev.nvim', -- signature help for Neovim API
       'jose-elias-alvarez/nvim-lsp-ts-utils', -- more stuff for TypeScript
       {
         'j-hui/fidget.nvim', -- LSP progress
@@ -147,7 +161,7 @@ local function plugins(use)
         requires = {'nvim-lua/plenary.nvim'},
       },
     },
-    --wants = {'fidget.nvim', 'lua-dev.nvim', 'nvim-lsp-installer', 'nvim-lsp-ts-utils'},
+    --wants = {'fidget.nvim', 'neodev.nvim', 'nvim-lsp-installer', 'nvim-lsp-ts-utils'},
     --event = 'BufNewFile,BufReadPre',
     config = function() require('config.lsp').config() end,
   }
@@ -166,11 +180,9 @@ local function plugins(use)
     'nvim-treesitter/nvim-treesitter',
     run = function() vim.cmd('TSUpdate') end,
     requires = {'RRethy/nvim-treesitter-endwise'},
-    --wants = {'nvim-treesitter-endwise'},
-    --event = 'BufNewFile,BufReadPre',
     config = function()
       require('nvim-treesitter.configs').setup {
-        ensure_installed = 'maintained',
+        ensure_installed = 'all',
         endwise = {enable = true},
         highlight = {enable = true},
         indent = {enable = true},
@@ -271,9 +283,12 @@ local function plugins(use)
 
   -- Java and Clojure --------------------------------------------------
   use {'tpope/vim-classpath'}
-  use {'Olical/conjure', branch = 'develop'}
+  use {'Olical/conjure'}
+  vim.g.sexp_enable_insert_mode_mappings = 0
   vim.g.sexp_insert_after_wrap = 0
   use {'guns/vim-sexp'}
+  -- TODO the mappings provided by vim-sexp-mappings-for-regular-people
+  -- seem to be broken or overridden by which-key, especially word motions.
   use {
     'tpope/vim-sexp-mappings-for-regular-people',
     config = function()

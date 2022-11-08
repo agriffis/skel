@@ -10,7 +10,6 @@ require('clipboard')
 vim.opt.autowrite = true      -- write before a make
 vim.opt.backspace = '2'       -- allow backspacing over everything in insert mode
 vim.opt.backupcopy = 'yes'    -- best for inotify
-vim.opt.cscopetag = true      -- search cscope on ctrl-] and :tag
 vim.opt.hidden = true         -- enable background buffers
 vim.opt.history = 100         -- keep 100 lines of command line history
 vim.opt.inccommand = 'nosplit' -- show substitute while typing
