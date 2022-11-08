@@ -83,6 +83,8 @@ set_scheme() {
 
     update_state "$scheme"
 
+    update_gnome "$gnome_theme" "$background" &
+    update_gtk "$gtk_theme" "$background" &
     update_gnome_terminal Flex "$xterm_colors" /org/gnome/terminal/legacy/profiles:/ &
     update_gnome_terminal Flex "$xterm_colors" /com/gexperts/Tilix/profiles/ &
     #update_xfce_terminal "$xterm_colors" &  # XXX port to $xterm_colors
@@ -90,8 +92,7 @@ set_scheme() {
     update_iterm2 "$iterm2_scheme" &
     update_kitty "$xterm_colors" # not backgrounded
     update_alacritty "$xterm_colors" # not backgrounded
-    update_gnome "$gnome_theme" "$background" &
-    update_gtk "$gtk_theme" "$background" &
+    update_konsole "$background" &
 
     update_emacs "$emacs_theme" "$background" &
     update_vim "$vim_theme" "$background" &
@@ -99,9 +100,9 @@ set_scheme() {
     update_bat "$bat_theme"
     update_delta "$bat_theme"
 
-    after_update_hook "${parsed_opts[@]}" "${params[@]}"
-
     wait # for anything backgrounded
+
+    after_update_hook "${parsed_opts[@]}" "${params[@]}"
     exit 0
 }
 
@@ -183,7 +184,7 @@ load_default_schemes() {
         #93a1a1 #839496 #657b83 #6c71c4 #586e75 #002b36"
     #xterm_cursor="#586e75"  XXX
     solarized_light_emacs_theme=solarized
-    solarized_light_vim_theme=solarized8
+    solarized_light_vim_theme=NeoSolarized
     solarized_light_bat_theme='Solarized (light)'
     solarized_light_toggle=solarized_dark
 
@@ -195,7 +196,7 @@ load_default_schemes() {
         #586e75 #657b83 #839496 #6c71c4 #93a1a1 #fdf6e3"
     #xterm_cursor="#93a1a1"  XXX
     solarized_dark_emacs_theme=solarized
-    solarized_dark_vim_theme=solarized8
+    solarized_dark_vim_theme=NeoSolarized
     solarized_light_bat_theme='Solarized (dark)'
     solarized_dark_toggle=solarized_light
 
@@ -529,15 +530,33 @@ update_kitty() {
     fi
 }
 
-update_gnome() {
-    declare gnome_theme="$1" background="$2"
-    if [[ -n $gnome_theme ]]; then
-        gsettings set org.gnome.shell.extensions.user-theme name "$gnome_theme"
-    else
-        gsettings reset org.gnome.shell.extensions.user-theme name
-    fi
+update_konsole() {
+  # There doesn't seem to be any way to change the default profile for new
+  # instances programmatically, so we control it in ~/bin/konsole instead.
+  # For running instances, change them to the appropriate profile:
+  if pgrep konsole >/dev/null; then
+    local session
+    for session in $(qdbus org.kde.konsole | grep ^/Sessions/); do
+      qdbus org.kde.konsole $session org.kde.konsole.Session.setProfile "Flex-$1"
+    done
+  fi
 }
 
+update_gnome() {
+  declare gnome_theme="$1" background="$2"
+
+  if [[ -n $gnome_theme ]]; then
+    gsettings set org.gnome.shell.extensions.user-theme name "$gnome_theme"
+  else
+    gsettings reset org.gnome.shell.extensions.user-theme name
+  fi
+
+  # New GNOME 42
+  gsettings set org.gnome.desktop.interface color-scheme "prefer-$background"
+}
+
+# This seems to be deprecated for GTK 4 apps, but still applies to GTK 3 apps or
+# something like that...
 update_gtk() {
     declare gtk_theme="$1" background="$2"
     if [[ -z $gtk_theme ]]; then
