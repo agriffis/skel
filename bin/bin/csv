@@ -4,7 +4,7 @@ import csv
 import sys
 
 reader = csv.reader(sys.stdin)
-writer = csv.writer(sys.stdout, quoting=csv.QUOTE_MINIMAL)
+writer = csv.writer(sys.stdout, quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
 selectors = sys.argv[1:]
 headers = None
 slices = None
