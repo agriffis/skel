@@ -68,6 +68,8 @@ function M.config(options)
     }
   }
 
+  _G.zprint_generator = zprint.generator
+
   nls.setup {
     on_attach = options.on_attach,
     save_after_format = false,

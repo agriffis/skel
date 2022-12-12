@@ -206,6 +206,7 @@ function my.format_code()
 --    my.error("organize_imports_sync failed with: " .. err)
 --  end
 --end
+  _G.zprint_generator._failed = false
   vim.lsp.buf.format({
     -- Prefer null-ls formatting.
     filter = function(client) return client.name ~= 'tsserver' and client.name ~= 'jdtls' end,
