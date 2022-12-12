@@ -22,7 +22,7 @@ main() {
   fi
 
   case ${HOSTNAME%%.*}/$(where-am-i)/${0##*/} in
-    jasperodus/*|bergamot/*)
+    jasperodus/*|bergamot/*|tomagreb/*)
       # mosh handles quoting differently from ssh
       eval mosh -- "$@"
       ;;
@@ -45,20 +45,20 @@ main() {
 }
 
 ensure-ssh-identity() {
-ssh-add -l &>/dev/null
-case $? in
-  2)
-    # wrap and restart
-    exec ssh-agent "$(type -P "$0")" "$@"
-    ;;
-  0)
-    # we have identities, carry on
-    ;;
-  *)
-    # add identity to running ssh-agent
-    ssh-add || exit
-    ;;
-esac
+  ssh-add -l &>/dev/null
+  case $? in
+    2)
+      # wrap and restart
+      exec ssh-agent "$(type -P "$0")" "$@"
+      ;;
+    0)
+      # we have identities, carry on
+      ;;
+    *)
+      # add identity to running ssh-agent
+      ssh-add || exit
+      ;;
+  esac
 }
 
 main "$@"
