@@ -1,6 +1,6 @@
 local M = {}
 
-local servers = {
+M.servers = {
   cssls = {},
   html = {},
   intelephense = {},
@@ -112,27 +112,22 @@ end
 
 function M.config(options)
   local my = require('my')
-  local get_server = require('nvim-lsp-installer.servers').get_server
-  for server_name, _ in pairs(servers) do
-    local ok, server = get_server(server_name)
-    if ok then
-      server:on_ready(function()
-        local opts = my.merge(options, servers[server.name])
-        if server.name == 'sumneko_lua' then
-          opts = require('neodev').setup({lspconfig = opts})
-        elseif server.name == 'tsserver' then
-          opts.init_options = require('nvim-lsp-ts-utils').init_options
+  for _, name in ipairs(require('mason-lspconfig').get_installed_servers()) do
+    local server = prequire(name)
+    if server then
+      local opts = my.merge(options, servers[name])
+      if name == 'tsserver' then
+        -- This replaces calling server.setup()
+        -- https://github.com/jose-elias-alvarez/typescript.nvim#setup
+        require('typescript').setup({server = opts})
+      else
+        if name == 'sumneko_lua' then
+          -- Call before calling server.setup()
+          -- https://github.com/folke/neodev.nvim#-setup
+          require('neodev').setup()
         end
-        server:setup(opts)
-      end)
-      -- Use explicit :LspInstall instead, to avoid error messages when the
-      -- dependencies for a given server aren't available, e.g. node.
-      --if not server:is_installed() then
-      --  my.info('Installing ' .. server.name)
-      --  server:install()
-      --end
-    else
-      my.error('Unknown LSP server: ' .. server_name)
+        server.setup(opts)
+      end
     end
   end
 end

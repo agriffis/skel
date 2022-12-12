@@ -1,7 +1,7 @@
 local M = {}
 
 local configs = {
-  'config/lsp/installer',
+  'config/lsp/lspconfig',
   'config/lsp/null-ls'
 }
 

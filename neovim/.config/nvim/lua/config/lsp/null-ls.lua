@@ -74,6 +74,7 @@ function M.config(options)
     on_attach = options.on_attach,
     save_after_format = false,
     sources = {
+      require('typescript.extensions.null-ls.code-actions'),
       b.formatting.prettier.with({command = 'proxier'}),
       b.formatting.stylua,
       eclipse,

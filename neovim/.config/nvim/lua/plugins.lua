@@ -135,23 +135,19 @@ local function plugins(use)
   }
 
   -- Language server protocol.
-  --
-  -- Following extracted from setup function, but could this be moved to config?
-  -- Does it really need to run before loading plugins?
-  vim.lsp.handlers["textDocument/publishDiagnostics"] = vim.lsp.with(
-    vim.lsp.diagnostic.on_publish_diagnostics, {
-      signs = false,
-      underline = true,
-      virtual_text = false,
+  use {'williamboman/mason.nvim', config = function()
+    require('mason').setup()
+  end}
+  use {'williamboman/mason-lspconfig.nvim', config = function()
+    local server_names = vim.tbl_keys(require('config.lsp.lspconfig').servers)
+    require('mason-lspconfig').setup {
+      ensure_installed = server_names,
     }
-  )
-  -- end extracted
-  use {
-    'neovim/nvim-lspconfig',
+  end}
+  use {'neovim/nvim-lspconfig',
     requires = {
-      'williamboman/nvim-lsp-installer', -- auto-install of servers
       'folke/neodev.nvim', -- signature help for Neovim API
-      'jose-elias-alvarez/nvim-lsp-ts-utils', -- more stuff for TypeScript
+      'jose-elias-alvarez/typescript.nvim', -- more stuff for TypeScript
       {
         'j-hui/fidget.nvim', -- LSP progress
         config = function() require('fidget').setup {} end,
@@ -159,10 +155,9 @@ local function plugins(use)
       {
         'jose-elias-alvarez/null-ls.nvim',
         requires = {'nvim-lua/plenary.nvim'},
+        -- see config in lua/config/lsp/null-ls.lua
       },
     },
-    --wants = {'fidget.nvim', 'neodev.nvim', 'nvim-lsp-installer', 'nvim-lsp-ts-utils'},
-    --event = 'BufNewFile,BufReadPre',
     config = function() require('config.lsp').config() end,
   }
 
