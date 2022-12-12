@@ -68,6 +68,8 @@ function M.on_attach(client, bufnr)
     ['<c-k>'] = {'<cmd>lua vim.lsp.buf.signature_help()<cr>', 'Show signature help'},
     -- Q = {my.format_code, 'Format buffer'},
     ['<leader>=b'] = {my.format_code, 'Format buffer'},
+    gwa = {'<cmd>lua vim.lsp.buf.add_workspace_folder()<cr>', 'Add folder to workspace'},
+    gwr = {'<cmd>lua vim.lsp.buf.remove_workspace_folder()<cr>', 'Remove folder from workspace'},
   }, {buffer = bufnr})
 
   -- Range formatting via motion.
