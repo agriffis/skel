@@ -27,11 +27,27 @@ M.servers = {
       },
     },
   },
-  tsserver = {},
+  tsserver = {
+    -- :h lspconfig-setup
+    -- The `settings` table is sent in `on_init` via
+    -- a `workspace/didChangeConfiguration` notification from the Nvim client to
+    -- the language server. These settings allow a user to change optional
+    -- runtime settings of the language server. 
+    settings = {
+      -- https://github.com/typescript-language-server/typescript-language-server#workspacedidchangeconfiguration
+      diagnostics = {
+        ignoredCodes = {
+          80006, -- "This may be converted to an async function."
+        },
+      },
+    },
+  },
   vimls = {},
   vuels = {},
 }
 
+-- This gets called multiple times, once for each client that attaches to
+-- a buffer.
 function M.on_attach(client, bufnr)
   local my = require('my')
 
@@ -51,9 +67,10 @@ function M.on_attach(client, bufnr)
   --setlocal('formatexpr', 'v:lua.vim.lsp.formatexpr()')
 
   require('which-key').register({
+    -- gd is overridden for TypeScript below
     gd = {'<cmd>lua vim.lsp.buf.definition()<cr>', 'Jump to definition'},
-    gD = {'<cmd>lua vim.lsp.buf.implementation()<cr>', 'Jump to implementation'},
-    gT = {'<cmd>lua vim.lsp.buf.type_definition()<cr>', 'Jump to type definition'},
+    gD = {'<cmd>lua vim.lsp.buf.type_definition()<cr>', 'Jump to type definition'},
+    gi = {'<cmd>lua vim.lsp.buf.implementation()<cr>', 'Jump to implementation'},
     gs = {'<cmd>lua vim.lsp.buf.references()<cr>', 'Show references'},
     gS = {'<cmd>lua vim.lsp.buf.document_symbol()<cr>', 'Show all symbols in document'},
     gW = {'<cmd>lua vim.lsp.buf.workspace_symbol()<cr>', 'Show all symbols in workspace'},
@@ -92,17 +109,13 @@ function M.on_attach(client, bufnr)
   my.xmap('<leader>=', 'v:lua.op_format_code()', {expr = true})
   my.nmap('<leader>==', "v:lua.op_format_code() .. '_'", {expr = true})
 
-  -- https://github.com/jose-elias-alvarez/nvim-lsp-ts-utils
+  -- https://github.com/jose-elias-alvarez/typescript.nvim#features
   if client.name == 'tsserver' then
-    local ts_utils = require('nvim-lsp-ts-utils')
-    ts_utils.setup({
-      auto_inlay_hints = false,
-    })
-    ts_utils.setup_client(client)
     require('which-key').register({
-      gI = {'<cmd>TSLspImportAll<cr>', 'Auto-import all missing symbols'},
-      gO = {'<cmd>TSLspOrganize<cr>', 'Organize imports'},
-      gR = {'<cmd>TSLspRenameFile<cr>', 'Rename file'},
+      gd = {'<cmd>TypescriptGoToSourceDefinition<cr>', 'Go to source definition'},
+      gI = {'<cmd>TypescriptAddMissingImports<cr>', 'Auto-import all missing symbols'},
+      gO = {'<cmd>TypescriptOrganizeImports<cr>', 'Organize imports'},
+      gR = {'<cmd>TypescriptRenameFile<cr>', 'Rename file'},
     }, {buffer = bufnr})
   end
 
@@ -112,21 +125,31 @@ function M.on_attach(client, bufnr)
   end
 end
 
+-- This gets called once, from config/lsp/init.lua
 function M.config(options)
   local my = require('my')
+
+  vim.lsp.handlers["textDocument/publishDiagnostics"] = vim.lsp.with(
+    vim.lsp.diagnostic.on_publish_diagnostics, {
+      signs = false,
+      underline = true,
+      virtual_text = false,
+    }
+  )
+
   for _, name in ipairs(require('mason-lspconfig').get_installed_servers()) do
-    local server = prequire(name)
+    local server = require('lspconfig')[name]
     if server then
-      local opts = my.merge(options, servers[name])
+      local opts = my.merge(options or {}, M.servers[name] or {})
       if name == 'tsserver' then
-        -- This replaces calling server.setup()
+        -- This replaces calling server.setup(opts)
         -- https://github.com/jose-elias-alvarez/typescript.nvim#setup
         require('typescript').setup({server = opts})
       else
         if name == 'sumneko_lua' then
           -- Call before calling server.setup()
           -- https://github.com/folke/neodev.nvim#-setup
-          require('neodev').setup()
+          require('neodev').setup {}
         end
         server.setup(opts)
       end
