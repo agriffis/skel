@@ -8,25 +8,25 @@ M.servers = {
   jsonls = {},
   pyright = {},
   rust_analyzer = {},
-  sumneko_lua = {
-    settings = {
-      Lua = {
-        runtime = {
-          version = 'LuaJIT',
-          path = vim.split(package.path, ';'),
-        },
-        diagnostics = {
-          globals = {'vim'},
-        },
-        workspace = {
-          library = {
-            [vim.fn.expand("$VIMRUNTIME/lua")] = true,
-            [vim.fn.expand("$VIMRUNTIME/lua/vim/lsp")] = true,
-          },
-        },
-      },
-    },
-  },
+--sumneko_lua = {
+--  settings = {
+--    Lua = {
+--      runtime = {
+--        version = 'LuaJIT',
+--        path = vim.split(package.path, ';'),
+--      },
+--      diagnostics = {
+--        globals = {'vim'},
+--      },
+--      workspace = {
+--        library = {
+--          [vim.fn.expand("$VIMRUNTIME/lua")] = true,
+--          [vim.fn.expand("$VIMRUNTIME/lua/vim/lsp")] = true,
+--        },
+--      },
+--    },
+--  },
+--},
   tsserver = {
     -- :h lspconfig-setup
     -- The `settings` table is sent in `on_init` via

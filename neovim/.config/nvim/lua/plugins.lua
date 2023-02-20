@@ -138,13 +138,17 @@ local function plugins(use)
   use {'williamboman/mason.nvim', config = function()
     require('mason').setup()
   end}
-  use {'williamboman/mason-lspconfig.nvim', config = function()
-    local server_names = vim.tbl_keys(require('config.lsp.lspconfig').servers)
-    require('mason-lspconfig').setup {
-      ensure_installed = server_names,
-    }
-  end}
+  use {'williamboman/mason-lspconfig.nvim',
+    after = 'mason.nvim',
+    config = function()
+      local server_names = vim.tbl_keys(require('config.lsp.lspconfig').servers)
+      require('mason-lspconfig').setup {
+        ensure_installed = server_names,
+      }
+    end
+  }
   use {'neovim/nvim-lspconfig',
+    after = 'mason-lspconfig.nvim',
     requires = {
       'folke/neodev.nvim', -- signature help for Neovim API
       'jose-elias-alvarez/typescript.nvim', -- more stuff for TypeScript
@@ -340,7 +344,7 @@ local function load_packer()
       -- Packer compile when out of date
       local plugins_lua = debug.getinfo(1, 'S').source:sub(2) -- trim leading @
       local stale = vim.fn.filereadable(config.compile_path) == 0 or
-      vim.fn.getftime(plugins_lua) > vim.fn.getftime(config.compile_path)
+        vim.fn.getftime(plugins_lua) > vim.fn.getftime(config.compile_path)
       if stale then
         my.info('Compiling plugins')
         packer.compile()
