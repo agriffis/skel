@@ -66,27 +66,33 @@ function M.on_attach(client, bufnr)
   -- Instead use op_format_code below.
   --setlocal('formatexpr', 'v:lua.vim.lsp.formatexpr()')
 
+  if client.name ~= 'null-ls' then
+    require('which-key').register({
+      -- gd is overridden for TypeScript below
+      gd = {'<cmd>lua vim.lsp.buf.definition()<cr>', 'Jump to definition'},
+      gD = {'<cmd>lua vim.lsp.buf.type_definition()<cr>', 'Jump to type definition'},
+      gi = {'<cmd>lua vim.lsp.buf.implementation()<cr>', 'Jump to implementation'},
+      gs = {'<cmd>lua vim.lsp.buf.references()<cr>', 'Show references'},
+      gS = {'<cmd>lua vim.lsp.buf.document_symbol()<cr>', 'Show all symbols in document'},
+      gW = {'<cmd>lua vim.lsp.buf.workspace_symbol()<cr>', 'Show all symbols in workspace'},
+      ga = {'<cmd>lua vim.lsp.buf.code_action()<cr>', 'Choose from available code actions'},
+      gr = {'<cmd>lua vim.lsp.buf.rename()<cr>', 'Rename symbol'},
+      ge = {'<cmd>lua vim.diagnostic.open_float({scope = "c"})<cr>', 'Show diagnostics at cursor'},
+      ['[e'] = {'<cmd>lua vim.diagnostic.goto_prev()<cr>', 'Jump to previous diagnostic'},
+      [']e'] = {'<cmd>lua vim.diagnostic.goto_next()<cr>', 'Jump to next diagnostic'},
+      ['<leader>e'] = {'<cmd>lua vim.diagnostic.setloclist()<cr>', 'Diagnostics in location list'},
+      ['<leader>E'] = {'<cmd>lua vim.diagnostic.setqflist()<cr>', 'Diagnostics in quickfix list'},
+      K = {'<cmd>lua vim.lsp.buf.hover()<cr>', 'Show hover info'},
+      ['<c-k>'] = {'<cmd>lua vim.lsp.buf.signature_help()<cr>', 'Show signature help'},
+      -- Q = {my.format_code, 'Format buffer'},
+      ['<leader>=b'] = {my.format_code, 'Format buffer'},
+      gwa = {'<cmd>lua vim.lsp.buf.add_workspace_folder()<cr>', 'Add folder to workspace'},
+      gwr = {'<cmd>lua vim.lsp.buf.remove_workspace_folder()<cr>', 'Remove folder from workspace'},
+    }, {buffer = bufnr})
+  end
+
   require('which-key').register({
-    -- gd is overridden for TypeScript below
-    gd = {'<cmd>lua vim.lsp.buf.definition()<cr>', 'Jump to definition'},
-    gD = {'<cmd>lua vim.lsp.buf.type_definition()<cr>', 'Jump to type definition'},
-    gi = {'<cmd>lua vim.lsp.buf.implementation()<cr>', 'Jump to implementation'},
-    gs = {'<cmd>lua vim.lsp.buf.references()<cr>', 'Show references'},
-    gS = {'<cmd>lua vim.lsp.buf.document_symbol()<cr>', 'Show all symbols in document'},
-    gW = {'<cmd>lua vim.lsp.buf.workspace_symbol()<cr>', 'Show all symbols in workspace'},
-    ga = {'<cmd>lua vim.lsp.buf.code_action()<cr>', 'Choose from available code actions'},
-    gr = {'<cmd>lua vim.lsp.buf.rename()<cr>', 'Rename symbol'},
-    ge = {'<cmd>lua vim.diagnostic.open_float({scope = "c"})<cr>', 'Show diagnostics at cursor'},
-    ['[e'] = {'<cmd>lua vim.diagnostic.goto_prev()<cr>', 'Jump to previous diagnostic'},
-    [']e'] = {'<cmd>lua vim.diagnostic.goto_next()<cr>', 'Jump to next diagnostic'},
-    ['<leader>e'] = {'<cmd>lua vim.diagnostic.setloclist()<cr>', 'Diagnostics in location list'},
-    ['<leader>E'] = {'<cmd>lua vim.diagnostic.setqflist()<cr>', 'Diagnostics in quickfix list'},
-    K = {'<cmd>lua vim.lsp.buf.hover()<cr>', 'Show hover info'},
-    ['<c-k>'] = {'<cmd>lua vim.lsp.buf.signature_help()<cr>', 'Show signature help'},
-    -- Q = {my.format_code, 'Format buffer'},
     ['<leader>=b'] = {my.format_code, 'Format buffer'},
-    gwa = {'<cmd>lua vim.lsp.buf.add_workspace_folder()<cr>', 'Add folder to workspace'},
-    gwr = {'<cmd>lua vim.lsp.buf.remove_workspace_folder()<cr>', 'Remove folder from workspace'},
   }, {buffer = bufnr})
 
   -- Range formatting via motion.

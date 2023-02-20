@@ -218,7 +218,8 @@ local function plugins(use)
       vim.g.EditorConfig_max_line_indicator = 'none'
       vim.cmd([[
         function! EditorConfigAutoformatHook(config)
-          if a:config['autoformat'] == 'true'
+          " Check for prettier for backward compat
+          if a:config['autoformat'] == 'true' || a:config['autoformat'] == 'prettier'
             augroup LspFormatting
               autocmd! BufWritePre <buffer>
               autocmd BufWritePre <buffer> lua my.format_code()

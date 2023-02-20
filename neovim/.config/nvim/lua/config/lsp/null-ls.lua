@@ -1,10 +1,10 @@
 local M = {}
 
-function starts_with(s, ss)
+local function starts_with(s, ss)
   return string.sub(s, 1, string.len(ss)) == ss
 end
 
-function trim_prefix(s, prefix)
+local function trim_prefix(s, prefix)
   if starts_with(s, prefix) then
     s = string.sub(s, string.len(prefix) + 1)
   end
@@ -75,7 +75,7 @@ function M.config(options)
     save_after_format = false,
     sources = {
       require('typescript.extensions.null-ls.code-actions'),
-      b.formatting.prettier.with({command = 'proxier'}),
+      b.formatting.prettier.with({command = 'proxier', extra_filetypes = {'astro'}}),
       b.formatting.stylua,
       eclipse,
       zprint,
