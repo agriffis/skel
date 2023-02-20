@@ -36,26 +36,28 @@ with open(tt_txt) as tt:
     if expected == 'START':
         punch(datetime.datetime.now())
 
-prev = total = None
+prev = week_total = None
+total = datetime.timedelta(0)
 
 def delta_hours(d):
     return 1.0 * d.total_seconds() / 3600
 
-def print_total(total):
-    if total:
-        print "\nWeek total hours: {:.02f}\n".format(
-            delta_hours(total))
+def print_total(t, label):
+    if t:
+        print "\n{} hours: {:.02f}\n".format(label, delta_hours(t))
 
 for (date, activity), delta in sorted(days.items()):
     week = date.strftime('%U')
 
     if week != prev:
-        print_total(total)
-        total = datetime.timedelta(0)
+        print_total(week_total, "Week total")
+        week_total = datetime.timedelta(0)
         prev = week
 
     print "{}: {:.02f} {}".format(date, delta_hours(delta), activity)
 
+    week_total += delta
     total += delta
 
-print_total(total)
+print_total(week_total, "Week total")
+print_total(total, "Overall total")
