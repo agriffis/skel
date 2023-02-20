@@ -1,0 +1,15 @@
+#!/bin/bash
+
+case ${PWD##*/} in
+    Downloads|Pictures) ;;
+    *) echo "Dir not in whitelist" &>2; exit 1 ;;
+esac
+
+today=$(date +%Y-%m-%d)
+
+for x in *; do
+    [[ -f $x && ! -L $x ]] || continue
+    birth=$(date -d "@$(stat -c %W "$x")" +%Y-%m-%d)
+    [[ $birth == "$today" ]] && continue
+    mkdir -p "Archive/$birth" && mv "$x" "Archive/$birth/"
+done

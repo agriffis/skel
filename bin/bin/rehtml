@@ -1,0 +1,68 @@
+#!/usr/bin/env python3
+#
+# rehtml - a filter to reformat HTML
+#
+# Written in 2017 by Aron Griffis <aron@arongriffis.com>
+#
+# To the extent possible under law, the author(s) have dedicated all copyright
+# and related and neighboring rights to this software to the public domain
+# worldwide. This software is distributed without any warranty.
+#
+# CC0 Public Domain Dedication at
+# http://creativecommons.org/publicdomain/zero/1.0/
+#======================================================================
+
+import re
+import sys
+import bs4
+import click
+
+@click.command()
+@click.option('--indent', '-i', default=4)
+@click.option('--cuddle/--no-cuddle', default=True)
+@click.option('--keep-initial/--no-keep-initial', default=True)
+@click.option('--strip-comments/--no-strip-comments', default=False)
+def main(indent, cuddle, keep_initial, strip_comments):
+    content = sys.stdin.read()
+    soup = bs4.BeautifulSoup(content, 'html5lib')
+
+    if strip_comments:
+        for c in soup.find_all(string=lambda s: isinstance(s, bs4.element.Comment)):
+            c.extract()
+
+    if re.search(r'(?i)<\s*body\b', content):
+        output = soup.prettify(formatter='html5')
+    else:
+        # html5lib parser wraps arbitrary HTML in html/head/body structure, so
+        # we need to unwrap it.
+        output = '\n'.join(
+            child.prettify(formatter='html5') if hasattr(child, 'prettify') else child
+            for child in soup.body.children
+        )
+
+    # Restore non-breaking spaces from unicode, otherwise they're
+    # invisible. (The other option is to use formatter="html" which ensures
+    # all entities are preserved, but unnecessarily self-closes void
+    # elements.)
+    output = output.replace("\N{NO-BREAK SPACE}", '&nbsp;')
+
+    # Cuddle closing tags on empty elements.
+    output = re.sub(
+        r'''(?x) (?: (<script\b[^>]*>.*?</script>) |
+                     (<(\S+)[^>]*>)\s*(</\3>) )''',
+        r'\1\2\4',
+        output
+    )
+
+    if indent != 1:
+        output = re.sub(r'(?m)^ +', lambda m: m.group(0) * indent, output)
+
+    if keep_initial:
+        initial = re.search('^[ \t]+', content)
+        if initial:
+            output = re.sub(r'(?m)^', initial.group(0), output)
+
+    print(output)
+
+if __name__ == '__main__':
+    main()
