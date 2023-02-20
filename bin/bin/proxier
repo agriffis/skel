@@ -3,6 +3,11 @@
 main() {
   local d=$(topdir); d=${d:-$PWD}
 
+  # https://github.com/withastro/prettier-plugin-astro#pnpm-support
+  if [[ -d $d/node_modules/.pnpm ]]; then
+    set -- --plugin-search-dir="$d" "$@"
+  fi
+
   if [[ -e $d/node_modules/.bin/prettier ]]; then
     exec "$d/node_modules/.bin/prettier" "$@"
     exit
