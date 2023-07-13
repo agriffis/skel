@@ -1,3 +1,14 @@
+-- themer.lua
+--
+-- Written in 2003-2023 by Aron Griffis <aron@arongriffis.com>
+--
+-- To the extent possible under law, the author(s) have dedicated all copyright
+-- and related and neighboring rights to this software to the public domain
+-- worldwide. This software is distributed without any warranty.
+--
+-- CC0 Public Domain Dedication at
+-- http://creativecommons.org/publicdomain/zero/1.0/
+--------------------------------------------------------------------------------
 local my = require('my')
 
 local M = {}
@@ -6,13 +17,14 @@ local default_opts = {
   load = function(theme)
     ---@diagnostic disable-next-line: param-type-mismatch
     local status, err = pcall(vim.cmd, 'colorscheme ' .. theme)
-    if not status and err ~= nil then
-      -- "Vim(colorscheme):E185: Cannot find color scheme 'foobar'"
-      if err:match(':([^:]+)') == 'E185' then
-        return false
-      end
+    if status then
+      return true
+    end
+    -- Don't splash error for "Vim(colorscheme):E185: Cannot find color scheme 'foobar'"
+    if err ~= nil and err:match(':([^:]+)') ~= 'E185' then
       error(err)
     end
+    return false -- it didn't work
   end,
 }
 
@@ -26,6 +38,7 @@ local theme_opts = {
         style = bg == 'dark' and 'night' or 'day',
         transparent = true,
       }
+      return true
     end,
   },
 }
@@ -38,7 +51,7 @@ local function try_theme(theme, bg)
   if bg and bg ~= '' then
     vim.opt.background = bg
   end
-  if opts.load(theme, bg) ~= false then
+  if opts.load(theme, bg) then
     if bg and bg ~= '' then
       vim.opt.background = bg
     end
