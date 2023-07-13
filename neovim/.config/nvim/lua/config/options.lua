@@ -59,7 +59,6 @@ vim.opt.hlsearch = false -- by default, don't highlight matches after they're fo
 vim.opt.grepprg = 'rg --hidden --line-number --smart-case --sort-files'
 
 -- Windowing
-vim.opt.fillchars = 'vert:╎' -- disambiguate from tmux
 vim.opt.winwidth = 40 -- min width for current window (default 20)
 
 -- Enable bracketed paste everywhere. This would happen automatically on
