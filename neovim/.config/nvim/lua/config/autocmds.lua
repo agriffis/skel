@@ -16,11 +16,3 @@ vim.api.nvim_create_autocmd('BufReadPost', {
   pattern = 'COMMIT_EDITMSG',
   command = [[normal! gg]],
 })
-
--- Disable autoformat per buffer, to be reenabled by editorconfig
-vim.api.nvim_create_autocmd({ 'BufNewFile', 'BufReadPre' }, {
-  group = MyGroup,
-  callback = function(event)
-    vim.b[event.buf].autoformat = false
-  end,
-})

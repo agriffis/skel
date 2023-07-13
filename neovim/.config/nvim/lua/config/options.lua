@@ -76,8 +76,3 @@ end
 -- These must be set before referring to <leader> in maps
 vim.g.mapleader = ' '
 vim.g.maplocalleader = ' m' -- lazyvim defaults both to ' '
-
--- Editorconfig custom property to enable autoformatting.
-require('editorconfig').properties.autoformat = function(bufnr, val)
-  vim.b[bufnr].autoformat = val == 'true' or val == 'prettier'
-end

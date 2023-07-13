@@ -1,5 +1,15 @@
 return {
   {
+    'neovim/nvim-lspconfig',
+    opts = {
+      format = {
+        -- Eclipse formatter is slow, and the timeout can't be set per formatter.
+        timeout_ms = 5000,
+      },
+    },
+  },
+
+  {
     'jose-elias-alvarez/null-ls.nvim',
     opts = function(_, opts)
       local h = require('null-ls.helpers')

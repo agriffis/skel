@@ -1,4 +1,6 @@
-# http://editorconfig.org/
+# Project-specific code formatting preferences. See http://editorconfig.org/
+#
+# This is supported by Neovim directly since version 0.9.0
 
 root = true
 
@@ -10,13 +12,17 @@ tab_width = 8
 end_of_line = lf
 insert_final_newline = true
 trim_trailing_whitespace = true
-max_line_length = 100
+max_line_length = 80
 
 [*.{diff,patch}]
 trim_trailing_whitespace = false
 
+# Enable autoformat-on-save for lua files. This is a custom editorconfig
+# property, with explicit support in lua/plugins/autoformat.lua in this
+# repository.
 [*.lua]
 autoformat = true
+max_line_length = 100
 
 [Makefile]
 indent_size = 8
