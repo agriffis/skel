@@ -1,16 +1,6 @@
-return {
-  {
-    'folke/tokyonight.nvim',
-    opts = {
-      style = 'night',
-      transparent = true,
-      styles = {
-        sidebars = 'transparent',
-        -- floats = 'transparent',
-      },
-    },
-  },
+local themer = require('themer')
 
+return {
   {
     'NLKNguyen/papercolor-theme',
     init = function()
@@ -49,11 +39,11 @@ return {
     end,
   },
 
-  -- Configure LazyVim to load PaperColor
+  -- Configure LazyVim to load colorscheme via themer
   {
     'LazyVim/LazyVim',
     opts = {
-      -- colorscheme = 'PaperColor',
+      colorscheme = themer.setup,
     },
   },
 }
