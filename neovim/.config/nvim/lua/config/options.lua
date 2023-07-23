@@ -75,3 +75,6 @@ end
 -- These must be set before referring to <leader> in maps
 vim.g.mapleader = ' '
 vim.g.maplocalleader = ' m' -- lazyvim defaults both to ' '
+
+-- Disable conceal in JSON by default
+vim.g.vim_json_conceal = 0
