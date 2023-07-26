@@ -73,10 +73,5 @@ if vim.fn.has('gui_running') == 0 and vim.go.t_BE == '' then
   vim.go.t_PE = '\27[201~' -- end
 end
 
--- Set the map leaders to SPC and SPC-m similar to Spacemacs.
--- These must be set before referring to <leader> in maps
-vim.g.mapleader = ' '
-vim.g.maplocalleader = ' m' -- lazyvim defaults both to ' '
-
 -- Disable conceal in JSON by default
 vim.g.vim_json_conceal = 0
