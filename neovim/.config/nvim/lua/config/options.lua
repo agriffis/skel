@@ -19,9 +19,11 @@ vim.opt.modeline = true
 vim.opt.modelines = 5
 vim.opt.paragraphs = '' -- otherwise NROFF macros screw up CSS
 vim.opt.pastetoggle = '<F10>'
+vim.opt.number = false
 vim.opt.relativenumber = false
 vim.opt.ruler = true -- show the cursor position all the time
 vim.opt.shada = "!,'10,f0,h,s100" -- keep fast by avoiding lots of file/dir stats
+vim.opt.signcolumn = 'auto'
 vim.opt.warn = false -- don't warn for shell command when buffer changed
 
 -- Tabs and indents
