@@ -11,6 +11,7 @@ require('clipboard')
 --------------------------------------------------------------------------------
 vim.opt.backspace = '2' -- allow backspacing over everything in insert mode
 vim.opt.backupcopy = 'yes' -- best for inotify
+vim.opt.cursorline = false -- enabled in autocmds.lua
 vim.opt.hidden = true -- enable background buffers
 vim.opt.history = 100 -- keep 100 lines of command line history
 vim.opt.joinspaces = false -- two spaces after a period is for old fogeys
@@ -18,7 +19,7 @@ vim.opt.listchars = { tab = '»·', trail = '·' }
 vim.opt.modeline = true
 vim.opt.modelines = 5
 vim.opt.paragraphs = '' -- otherwise NROFF macros screw up CSS
-vim.opt.number = false
+vim.opt.number = false -- enabled in autocmds.lua
 vim.opt.relativenumber = false
 vim.opt.ruler = true -- show the cursor position all the time
 vim.opt.shada = "!,'10,f0,h,s100" -- keep fast by avoiding lots of file/dir stats

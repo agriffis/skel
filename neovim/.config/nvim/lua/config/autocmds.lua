@@ -30,7 +30,8 @@ vim.api.nvim_create_autocmd('User', {
   group = MyGroup,
   pattern = 'Code',
   callback = function()
-    vim.opt_local.number = true
+    -- vim.opt_local.cursorline = true
+    -- vim.opt_local.number = true
   end,
 })
 vim.api.nvim_create_autocmd('FileType', {
