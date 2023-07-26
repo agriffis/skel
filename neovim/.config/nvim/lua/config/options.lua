@@ -52,6 +52,7 @@ vim.opt.textwidth = 80 -- by default, although plugins or autocmds can modify
 -- Search and completion
 vim.opt.complete:remove { 't' } -- don't search tags files by default
 vim.opt.complete:remove { 'i' } -- don't search included files -- takes too long
+vim.opt.completeopt = 'menu,preview'
 vim.opt.ignorecase = true -- "foo" matches "Foo", etc
 vim.opt.infercase = true -- adjust the case of the match with ctrl-p/ctrl-n
 vim.opt.smartcase = true -- ignorecase only when the pattern is all lower
