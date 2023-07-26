@@ -18,7 +18,6 @@ vim.opt.listchars = { tab = '»·', trail = '·' }
 vim.opt.modeline = true
 vim.opt.modelines = 5
 vim.opt.paragraphs = '' -- otherwise NROFF macros screw up CSS
-vim.opt.pastetoggle = '<F10>'
 vim.opt.number = false
 vim.opt.relativenumber = false
 vim.opt.ruler = true -- show the cursor position all the time
