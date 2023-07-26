@@ -39,6 +39,15 @@ return {
     end,
   },
 
+  {
+    'agriffis/alabaster.nvim',
+    branch = 'agriffis',
+    init = function()
+      vim.g.alabaster_dim_comments = true
+      vim.g.alabaster_transparent_background = true
+    end,
+  },
+
   -- Configure LazyVim to load colorscheme via themer
   {
     'LazyVim/LazyVim',
