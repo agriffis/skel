@@ -161,7 +161,7 @@ load_default_schemes() {
                         #4b4b8b #8b4b8b #4b8b8b #d9d9d9 #262626 #c99b9b
                         #9bc99b #c9c99b #9b9bc9 #c99bc9 #9bc9c9 #ffffff"
     light_emacs_theme=spacemacs-light # doom-one-light
-    light_vim_theme=PaperColor # default
+    light_vim_theme=alabaster # default
     light_bat_theme=GitHub
     light_toggle=dark
 
@@ -171,9 +171,31 @@ load_default_schemes() {
                        #3465a4 #92659a #07c7ca #d3d7cf #6e706b #ef2929
                        #8ae234 #fce94f #729fcf #c19fbe #63e9e9 #eeeeec"
     dark_emacs_theme=spacemacs-dark # doom-one
-    dark_vim_theme=PaperColor # inkpot
+    dark_vim_theme=alabaster # inkpot
     dark_bat_theme='Monokai Extended' # default
     dark_toggle=light
+
+    tokyonight_background=dark
+    tokyonight_xterm_colors="#000000 #c0caf5 #15161e #f7768e #9ece6a #e0af68
+                             #7aa2f7 #bb9af7 #7dcfff #a9b1d6 #414868 #f7768e
+                             #9ece6a #e0af68 #7aa2f7 #bb9af7 #7dcfff #c0caf5"
+    tokyonight_vim_theme=tokyonight
+    tokyonight_toggle=tokyoday
+    # background #1a1b26
+    # selection_background #283457
+    # selection_foreground #c0caf5
+    # url_color #73daca
+    # cursor #c0caf5
+    # cursor_text_color #1a1b26
+    # active_tab_background #7aa2f7
+    # active_tab_foreground #16161e
+    # inactive_tab_background #292e42
+    # inactive_tab_foreground #545c7e
+    # #tab_bar_background #15161e
+    # active_border_color #7aa2f7
+    # inactive_border_color #292e42
+    # color16 #ff9e64
+    # color17 #db4b4b
 
     solarized_light_background=light
     solarized_light_iterm2_scheme='Solarized Light'
