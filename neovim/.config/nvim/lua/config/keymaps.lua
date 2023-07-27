@@ -4,6 +4,10 @@
 
 local my = require('my')
 
+local format = function()
+  require('lazyvim.plugins.lsp.format').format { force = true }
+end
+
 my.spacekeys {
   u = {
     -- lazyvim: <leader>i conflicts with toggling indent guides
@@ -42,7 +46,7 @@ my.spacekeys {
   ['<tab>'] = { '<cmd>b#<cr>', 'Switch to previous buffer' },
   ['='] = {
     -- lazyvim: <leader>cf
-    ['b'] = require('lazyvim.plugins.lsp.format').format { force = true },
+    ['b'] = { format, 'Format buffer' },
   },
 }
 
