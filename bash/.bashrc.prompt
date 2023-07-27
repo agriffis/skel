@@ -344,20 +344,22 @@ ps1_mod_git() {
   declare status=$(git -C "$top" status --short --branch --untracked-files=no)
   [[ -n $status ]] || return
 
-  declare branch dirty fg bg
+  declare branch fg bg
+  declare dirty=()
   branch=${status#?? }; branch=${branch%%$'\n'*}; branch=${branch%%...*}
   [[ $status == *$'\n'* ]] && status=${status#*$'\n'} || status=''
-  [[ $'\n'$status == *$'\n'[!\ ]* ]] && dirty+="$PS1_CHAR_STAGED"
-  [[ $'\n'$status == *$'\n'?[!\ ]* ]] && dirty+="$PS1_CHAR_DIRTY"
-  [[ -e $top/.git/rebase-merge ]] && dirty+="$PS1_CHAR_REBASE"
-  [[ -e $top/.git/MERGE_HEAD ]] && dirty+="$PS1_CHAR_MERGE"
-  [[ -e $top/.git/BISECT_LOG ]] && dirty+="$PS1_CHAR_BISECT"
+  [[ $'\n'$status == *$'\n'[!\ ]* ]] && dirty+=("$PS1_CHAR_STAGED")
+  [[ $'\n'$status == *$'\n'?[!\ ]* ]] && dirty+=("$PS1_CHAR_DIRTY")
+  [[ -e $top/.git/rebase-merge ]] && dirty+=("$PS1_CHAR_REBASE")
+  [[ -e $top/.git/MERGE_HEAD ]] && dirty+=("$PS1_CHAR_MERGE")
+  [[ -e $top/.git/BISECT_LOG ]] && dirty+=("$PS1_CHAR_BISECT")
   if [[ -n $dirty ]]; then
     fg=$PS1_COLOR_WARNING_FG bg=$PS1_COLOR_WARNING_BG
   else
     fg=$PS1_COLOR_SUCCESS_FG bg=$PS1_COLOR_SUCCESS_BG
   fi
-  ps1_segment "$fg" "$bg" "$PS1_CHAR_BRANCH $branch${dirty:+ $dirty}"
+  # join dirty by spaces, so that kitty will expand wide chars
+  ps1_segment "$fg" "$bg" "$PS1_CHAR_BRANCH $branch${dirty:+ ${dirty[*]}}"
 }
 ps1_add git
 
