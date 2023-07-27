@@ -39,6 +39,10 @@ my.spacekeys {
   },
   -- lazyvim: <leader>` is unwieldy
   ['<tab>'] = { '<cmd>b#<cr>', 'Switch to previous buffer' },
+  ['='] = {
+    -- lazyvim: <leader>cf
+    ['b'] = require('lazyvim.plugins.lsp.format').format { force = true },
+  },
 }
 
 -- Paste over currently selected without yanking.

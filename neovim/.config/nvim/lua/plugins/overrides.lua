@@ -1,14 +1,18 @@
 local Util = require('lazyvim.util')
 
 return {
-  { 'goolord/alpha-nvim', enabled = false, },
-  { 'folke/flash.nvim', opts = { modes = { search = { enabled = false } } } },
-  { 'echasnovski/mini.indentscope', enabled = false, },
+  -- Disable lots of stuff.
+  { 'goolord/alpha-nvim', enabled = false },
+  {
+    'folke/flash.nvim',
+    opts = { modes = { char = { enabled = false }, search = { enabled = false } } },
+  },
+  { 'echasnovski/mini.indentscope', enabled = false },
   { 'echasnovski/mini.pairs', enabled = false },
-  { 'hrsh7th/nvim-cmp', opts = { completion = { autocomplete = false } }, },
+  { 'hrsh7th/nvim-cmp', opts = { completion = { autocomplete = false } } },
   { 'RRethy/vim-illuminate', enabled = false },
 
-  -- Disable the indent guides by default, but they can be toggled on
+  -- Disable the indent guides by default, but they can be toggled on.
   {
     'lukas-reineke/indent-blankline.nvim',
     config = function(_, opts)
@@ -33,16 +37,17 @@ return {
     },
   },
 
-  -- Change the default signs to be a bit wider. "Left Three Quarters Block"
+  -- Change the default signs.
   {
     'lewis6991/gitsigns.nvim',
     event = { 'BufReadPre', 'BufNewFile' },
     opts = {
       signs = {
-        add = { text = '▊' },
-        change = { text = '▊' },
-        delete = { text = '' },
-        topdelete = { text = '' },
+        -- "Lower One Quarter Block"
+        add = { text = '▊' }, -- 
+        change = { text = '▊' }, -- 
+        delete = { text = '󰞒' },
+        topdelete = { text = '󰞕' },
         changedelete = { text = '▊' },
         untracked = { text = '▊' },
       },
