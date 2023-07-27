@@ -479,7 +479,7 @@ ps1_mod_terminal_title() {
     tmux*) tmux rename-window "$title" &>/dev/null; return ;;
     *) return ;;
   esac
-  PS1+="$start$(ps1_get_terminal_title)$end"
+  PS1+="$start$title$end"
 }
 ps1_add terminal_title
 
