@@ -37,6 +37,11 @@ frontpath PATH /usr/lib{64,}/ccache/bin /usr/lib{64,}/ccache
 # flatpak so you don't have to "flatpak run ..."
 addpath PATH /var/lib/flatpak/exports/bin
 
+# https://docs.volta.sh/advanced/installers#skipping-volta-setup
+export VOLTA_HOME=~/.volta
+# https://docs.volta.sh/advanced/pnpm
+export VOLTA_FEATURE_PNPM=1
+
 if [[ $HOME != / ]]; then
   frontpath PATH ~/.cargo/bin # cargo install
   frontpath PATH ~/.cask/bin # homebrew
@@ -45,6 +50,7 @@ if [[ $HOME != / ]]; then
   frontpath PATH ~/go/bin # go install
   frontpath PATH ~/node_modules/.bin # yarn global add
   frontpath PATH ~/.local/bin # npm i -g, make install
+  frontpath PATH $VOLTA_HOME/bin # volta node/pnpm
   frontpath PATH ~/bin # personal and overrides
 fi
 
