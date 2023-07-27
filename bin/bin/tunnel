@@ -3,58 +3,88 @@
 set -x
 
 main() {
-    declare host session cmd
+  if [[ $1 == --remote ]]; then
+    remote "${@:2}"
+    exit
+  fi
 
-    ensure-ssh-identity "$@"
+  ensure-ssh-identity "$@"
 
-    host=${1:-gg}-tunnel
-    shift
+  declare host
+  host=${1:-gg}-tunnel
+  shift
 
-    case $host in
-        gg-tunnel) session=scampersand ;;
-        jj-tunnel) session=scamperjam ;;
-    esac
+  declare -a forwards vars
 
-    # Don't use -N because it prevents ForwardX11.
-    # Just sleep for 100 years.
-    cmd='sleep 36500d'
-    if [[ -n $session ]]; then
-        # The new-session/detach here allows update-environment to apply the new
-        # setting of DISPLAY. Source .ssh/agent first to avoid overriding agent
-        # vars in tmux session.
-        cmd="source .ssh/agent; tmux new-session -As $session \\; detach; $cmd"
-    fi
+  if [[ $HOSTNAME. == penguin.* ]]; then
+    forwards+=( -o 'GatewayPorts yes' )
+  fi
 
-    set -- -t -Y "$@"
+  declare waypipe_sock
+  if [[ -n $WAYLAND_DISPLAY ]] && which waypipe &>/dev/null; then
+    waypipe_sock=$(mktemp -u /tmp/waypipe.XXXXXX)
+    waypipe -s $waypipe_sock client &
+    forwards+=( -R $waypipe_sock:$waypipe_sock )
+    vars+=( WAYPIPE_SOCK="$waypipe_sock" )
+  fi
 
-    case $HOSTNAME. in
-      penguin.*) set -- -o 'GatewayPorts yes' "$@" ;;
-      jasperodus.*) set -- -R /home/aron/.dbus-session-jasperodus:/run/user/10208/bus "$@" ;;
-    esac
+  declare remote_dbus_session_bus_address
+  if [[ $DBUS_SESSION_BUS_ADDRESS == unix:path=/* ]]; then
+    remote_dbus_session_bus_address=/tmp/dbus-session-${HOSTNAME%%.*}
+    forwards+=( -R $remote_dbus_session_bus_address:${DBUS_SESSION_BUS_ADDRESS#unix:path=} )
+    vars+=( DBUS_SESSION_BUS_ADDRESS="$remote_dbus_session_bus_address" )
+  fi
 
-    while true; do
-        ssh "$@" "$host" "$cmd"
-        sleep 2
-    done
+  case $host in
+    gg-tunnel) vars+=( TMUX_SESSION=scampersand ) ;;
+    jj-tunnel) vars+=( TMUX_SESSION=scamperjam ) ;;
+  esac
 
-    exit # always exit at bottom of main
+  while true; do
+    ssh -t -Y "${forwards[@]}" "$host" "tunnel --remote $(printf '%q ' ${vars[@]})"
+    sleep 2
+  done
+
+  exit # always exit at bottom of main
 }
 
 ensure-ssh-identity() {
-    ssh-add -l &>/dev/null
-    case $? in
-        2)
-            # wrap and restart
-            exec ssh-agent "$(type -P "$0")" "$@"
-            ;;
-        0)
-            # we have identities, carry on
-            ;;
-        *)
-            # add identity to running ssh-agent
-            ssh-add || exit
-            ;;
-    esac
+  ssh-add -l &>/dev/null
+  case $? in
+    2)
+      # wrap and restart
+      exec ssh-agent "$(type -P "$0")" "$@"
+      ;;
+    0)
+      # we have identities, carry on
+      ;;
+    *)
+      # add identity to running ssh-agent
+      ssh-add || exit
+      ;;
+  esac
+}
+
+remote() {
+  if [[ $1 == *=* ]]; then
+    export "$@"
+  fi
+
+  if [[ -e $WAYPIPE_SOCK ]] && which waypipe &>/dev/null && [[ ! -n $WAYLAND_DISPLAY ]]; then
+    exec waypipe -s "$WAYPIPE_SOCK" server -- env -u WAYPIPE_SOCK tunnel --remote
+    return
+  fi
+
+  if [[ -n $TMUX_SESSION ]]; then
+    # The new-session/detach here allows update-environment to apply the new
+    # setting of DISPLAY. Source .ssh/agent first to avoid overriding agent
+    # vars in tmux session.
+    (source .ssh/agent; tmux new-session -As $TMUX_SESSION \; detach)
+  fi
+
+  # Don't use ssh -N because it prevents ForwardX11.
+  # Just sleep for 100 years.
+  sleep 36500d
 }
 
 main "$@"
