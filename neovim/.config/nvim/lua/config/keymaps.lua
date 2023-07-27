@@ -9,6 +9,13 @@ local format = function()
 end
 
 my.spacekeys {
+  -- while waiting for https://github.com/LazyVim/LazyVim/pull/1240
+  g = {
+    d = { vim.lsp.buf.definition, 'Goto Definition' },
+    r = { vim.lsp.buf.references, 'References' },
+    I = { vim.lsp.buf.implementation, 'Goto Implementation' },
+    y = { vim.lsp.buf.type_definition, 'Goto T[y]pe Definition' },
+  },
   u = {
     -- lazyvim: <leader>i conflicts with toggling indent guides
     p = { vim.show_pos, 'Inspect position' },
