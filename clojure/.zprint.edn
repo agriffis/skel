@@ -1,1 +1,4 @@
-{:map {:comma? false} :search-config? true}
+{:map {:comma? false}
+ :search-config? true
+ :style [:respect-bl]
+ :width 100}
