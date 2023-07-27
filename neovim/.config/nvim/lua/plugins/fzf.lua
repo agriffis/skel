@@ -52,7 +52,7 @@ return {
       { '<leader>fr', '<cmd>FzfLua oldfiles<cr>', desc = 'Open recent file' },
       -- This works without needing to find project root because we're always
       -- in the project root thanks to vim-rooter.
-      { '<leader><space>', '<cmd>FzfLua files<cr>', desc = 'Open file in project' },
+      { '<c-p>', '<cmd>FzfLua files<cr>', desc = 'Open file in project' },
       { '<leader>sp', '<cmd>FzfLua live_grep<cr>', desc = 'Search project' },
       { '<leader>sP', search_cword, desc = 'Search project (current word)' },
       { '<leader>/', '<cmd>FzfLua live_grep<cr>', desc = 'Search project' },

@@ -33,6 +33,11 @@ my.spacekeys {
     w = { '<c-w>w', 'Switch to other window' },
     x = { '<c-w>x', 'Swap current with next' },
   },
+  -- lazyvim: <leader>ur is unwieldy
+  ['<space>'] = {
+    '<cmd>nohlsearch<bar>diffupdate<bar>normal! <c-l><cr>',
+    'clear hlsearch / diff update / redraw',
+  },
   -- lazyvim: <leader>` is unwieldy
   ['<tab>'] = { '<cmd>b#<cr>', 'Switch to previous buffer' },
   ['='] = {
