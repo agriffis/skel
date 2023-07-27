@@ -5,10 +5,6 @@
 local my = require('my')
 
 my.spacekeys {
-  b = {
-    -- lazyvim: <leader>fb
-    b = { '<cmd>Telescope buffers<cr>', 'Buffers' },
-  },
   u = {
     -- lazyvim: <leader>i conflicts with toggling indent guides
     p = { vim.show_pos, 'Inspect position' },

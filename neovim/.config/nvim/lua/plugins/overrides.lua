@@ -54,7 +54,7 @@ return {
     },
   },
 
-  -- Additional keybindings for telescope
+  -- Additional keybindings for telescope (assuming it isn't disabled by fzf.lua)
   {
     'nvim-telescope/telescope.nvim',
     keys = {
