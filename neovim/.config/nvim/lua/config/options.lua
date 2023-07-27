@@ -11,6 +11,7 @@ require('clipboard')
 --------------------------------------------------------------------------------
 vim.opt.backspace = '2' -- allow backspacing over everything in insert mode
 vim.opt.backupcopy = 'yes' -- best for inotify
+vim.opt.conceallevel = 0 -- don't hide stuff
 vim.opt.cursorline = false -- enabled in autocmds.lua
 vim.opt.hidden = true -- enable background buffers
 vim.opt.history = 100 -- keep 100 lines of command line history
@@ -73,6 +74,3 @@ if vim.fn.has('gui_running') == 0 and vim.go.t_BE == '' then
   vim.go.t_PS = '\27[200~' -- start
   vim.go.t_PE = '\27[201~' -- end
 end
-
--- Disable conceal in JSON by default
-vim.g.vim_json_conceal = 0
