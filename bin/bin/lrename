@@ -1,23 +1,35 @@
 #!/bin/bash
 
-pcre=$1
-shift
+main() {
+  local pcre=$1 x nx l nl d
+  shift
 
-if [[ $pcre != [sy]/*[^[:alnum:]]* ]]; then
+  if [[ $pcre != [sy]/*[^[:alnum:]]* ]]; then
     echo "syntax: lrename s/pcre/repl/flags file(s)" >&2
     exit 1
-fi
+  fi
 
-if [[ /$0 == */lrename ]]; then
+  if [[ /$0 == */lrename ]]; then
     for x; do
-        [[ -L $x ]] || continue
-        l=$(readlink "$x")
-        nl=$(perl -pe "$pcre" <<<"$l")
-        ln -sfn "$nl" "$x"
+      [[ -L $x ]] || continue
+      l=$(readlink "$x")
+      nl=$(perl -pe "$pcre" <<<"$l")
+      ln -sfn "$nl" "$x"
     done
-else
+  else
     for x; do
-        nx=$(perl -pe "$pcre" <<<"$x")
-        [[ "$x" == "$nx" ]] || mv --no-clobber "$x" "$nx"
+      if [[ $x == */* ]]; then
+        d=${x%/*}
+        x=${x##*/}
+      else
+        d=.
+      fi
+      nx=$(perl -pe "$pcre" <<<"$x")
+      [[ "$x" == "$nx" ]] || mv --no-clobber "$d/$x" "$d/$nx"
     done
-fi
+  fi
+
+  exit
+}
+
+main "$@"
