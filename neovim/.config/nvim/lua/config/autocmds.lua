@@ -25,24 +25,19 @@ vim.api.nvim_create_autocmd('BufReadPost', {
   command = [[normal! gg]],
 })
 
--- Enable numbering when editing code
+-- Enable permanent signcolumn when editing code
 vim.api.nvim_create_autocmd('User', {
   group = MyGroup,
   pattern = 'Code',
   callback = function()
     -- vim.opt_local.cursorline = true
     -- vim.opt_local.number = true
+    vim.opt_local.signcolumn = 'yes'
   end,
 })
-vim.api.nvim_create_autocmd('FileType', {
-  group = MyGroup,
-  pattern = '*',
-  callback = function(ev)
-    if ev.match ~= 'text' then
-      vim.cmd([[doautocmd User Code]])
-    end
-  end,
-})
+require('lazyvim.util').on_attach(function()
+  vim.cmd([[doautocmd User Code]])
+end)
 
 -- Disable LazyVim spellcheck defaults
 -- https://www.lazyvim.org/configuration/general#auto-commands
