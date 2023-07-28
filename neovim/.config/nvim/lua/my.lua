@@ -122,6 +122,19 @@ my.append = my.curry(function(a, b)
   return vim.tbl_flatten { b, a }
 end)
 
+-- Check if s starts with ss.
+my.starts_with = my.curry(function(ss, s)
+  return string.sub(s, 1, string.len(ss)) == ss
+end)
+
+-- Trim prefix from s.
+my.trim_prefix = my.curry(function(prefix, s)
+  if my.starts_with(prefix, s) then
+    s = string.sub(s, string.len(prefix) + 1)
+  end
+  return s
+end)
+
 function my.compose(...)
   local fns = { ... }
   return function(x)

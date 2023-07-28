@@ -1,14 +1,3 @@
-local function starts_with(s, ss)
-  return string.sub(s, 1, string.len(ss)) == ss
-end
-
-local function trim_prefix(s, prefix)
-  if starts_with(s, prefix) then
-    s = string.sub(s, string.len(prefix) + 1)
-  end
-  return s
-end
-
 return {
   {
     'jose-elias-alvarez/null-ls.nvim',
@@ -39,7 +28,8 @@ return {
           format = 'raw',
           on_output = function(params, done)
             if params.err ~= nil and params.err ~= '' then
-              local err = trim_prefix(params.err, 'Failed to zprint: clojure.lang.ExceptionInfo: ')
+              local err =
+                my.trim_prefix('Failed to zprint: clojure.lang.ExceptionInfo: ', params.err)
               my.warn(err, 'zprint failed')
             end
             -- zprint returns the text regardless of error
