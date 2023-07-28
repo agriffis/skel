@@ -2,6 +2,8 @@
 -- Default options that are always set: https://github.com/LazyVim/LazyVim/blob/main/lua/lazyvim/config/options.lua
 -- Add any additional options here
 
+local my = require('my')
+
 -- Set up the clipboard provider first, because the associated settings are
 -- sticky; they cannot be reconfigured effectively once set.
 require('clipboard')
@@ -19,6 +21,7 @@ vim.opt.joinspaces = false -- two spaces after a period is for old fogeys
 vim.opt.listchars = { tab = '»·', trail = '·' }
 vim.opt.modeline = true
 vim.opt.modelines = 5
+vim.opt.mouse = my.starts_with('am', vim.env.USER) and '' or 'a'
 vim.opt.paragraphs = '' -- otherwise NROFF macros screw up CSS
 vim.opt.number = false -- enabled in autocmds.lua
 vim.opt.relativenumber = false
