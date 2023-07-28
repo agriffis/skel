@@ -9,13 +9,6 @@ local format = function()
 end
 
 my.spacekeys {
-  -- while waiting for https://github.com/LazyVim/LazyVim/pull/1240
-  g = {
-    d = { vim.lsp.buf.definition, 'Goto Definition' },
-    r = { vim.lsp.buf.references, 'References' },
-    I = { vim.lsp.buf.implementation, 'Goto Implementation' },
-    y = { vim.lsp.buf.type_definition, 'Goto T[y]pe Definition' },
-  },
   u = {
     -- lazyvim: <leader>i conflicts with toggling indent guides
     p = { vim.show_pos, 'Inspect position' },
@@ -56,6 +49,12 @@ my.spacekeys {
     ['b'] = { format, 'Format buffer' },
   },
 }
+
+-- while waiting for https://github.com/LazyVim/LazyVim/pull/1240
+my.nmap('gd', '<cmd>lua vim.lsp.buf.definition<cr>', { desc = 'Goto Definition' })
+my.nmap('gr', '<cmd>lua vim.lsp.buf.references<cr>', { desc = 'References' })
+my.nmap('gI', '<cmd>lua vim.lsp.buf.implementation<cr>', { desc = 'Goto Implementation' })
+my.nmap('gy', '<cmd>lua vim.lsp.buf.type_definition<cr>', { desc = 'Goto T[y]pe Definition' })
 
 -- Paste over currently selected without yanking.
 my.vmap('p', '"_dP')
