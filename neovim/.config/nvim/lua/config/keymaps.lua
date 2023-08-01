@@ -8,6 +8,36 @@ local format = function()
   require('lazyvim.plugins.lsp.format').format { force = true }
 end
 
+-- Disable line movement keys, because these happen by mistake when I press esc
+-- followed by k/j.
+vim.keymap.del({ 'n', 'i', 'v' }, '<a-k>')
+vim.keymap.del({ 'n', 'i', 'v' }, '<a-j>')
+
+-- Disable resize keys in favor of our own.
+vim.keymap.del('n', '<c-up>')
+vim.keymap.del('n', '<c-down>')
+vim.keymap.del('n', '<c-left>')
+vim.keymap.del('n', '<c-right>')
+
+-- Disable tab movement keys in favor of tab/shift-tab.
+vim.keymap.del('n', '<s-h>')
+vim.keymap.del('n', '<s-l>')
+
+-- Disable this pointless mapping to search word under cursor.
+vim.keymap.del({ 'n', 'x' }, 'gw')
+
+-- Disable "saner" behavior of n and N in favor of Vim defaults.
+vim.keymap.del({ 'n', 'x', 'o' }, 'n')
+vim.keymap.del({ 'n', 'x', 'o' }, 'N')
+
+-- Disable "better" indenting.
+vim.keymap.del('v', '<')
+vim.keymap.del('v', '>')
+
+-- Disable weird keys for accessing location/quickfix.
+vim.keymap.del('n', '<leader>xl')
+vim.keymap.del('n', '<leader>xq')
+
 my.spacekeys {
   u = {
     -- lazyvim: <leader>i conflicts with toggling indent guides
