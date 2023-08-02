@@ -54,7 +54,33 @@ return {
     },
   },
 
-  -- Additional keybindings for telescope (assuming it isn't disabled by fzf.lua)
+  -- Modify keys for lsp to use fzf or avoid telescope.
+  {
+    'neovim/nvim-lspconfig',
+    opts = function()
+      -- keys.get() returns a singleton. We can load it here, make additions
+      -- (which amount to changes since they come later in the list), and these
+      -- will be applied when an LSP server attaches.
+      local keys = require('lazyvim.plugins.lsp.keymaps').get()
+      if require('lazyvim.util').has('fzf-lua') then
+        vim.list_extend(keys, {
+          { 'gd', function() require('fzf-lua').lsp_definitions() end, desc = 'Goto Definition', has = 'definition' },
+          { 'gr', function() require('fzf-lua').lsp_references() end, desc = 'References' },
+          { 'gI', function() require('fzf-lua').lsp_implementations() end, desc = 'Goto Implementation' },
+          { 'gy', function() require('fzf-lua').lsp_typedefs() end, desc = 'Goto T[y]pe Definition' },
+        })
+      elseif not require('lazyvim.util').has('telescope.nvim') then
+        vim.list_extend(keys, {
+          { 'gd', vim.lsp.buf.definition, desc = 'Goto Definition', has = 'definition' },
+          { 'gr', vim.lsp.buf.references, desc = 'References' },
+          { 'gI', vim.lsp.buf.implementation, desc = 'Goto Implementation' },
+          { 'gy', vim.lsp.buf.type_definition, desc = 'Goto T[y]pe Definition' },
+        })
+      end
+    end,
+  },
+
+  -- Additional keys for telescope (assuming it isn't disabled by fzf.lua)
   {
     'nvim-telescope/telescope.nvim',
     keys = {
