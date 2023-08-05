@@ -5,6 +5,7 @@
   "alabaster.nvim": { "branch": "agriffis", "commit": "5a6277fd611916769fa2aa7c2ac2485bdfb1cf5c" },
   "bufferline.nvim": { "branch": "main", "commit": "99f0932365b34e22549ff58e1bea388465d15e99" },
   "catppuccin": { "branch": "main", "commit": "057c34f849cf21059487d849e2f3b3efcd4ee0eb" },
+  "closetag.vim": { "branch": "master", "commit": "6b5aed5bbb8bcb7353b2c4a5b105f9e74c9ff32d" },
   "cmp-buffer": { "branch": "main", "commit": "3022dbc9166796b644a841a02de8dd1cc1d311fa" },
   "cmp-nvim-lsp": { "branch": "main", "commit": "44b16d11215dce86f253ce0c30949813c0a90765" },
   "cmp-path": { "branch": "main", "commit": "91ff86cd9c29299a64f968ebb45846c485725f23" },
