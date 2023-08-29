@@ -40,7 +40,7 @@ return {
     keys = {
       { '<leader>bb', function() require('fzf-lua').buffers() end, desc = 'Choose from open buffers' },
       { '<leader>ff', function() require('fzf-lua').files { cwd = vim.fn.expand('%:p:h') } end, desc = 'Open file in current dir', },
-      { '<leader>fr', function() require('fzf-lua').oldfiles() end, desc = 'Open file in project', },
+      { '<leader>fr', function() require('fzf-lua').oldfiles() end, desc = 'Open recent file', },
       -- Following work without needing to find project root because we're
       -- always in the project root thanks to vim-rooter.
       { '<c-p>', function() require('fzf-lua').files() end, desc = 'Open file in project', },

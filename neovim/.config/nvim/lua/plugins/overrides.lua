@@ -64,10 +64,35 @@ return {
       local keys = require('lazyvim.plugins.lsp.keymaps').get()
       if require('lazyvim.util').has('fzf-lua') then
         vim.list_extend(keys, {
-          { 'gd', function() require('fzf-lua').lsp_definitions() end, desc = 'Goto Definition', has = 'definition' },
-          { 'gr', function() require('fzf-lua').lsp_references() end, desc = 'References' },
-          { 'gI', function() require('fzf-lua').lsp_implementations() end, desc = 'Goto Implementation' },
-          { 'gy', function() require('fzf-lua').lsp_typedefs() end, desc = 'Goto T[y]pe Definition' },
+          {
+            'gd',
+            function()
+              require('fzf-lua').lsp_definitions()
+            end,
+            desc = 'Goto Definition',
+            has = 'definition',
+          },
+          {
+            'gr',
+            function()
+              require('fzf-lua').lsp_references()
+            end,
+            desc = 'References',
+          },
+          {
+            'gI',
+            function()
+              require('fzf-lua').lsp_implementations()
+            end,
+            desc = 'Goto Implementation',
+          },
+          {
+            'gy',
+            function()
+              require('fzf-lua').lsp_typedefs()
+            end,
+            desc = 'Goto T[y]pe Definition',
+          },
         })
       elseif not require('lazyvim.util').has('telescope.nvim') then
         vim.list_extend(keys, {
