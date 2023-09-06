@@ -23,9 +23,6 @@ vim.keymap.del('n', '<c-right>')
 vim.keymap.del('n', '<s-h>')
 vim.keymap.del('n', '<s-l>')
 
--- Disable this pointless mapping to search word under cursor.
-vim.keymap.del({ 'n', 'x' }, 'gw')
-
 -- Disable "saner" behavior of n and N in favor of Vim defaults.
 vim.keymap.del({ 'n', 'x', 'o' }, 'n')
 vim.keymap.del({ 'n', 'x', 'o' }, 'N')
@@ -39,6 +36,23 @@ vim.keymap.del('n', '<leader>xl')
 vim.keymap.del('n', '<leader>xq')
 
 my.spacekeys {
+  b = {
+    -- lazyvim: these are mapped to https://github.com/echasnovski/mini.bufremove which preserves
+    -- the current window, but I'm not used to that.
+    d = { '<cmd>bd<cr>', 'Delete buffer' },
+    D = { '<cmd>bd!<cr>', 'Delete buffer (force)' },
+    o = { '<cmd>BufferLineCloseOthers<cr>', 'Delete other buffers' },
+  },
+  c = {
+    F = {
+      function()
+        require('typescript').actions.removeUnused { sync = true }
+        require('typescript').actions.organizeImports { sync = true }
+        format()
+      end,
+      'Remove/organize imports and reformat',
+    },
+  },
   u = {
     -- lazyvim: <leader>i conflicts with toggling indent guides
     p = { vim.show_pos, 'Inspect position' },
@@ -137,9 +151,9 @@ my.operator_register('op_reformat_prose', function(type)
   vim.opt.textwidth = tw_save
 end)
 
-my.nmap('gw', 'v:lua.op_reformat_prose()', { expr = true })
-my.xmap('gw', 'v:lua.op_reformat_prose()', { expr = true })
-my.nmap('gwgw', "v:lua.op_reformat_prose() .. '_'", { expr = true })
+my.nmap('gw', 'v:lua.op_reformat_prose()', { desc = 'Reformat (80 columns)', expr = true })
+my.xmap('gw', 'v:lua.op_reformat_prose()', { desc = 'Reformat (80 columns)', expr = true })
+my.nmap('gwgw', "v:lua.op_reformat_prose() .. '_'", { desc = 'Reformat (80 columns)', expr = true })
 
 -- Load a few personal things.
 my.source(vim.fn.expand('~/.vimrc.mine'), { missing_ok = true })

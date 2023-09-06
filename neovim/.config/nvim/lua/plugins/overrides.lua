@@ -67,7 +67,7 @@ return {
           {
             'gd',
             function()
-              require('fzf-lua').lsp_definitions()
+              require('fzf-lua').lsp_definitions { jump_to_single_result = true }
             end,
             desc = 'Goto Definition',
             has = 'definition',
@@ -75,14 +75,14 @@ return {
           {
             'gr',
             function()
-              require('fzf-lua').lsp_references()
+              require('fzf-lua').lsp_references { ignore_current_line = true }
             end,
             desc = 'References',
           },
           {
             'gI',
             function()
-              require('fzf-lua').lsp_implementations()
+              require('fzf-lua').lsp_implementations { jump_to_single_result = true }
             end,
             desc = 'Goto Implementation',
           },
