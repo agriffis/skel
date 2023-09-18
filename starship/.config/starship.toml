@@ -1,0 +1,69 @@
+# Get editor completions based on the config schema
+"$schema" = 'https://starship.rs/config-schema.json'
+
+format = """
+[ ](bg:bluish fg:white)\
+$username\
+[@](bg:bluish fg:white)\
+$hostname\
+[  ](bg:bluish fg:white)\
+$directory\
+[ ](bg:bluish)\
+[](bg:green fg:bluish)\
+$git_branch\
+$git_status\
+[ ](fg:green)\
+"""
+
+add_newline = false
+
+palette = 'aron'
+
+[palettes.aron]
+black = "0"
+maroon = "1"
+green = "2"
+olive = "3"
+navy = "4"
+purple = "5"
+teal = "6"
+silver = "7"
+grey = "8"
+red = "9"
+lime = "10"
+yellow = "11"
+blue = "12"
+fuchsia = "13"
+aqua = "14"
+white = "15"
+
+bluish = "24"
+
+# You can also replace your username with a neat symbol like   or disable this
+# and use the os module below
+[username]
+show_always = true
+style_user = "bg:bluish fg:white"
+style_root = "bg:red fg:white"
+format = '[$user]($style)'
+
+[hostname]
+ssh_only = false
+trim_at = '.'
+format = '[$hostname]($style)'
+style = 'bg:bluish'
+
+[directory]
+style = "bg:bluish"
+format = "[$path]($style)"
+truncation_length = 3
+truncation_symbol = "…/"
+
+[git_branch]
+symbol = ""
+style = "bg:green"
+format = '[ $symbol $branch ]($style)'
+
+[git_status]
+style = "bg:green"
+format = '[$all_status$ahead_behind ]($style)'
