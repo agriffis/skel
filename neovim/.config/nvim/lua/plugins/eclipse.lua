@@ -1,40 +1,25 @@
 return {
   {
-    'neovim/nvim-lspconfig',
+    'stevearc/conform.nvim',
+    optional = true,
     opts = {
       format = {
         -- Eclipse formatter is slow, and the timeout can't be set per formatter.
         timeout_ms = 5000,
       },
-    },
-  },
-
-  {
-    'jose-elias-alvarez/null-ls.nvim',
-    opts = function(_, opts)
-      local h = require('null-ls.helpers')
-      local methods = require('null-ls.methods')
-
-      -- There's a way to do this with jdtls eventually, which would be much faster:
-      -- https://github.com/eclipse/eclipse.jdt.ls/pull/640
-      local eclipse = {
-        name = 'eclipse',
-        filetypes = { 'java' },
-        method = { methods.internal.FORMATTING },
-        condition = function(utils)
-          return utils.root_has_file { 'eclipse-formatter.ini' }
-        end,
-        generator = h.formatter_factory {
-          command = function(params)
-            return params.root .. '/bin/eclipse-formatter'
-          end,
+      formatters = {
+        eclipse = {
+          -- There's a way to do this with jdtls eventually, which would be much faster:
+          -- https://github.com/eclipse/eclipse.jdt.ls/pull/640
+          cwd = require('conform.util').root_file { 'eclipse-formatter.ini' },
+          require_cwd = true,
+          command = './bin/eclipse-formatter',
           args = { '--filter' },
-          to_stdin = true,
-          timeout = 5000, -- not working yet, https://github.com/jose-elias-alvarez/null-ls.nvim/discussions/706
         },
-      }
-
-      table.insert(opts.sources, eclipse)
-    end,
+      },
+      formatters_by_ft = {
+        java = { 'eclipse' },
+      },
+    },
   },
 }

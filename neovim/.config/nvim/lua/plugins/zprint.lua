@@ -1,50 +1,29 @@
 return {
   {
-    'jose-elias-alvarez/null-ls.nvim',
-    opts = function(_, opts)
-      local my = require('my')
-      local h = require('null-ls.helpers')
-      local methods = require('null-ls.methods')
-
-      local zprint = {
-        name = 'zprint',
-        filetypes = { 'clojure' },
-        method = { methods.internal.FORMATTING, methods.internal.RANGE_FORMATTING },
-        generator = h.generator_factory {
+    'stevearc/conform.nvim',
+    optional = true,
+    opts = {
+      formatters = {
+        zprint = {
+          meta = {
+            url = 'https://github.com/kkinnear/zprint',
+            description = 'Formatter for Clojure and EDN.',
+          },
           command = 'zprint',
-          args = function(params)
-            if params.method == methods.internal.FORMATTING then
-              return {}
-            end
+          range_args = function(ctx)
             return {
               string.format(
                 '{:input {:range {:start %d :end %d :use-previous-!zprint? true :continue-after-!zprint-error? true}}}',
-                params.range.row - 1,
-                params.range.end_row - 1
+                ctx.range.start[1] - 1,
+                ctx.range['end'][1] - 1
               ),
             }
           end,
-          -- https://github.com/jose-elias-alvarez/null-ls.nvim/discussions/1229
-          format = 'raw',
-          on_output = function(params, done)
-            if params.err ~= nil and params.err ~= '' then
-              local err =
-                my.trim_prefix('Failed to zprint: clojure.lang.ExceptionInfo: ', params.err)
-              my.warn(err, 'zprint failed')
-            end
-            -- zprint returns the text regardless of error
-            return done { { text = params.output } }
-          end,
-          to_stdin = true,
-          ignore_stderr = false, -- default for generator_factory
         },
-      }
-
-      -- Hack to reset error state
-      --_G.zprint_generator = zprint.generator
-      --_G.zprint_generator._failed = false
-
-      table.insert(opts.sources, zprint)
-    end,
+      },
+      formatters_by_ft = {
+        clojure = { 'zprint' },
+      },
+    },
   },
 }

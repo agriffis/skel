@@ -3,6 +3,7 @@ local Util = require('lazyvim.util')
 return {
   -- Disable lots of stuff.
   { 'goolord/alpha-nvim', enabled = false },
+  { 'nvimdev/dashboard-nvim', enabled = false },
   {
     'folke/flash.nvim',
     opts = { modes = { char = { enabled = false }, search = { enabled = false } } },
@@ -10,32 +11,11 @@ return {
   { 'echasnovski/mini.indentscope', enabled = false },
   { 'echasnovski/mini.pairs', enabled = false },
   { 'hrsh7th/nvim-cmp', opts = { completion = { autocomplete = false } } },
-  { 'RRethy/vim-illuminate', enabled = false },
-
-  -- Disable the indent guides by default, but they can be toggled on.
   {
     'lukas-reineke/indent-blankline.nvim',
-    config = function(_, opts)
-      require('indent_blankline').setup(opts)
-      vim.cmd([[IndentBlanklineDisable!]])
-    end,
-    keys = {
-      {
-        '<leader>ui',
-        function()
-          vim.cmd([[IndentBlanklineToggle]])
-        end,
-        desc = 'Toggle indent guides',
-      },
-      {
-        '<leader>uI',
-        function()
-          vim.cmd([[IndentBlanklineToggle!]])
-        end,
-        desc = 'Toggle indent guides (global)',
-      },
-    },
+    enabled = false,
   },
+  { 'RRethy/vim-illuminate', enabled = false },
 
   -- Change the default signs.
   {
@@ -44,12 +24,12 @@ return {
     opts = {
       signs = {
         -- "Lower One Quarter Block"
-        add = { text = '▊' }, -- 
-        change = { text = '▊' }, -- 
-        delete = { text = '󰞒' },
-        topdelete = { text = '󰞕' },
-        changedelete = { text = '▊' },
-        untracked = { text = '▊' },
+        --      add = { text = '▊' }, -- 
+        --      change = { text = '▊' }, -- 
+        --      delete = { text = '󰞒' },
+        --      topdelete = { text = '󰞕' },
+        --      changedelete = { text = '▊' },
+        --      untracked = { text = '▊' },
       },
     },
   },

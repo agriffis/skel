@@ -35,7 +35,7 @@ vim.api.nvim_create_autocmd('User', {
     vim.opt_local.signcolumn = 'yes'
   end,
 })
-require('lazyvim.util').on_attach(function()
+require('lazyvim.util').lsp.on_attach(function()
   vim.cmd([[doautocmd User Code]])
 end)
 
