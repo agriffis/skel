@@ -11,6 +11,16 @@ return {
     end,
   },
 
+  -- Add zprint to conform.
+  {
+    'stevearc/conform.nvim',
+    opts = {
+      formatters_by_ft = {
+        clojure = { 'zprint' },
+      },
+    },
+  },
+
   { 'tpope/vim-classpath', lazy = true, ft = { 'java', 'clojure' } },
 
   { 'Olical/conjure', lazy = true, ft = { 'clojure' } },
