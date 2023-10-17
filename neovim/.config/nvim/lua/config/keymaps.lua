@@ -4,10 +4,6 @@
 
 local my = require('my')
 
-local format = function()
-  require('lazyvim.plugins.lsp.format').format { force = true }
-end
-
 -- Disable line movement keys, because these happen by mistake when I press esc
 -- followed by k/j.
 vim.keymap.del({ 'n', 'i', 'v' }, '<a-k>')
@@ -48,7 +44,7 @@ my.spacekeys {
       function()
         require('typescript').actions.removeUnused { sync = true }
         require('typescript').actions.organizeImports { sync = true }
-        format()
+        require('lazyvim.util').format { force = true }
       end,
       'Remove/organize imports and reformat',
     },
@@ -88,10 +84,6 @@ my.spacekeys {
   },
   -- lazyvim: <leader>` is unwieldy
   ['<tab>'] = { '<cmd>b#<cr>', 'Switch to previous buffer' },
-  ['='] = {
-    -- lazyvim: <leader>cf
-    ['b'] = { format, 'Format buffer' },
-  },
 }
 
 -- while waiting for https://github.com/LazyVim/LazyVim/pull/1240
@@ -138,22 +130,20 @@ my.operator_register('op_reformat_prose', function(type)
   -- Save textwidth then override.
   local tw_save = vim.opt.textwidth
   vim.opt.textwidth = 80
-
   -- Convert motion to visual.
   local commands = {
-    char = [[`[v`]gw]],
-    line = [[`[V`]gw]],
-    block = [[`[\<c-v>`]gw]],
+    char = '`[v`]',
+    line = '`[V`]',
+    block = '`[\\<c-v>`]',
   }
   vim.cmd('noautocmd keepjumps normal! ' .. commands[type] .. 'gw')
-
   -- Restore textwidth.
   vim.opt.textwidth = tw_save
 end)
-
-my.nmap('gw', 'v:lua.op_reformat_prose()', { desc = 'Reformat (80 columns)', expr = true })
-my.xmap('gw', 'v:lua.op_reformat_prose()', { desc = 'Reformat (80 columns)', expr = true })
-my.nmap('gwgw', "v:lua.op_reformat_prose() .. '_'", { desc = 'Reformat (80 columns)', expr = true })
+my.nmap('gW', 'v:lua.op_reformat_prose()', { desc = 'Reformat (80 columns)', expr = true })
+my.xmap('gW', 'v:lua.op_reformat_prose()', { desc = 'Reformat (80 columns)', expr = true })
+my.nmap('gWgW', "v:lua.op_reformat_prose() .. '_'", { desc = 'Reformat (80 columns)', expr = true })
+my.nmap('gWW', "v:lua.op_reformat_prose() .. '_'", { desc = 'Reformat (80 columns)', expr = true })
 
 -- Load a few personal things.
 my.source(vim.fn.expand('~/.vimrc.mine'), { missing_ok = true })

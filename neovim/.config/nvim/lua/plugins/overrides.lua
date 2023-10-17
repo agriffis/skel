@@ -17,23 +17,6 @@ return {
   },
   { 'RRethy/vim-illuminate', enabled = false },
 
-  -- Change the default signs.
-  {
-    'lewis6991/gitsigns.nvim',
-    event = { 'BufReadPre', 'BufNewFile' },
-    opts = {
-      signs = {
-        -- "Lower One Quarter Block"
-        --      add = { text = '▊' }, -- 
-        --      change = { text = '▊' }, -- 
-        --      delete = { text = '󰞒' },
-        --      topdelete = { text = '󰞕' },
-        --      changedelete = { text = '▊' },
-        --      untracked = { text = '▊' },
-      },
-    },
-  },
-
   -- Modify keys for lsp to use fzf or avoid telescope.
   {
     'neovim/nvim-lspconfig',
@@ -90,7 +73,11 @@ return {
     'nvim-telescope/telescope.nvim',
     keys = {
       -- Add ctrl-p as an alternate key for the file finder.
-      { '<c-p>', Util.telescope('files'), desc = 'Find Files (project)' },
+      {
+        '<c-p>',
+        Util.telescope('files'),
+        desc = 'Find Files (project)',
+      },
 
       -- Replace <leader>ff to open in the cwd of the current file.
       {
@@ -105,7 +92,11 @@ return {
       { '<leader>bb', '<cmd>Telescope buffers show_all_buffers=true<cr>', desc = 'Switch Buffer' },
 
       -- Search for current word with *
-      { '<leader>*', Util.telescope('grep_string'), desc = 'Word (root dir)' },
+      {
+        '<leader>*',
+        Util.telescope('grep_string'),
+        desc = 'Word (root dir)',
+      },
     },
   },
 }
