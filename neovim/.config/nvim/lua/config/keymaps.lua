@@ -125,6 +125,11 @@ my.nmap('<s-tab>', '<cmd>BufferLineCyclePrev<cr>', { desc = 'Prev buffer' })
 -- Insert path of current file on command-line with %/
 my.cmap('%/', '<C-R>=expand("%:p:h")."/"<CR>', { silent = false })
 
+-- Format code with =
+my.nmap('=', 'gq', { desc = 'Format code' })
+my.nmap('==', 'gqq', { desc = 'Format code' })
+my.xmap('=', 'gq', { desc = 'Format code' })
+
 -- Reformat current paragraph with 80 textwidth
 my.operator_register('op_reformat_prose', function(type)
   -- Save textwidth then override.

@@ -28,6 +28,9 @@ vim.opt.relativenumber = false
 vim.opt.ruler = true -- show the cursor position all the time
 vim.opt.shada = "!,'10,f0,h,s100" -- keep fast by avoiding lots of file/dir stats
 vim.opt.signcolumn = 'auto'
+-- override lazyvim default for statuscolumn for now, because it keeps shifting the indent (exactly
+-- the thing that it's supposed to avoid)
+vim.opt.stc = ''
 vim.opt.warn = false -- don't warn for shell command when buffer changed
 
 -- Tabs and indents

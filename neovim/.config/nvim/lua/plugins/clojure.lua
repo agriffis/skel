@@ -15,7 +15,17 @@ return {
 
   { 'Olical/conjure', lazy = true, ft = { 'clojure' } },
 
-  { 'guns/vim-sexp', lazy = true, ft = sexp_filetypes },
+  {
+    'guns/vim-sexp',
+    lazy = true,
+    ft = sexp_filetypes,
+    init = function()
+      vim.g.sexp_mappings = {
+        sexp_indent = '', -- prefer == bound to conform for zprint
+        sexp_indent_top = '', -- don't bind =- either
+      }
+    end,
+  },
 
   -- TODO the mappings provided by vim-sexp-mappings-for-regular-people
   -- seem to be broken or overridden by which-key, especially word motions.
