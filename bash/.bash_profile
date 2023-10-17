@@ -100,8 +100,6 @@ export QUILT_DIFF_OPTS='-p'
 export RIPGREP_CONFIG_PATH=~/.config/ripgrep/ripgreprc
 
 export RSYNC_RSH=ssh
-export CVS_RSH=ssh
-export SVN_SSH="ssh -l $USER"
 
 jh=$(first_test -d "$JAVA_HOME" /opt/graalvm /usr/java/latest /usr/lib/jvm/java)
 if [[ -d $jh ]]; then
