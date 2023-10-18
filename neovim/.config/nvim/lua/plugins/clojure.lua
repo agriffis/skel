@@ -48,30 +48,33 @@ return {
       vim.g.sexp_insert_after_wrap = 0
     end,
     config = function()
-      local my = require('my')
       vim.api.nvim_create_autocmd({ 'FileType' }, {
         group = vim.api.nvim_create_augroup('MySexpMappings', { clear = true }),
         pattern = sexp_filetypes,
         callback = function()
-          my.nmap(
+          vim.keymap.set(
+            'n',
             '><',
             '<Plug>(sexp_emit_head_element)',
-            { buffer = true, desc = 'Emit head element' }
+            { desc = 'Emit head element', buffer = true, silent = true }
           )
-          my.nmap(
+          vim.keymap.set(
+            'n',
             '<>',
             '<Plug>(sexp_emit_tail_element)',
-            { buffer = true, desc = 'Emit tail element' }
+            { desc = 'Emit tail element', buffer = true, silent = true }
           )
-          my.nmap(
+          vim.keymap.set(
+            'n',
             '<<',
             '<Plug>(sexp_capture_prev_element)',
-            { buffer = true, desc = 'Capture previous element' }
+            { desc = 'Capture previous element', buffer = true, silent = true }
           )
-          my.nmap(
+          vim.keymap.set(
+            'n',
             '>>',
             '<Plug>(sexp_capture_next_element)',
-            { buffer = true, desc = 'Capture next element' }
+            { desc = 'Capture next element', buffer = true, silent = true }
           )
         end,
       })

@@ -11,11 +11,9 @@ return {
   { 'echasnovski/mini.indentscope', enabled = false },
   { 'echasnovski/mini.pairs', enabled = false },
   { 'hrsh7th/nvim-cmp', opts = { completion = { autocomplete = false } } },
-  {
-    'lukas-reineke/indent-blankline.nvim',
-    enabled = false,
-  },
+  { 'lukas-reineke/indent-blankline.nvim', enabled = false },
   { 'RRethy/vim-illuminate', enabled = false },
+  { 'nvim-treesitter/nvim-treesitter-context', enabled = false },
 
   -- Modify keys for lsp to use fzf or avoid telescope.
   {

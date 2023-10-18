@@ -150,33 +150,6 @@ function my.merge(...)
   return vim.tbl_extend('force', ...)
 end
 
-function my.keymap(mode, lhs, rhs, opts)
-  local options = my.merge({ noremap = true, silent = true }, opts or {})
-  local buffer = options.buffer == true and 0 or options.buffer
-  options.buffer = nil
-  if buffer then
-    vim.api.nvim_buf_set_keymap(buffer, mode, lhs, rhs, options)
-  else
-    vim.api.nvim_set_keymap(mode, lhs, rhs, options)
-  end
-end
-
-function my.cmap(...)
-  my.keymap('c', ...)
-end
-function my.imap(...)
-  my.keymap('i', ...)
-end
-function my.nmap(...)
-  my.keymap('n', ...)
-end
-function my.vmap(...)
-  my.keymap('v', ...)
-end
-function my.xmap(...)
-  my.keymap('x', ...)
-end
-
 function my.source(x, opts)
   local options = my.merge({ missing_ok = false }, opts or {})
   if not x:find('/') then

@@ -9,12 +9,6 @@ local my = require('my')
 vim.keymap.del({ 'n', 'i', 'v' }, '<a-k>')
 vim.keymap.del({ 'n', 'i', 'v' }, '<a-j>')
 
--- Disable resize keys in favor of our own.
-vim.keymap.del('n', '<c-up>')
-vim.keymap.del('n', '<c-down>')
-vim.keymap.del('n', '<c-left>')
-vim.keymap.del('n', '<c-right>')
-
 -- Disable tab movement keys in favor of tab/shift-tab.
 vim.keymap.del('n', '<s-h>')
 vim.keymap.del('n', '<s-l>')
@@ -38,16 +32,6 @@ my.spacekeys {
     d = { '<cmd>bd<cr>', 'Delete buffer' },
     D = { '<cmd>bd!<cr>', 'Delete buffer (force)' },
     o = { '<cmd>BufferLineCloseOthers<cr>', 'Delete other buffers' },
-  },
-  c = {
-    F = {
-      function()
-        require('typescript').actions.removeUnused { sync = true }
-        require('typescript').actions.organizeImports { sync = true }
-        require('lazyvim.util').format { force = true }
-      end,
-      'Remove/organize imports and reformat',
-    },
   },
   u = {
     -- lazyvim: <leader>i conflicts with toggling indent guides
@@ -87,48 +71,63 @@ my.spacekeys {
 }
 
 -- while waiting for https://github.com/LazyVim/LazyVim/pull/1240
-my.nmap('gd', '<cmd>lua vim.lsp.buf.definition<cr>', { desc = 'Goto Definition' })
-my.nmap('gr', '<cmd>lua vim.lsp.buf.references<cr>', { desc = 'References' })
-my.nmap('gI', '<cmd>lua vim.lsp.buf.implementation<cr>', { desc = 'Goto Implementation' })
-my.nmap('gy', '<cmd>lua vim.lsp.buf.type_definition<cr>', { desc = 'Goto T[y]pe Definition' })
+vim.keymap.set('n', 'gd', vim.lsp.buf.definition, { desc = 'Goto Definition' })
+vim.keymap.set('n', 'gr', vim.lsp.buf.references, { desc = 'References' })
+vim.keymap.set('n', 'gI', vim.lsp.buf.implementation, { desc = 'Goto Implementation' })
+vim.keymap.set('n', 'gy', vim.lsp.buf.type_definition, { desc = 'Goto T[y]pe Definition' })
 
 -- Paste over currently selected without yanking.
-my.vmap('p', '"_dP')
+vim.keymap.set('v', 'p', '"_dP')
 
--- Resize pane with arrows in normal mode.
+-- Replace resize keys with our own.
+-- Resize pane with ctrl-arrows in normal mode.
 -- For rightmost/bottommost pane, swap bindings so it feels right.
-my.nmap(
-  '<right>',
+vim.keymap.set(
+  'n',
+  '<c-right>',
   'winnr() == winnr("l") ? ":vertical resize -1<cr>" : ":vertical resize +1<cr>"',
-  { expr = true, desc = 'Resize window' }
+  { desc = 'Resize window', expr = true, silent = true }
 )
-my.nmap(
-  '<left>',
+vim.keymap.set(
+  'n',
+  '<c-left>',
   'winnr() == winnr("l") ? ":vertical resize +1<cr>" : ":vertical resize -1<cr>"',
-  { expr = true, desc = 'Resize window' }
+  { desc = 'Resize window', expr = true, silent = true }
 )
-my.nmap(
-  '<down>',
+vim.keymap.set(
+  'n',
+  '<c-down>',
   'winnr() == winnr("j") ? ":resize -1<cr>" : ":resize +1<cr>"',
-  { expr = true, desc = 'Resize window' }
+  { desc = 'Resize window', expr = true, silent = true }
 )
-my.nmap(
-  '<up>',
+vim.keymap.set(
+  'n',
+  '<c-up>',
   'winnr() == winnr("j") ? ":resize +1<cr>" : ":resize -1<cr>"',
-  { expr = true, desc = 'Resize window' }
+  { desc = 'Resize window', expr = true, silent = true }
 )
 
 -- Move between buffers with tab and shift-tab.
-my.nmap('<tab>', '<cmd>BufferLineCycleNext<cr>', { desc = 'Next buffer' })
-my.nmap('<s-tab>', '<cmd>BufferLineCyclePrev<cr>', { desc = 'Prev buffer' })
+vim.keymap.set(
+  'n',
+  '<tab>',
+  '<cmd>BufferLineCycleNext<cr>',
+  { desc = 'Next buffer', silent = true }
+)
+vim.keymap.set(
+  'n',
+  '<s-tab>',
+  '<cmd>BufferLineCyclePrev<cr>',
+  { desc = 'Prev buffer', silent = true }
+)
 
 -- Insert path of current file on command-line with %/
-my.cmap('%/', '<C-R>=expand("%:p:h")."/"<CR>', { silent = false })
+vim.keymap.set('c', '%/', '<C-R>=expand("%:p:h")."/"<CR>')
 
 -- Format code with =
-my.nmap('=', 'gq', { desc = 'Format code' })
-my.nmap('==', 'gqq', { desc = 'Format code' })
-my.xmap('=', 'gq', { desc = 'Format code' })
+vim.keymap.set('n', '=', 'gq', { desc = 'Format code', remap = true })
+vim.keymap.set('n', '==', 'gqq', { desc = 'Format code', remap = true })
+vim.keymap.set('x', '=', 'gq', { desc = 'Format code', remap = true })
 
 -- Reformat current paragraph with 80 textwidth
 my.operator_register('op_reformat_prose', function(type)
@@ -145,10 +144,30 @@ my.operator_register('op_reformat_prose', function(type)
   -- Restore textwidth.
   vim.opt.textwidth = tw_save
 end)
-my.nmap('gW', 'v:lua.op_reformat_prose()', { desc = 'Reformat (80 columns)', expr = true })
-my.xmap('gW', 'v:lua.op_reformat_prose()', { desc = 'Reformat (80 columns)', expr = true })
-my.nmap('gWgW', "v:lua.op_reformat_prose() .. '_'", { desc = 'Reformat (80 columns)', expr = true })
-my.nmap('gWW', "v:lua.op_reformat_prose() .. '_'", { desc = 'Reformat (80 columns)', expr = true })
+vim.keymap.set(
+  'n',
+  'gW',
+  'v:lua.op_reformat_prose()',
+  { desc = 'Reformat (80 columns)', expr = true, silent = true }
+)
+vim.keymap.set(
+  'x',
+  'gW',
+  'v:lua.op_reformat_prose()',
+  { desc = 'Reformat (80 columns)', expr = true, silent = true }
+)
+vim.keymap.set(
+  'n',
+  'gWgW',
+  "v:lua.op_reformat_prose() .. '_'",
+  { desc = 'Reformat (80 columns)', expr = true, silent = true }
+)
+vim.keymap.set(
+  'n',
+  'gWW',
+  "v:lua.op_reformat_prose() .. '_'",
+  { desc = 'Reformat (80 columns)', expr = true, silent = true }
+)
 
 -- Load a few personal things.
 my.source(vim.fn.expand('~/.vimrc.mine'), { missing_ok = true })

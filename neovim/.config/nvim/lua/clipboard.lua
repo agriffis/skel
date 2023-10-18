@@ -116,6 +116,6 @@ vim.g.clipboard = {
 vim.opt.clipboard = 'unnamed'
 
 -- Upper Y yank to system clipboard
-my.nmap('YY', '"+yy')
-my.nmap('Y', '"+y')
-my.vmap('Y', '"+y')
+vim.keymap.set('n', 'YY', '"+yy', { desc = 'Yank line to system clipboard' })
+vim.keymap.set('n', 'Y', '"+y', { desc = 'Yank to system clipboard' })
+vim.keymap.set('x', 'Y', '"+y', { desc = 'Yank selection to system clipboard' })
