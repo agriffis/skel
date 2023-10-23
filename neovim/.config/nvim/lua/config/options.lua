@@ -70,13 +70,3 @@ vim.opt.grepprg = 'rg --hidden --line-number --smart-case --sort-files'
 
 -- Windowing
 vim.opt.winwidth = 40 -- min width for current window (default 20)
-
--- Enable bracketed paste everywhere. This would happen automatically on
--- local terms, even with mosh using TERM=xterm*, but doesn't happen
--- automatically in tmux with TERM=screen*. Setting it manually works fine.
-if vim.fn.has('gui_running') == 0 and vim.go.t_BE == '' then
-  vim.go.t_BE = '\27[?2004h' -- enable
-  vim.go.t_BD = '\27[?2004l' -- disable
-  vim.go.t_PS = '\27[200~' -- start
-  vim.go.t_PE = '\27[201~' -- end
-end
