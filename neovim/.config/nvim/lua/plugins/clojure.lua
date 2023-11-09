@@ -11,19 +11,27 @@ return {
     end,
   },
 
-  -- Add zprint to conform.
   {
-    'stevearc/conform.nvim',
+    'neovim/nvim-lspconfig',
     opts = {
-      formatters_by_ft = {
-        clojure = { 'zprint' },
+      -- make sure mason installs the server
+      servers = {
+        clojure_lsp = {},
       },
     },
   },
 
   { 'tpope/vim-classpath', lazy = true, ft = { 'java', 'clojure' } },
 
-  { 'Olical/conjure', lazy = true, ft = { 'clojure' } },
+  {
+    'Olical/conjure',
+    lazy = true,
+    ft = { 'clojure' },
+    config = function(_, opts)
+      require('conjure.main').main()
+      require('conjure.mapping')['on-filetype']()
+    end,
+  },
 
   {
     'guns/vim-sexp',
@@ -79,5 +87,15 @@ return {
         end,
       })
     end,
+  },
+
+  -- Add zprint to conform.
+  {
+    'stevearc/conform.nvim',
+    opts = {
+      formatters_by_ft = {
+        clojure = { 'zprint' },
+      },
+    },
   },
 }
