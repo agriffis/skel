@@ -1,0 +1,51 @@
+#!/bin/bash
+
+main() {
+  if [[ $1 == @ && $2 == check ]]; then
+    exec grep -q ' @mykitty$' /proc/net/unix
+  fi
+
+  local -a overrides
+  if [[ $1 == @ ]]; then
+    set -- @ --to=unix:@mykitty "${@:2}"
+  else
+    case $(desk) in
+      GNOME:fractional)
+        overrides=(
+          linux_display_server=wayland
+          font_size=12
+          hide_window_decorations=yes
+        ) ;;
+      GNOME:*)
+        overrides=(
+          linux_display_server=wayland
+          font_size=10
+          hide_window_decorations=yes
+        ) ;;
+      *)
+        overrides=(
+          linux_display_server=wayland
+          font_size=12
+          hide_window_decorations=no
+        ) ;;
+    esac
+    set -- --single-instance --listen-on=unix:@mykitty \
+      "${overrides[@]/#/--override=}" "$@"
+  fi
+
+  exec "$(wrapped "$0")" "$@"
+  exit
+}
+
+desk() {
+  local sub
+  if [[ $XDG_CURRENT_DESKTOP == GNOME ]]; then
+    local exp=$(gsettings get org.gnome.mutter experimental-features)
+    if [[ $exp == *scale-monitor-framebuffer* ]]; then
+      sub=fractional
+    fi
+  fi
+  echo "$XDG_CURRENT_DESKTOP:$sub"
+}
+
+main "$@"
