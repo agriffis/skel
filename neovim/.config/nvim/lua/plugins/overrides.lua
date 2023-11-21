@@ -14,6 +14,17 @@ return {
   { 'lukas-reineke/indent-blankline.nvim', enabled = false },
   { 'RRethy/vim-illuminate', enabled = false },
   { 'nvim-treesitter/nvim-treesitter-context', enabled = false },
+  {
+    'windwp/nvim-ts-autotag',
+    opts = {
+      autotag = {
+        -- https://github.com/windwp/nvim-ts-autotag/issues/124
+        -- https://github.com/windwp/nvim-ts-autotag/issues/125
+        -- https://github.com/windwp/nvim-ts-autotag/issues/151
+        enable_close_on_slash = false,
+      },
+    },
+  },
 
   -- Modify keys for lsp to use fzf or avoid telescope.
   {
