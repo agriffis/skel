@@ -1,3 +1,5 @@
+local Util = require("lazyvim.util")
+
 -- https://www.reddit.com/r/neovim/comments/13otw9e/comment/jy8kouz/?utm_source=reddit&utm_medium=web2x&context=3
 return {
   {
@@ -21,10 +23,14 @@ return {
       },
     },
   },
-  --[[
   {
     'nvim-lualine/lualine.nvim',
-    opts = { options = { icons_enabled = false } },
+    opts = function(_, opts)
+      opts.options.icons_enabled = false
+      -- Replace default icon with one that doesn't mess up mac/kitty/tmux
+      opts.sections.lualine_c[1] = Util.lualine.root_dir({
+        icon = ""
+      })
+    end
   },
-  ]]
 }
