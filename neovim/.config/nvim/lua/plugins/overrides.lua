@@ -16,6 +16,7 @@ return {
   { 'nvim-treesitter/nvim-treesitter-context', enabled = false },
   {
     'windwp/nvim-ts-autotag',
+    enabled = false,
     opts = {
       autotag = {
         -- https://github.com/windwp/nvim-ts-autotag/issues/124
