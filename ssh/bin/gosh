@@ -6,6 +6,12 @@ main() {
   declare host="${1:-gargan}"
   shift
 
+  # Use VPN or not
+  declare dom=scampernet
+  if [[ $(where-am-i) != $dom ]]; then
+    dom=tail71bb0.ts.net
+  fi
+
   case $host in
     advent) host=gargan session=advent ;;
     gargan|gg) host=gargan session=scampersand ;;
@@ -15,7 +21,7 @@ main() {
 
   if [[ $# == 0 ]]; then
     # -E to avoid wiping out DISPLAY set by tunnel
-    set -- "$host" "tmux new-session -ADEs $session"
+    set -- "$host.$dom" "tmux new-session -ADEs $session"
   fi
 
   case ${HOSTNAME%%.*}/$(where-am-i)/${0##*/} in
