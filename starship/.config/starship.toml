@@ -51,19 +51,19 @@ format = '[$user]($style)'
 ssh_only = false
 trim_at = '.'
 format = '[$hostname]($style)'
-style = 'bg:bluish'
+style = 'bg:bluish fg:white'
 
 [directory]
-style = "bg:bluish"
+style = "bg:bluish fg:white"
 format = "[$path]($style)"
 truncation_length = 3
 truncation_symbol = "…/"
 
 [git_branch]
 symbol = ""
-style = "bg:green"
+style = "bg:green fg:white"
 format = '[ $symbol $branch ]($style)'
 
 [git_status]
-style = "bg:green"
+style = "bg:green fg:white"
 format = '[$all_status$ahead_behind ]($style)'
