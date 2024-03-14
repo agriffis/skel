@@ -537,18 +537,22 @@ ps1_update() {
   done
 }
 
-# Okay, all functions are defined, now set up PROMPT_COMMAND to make sure things
-# are called.  First capture the error status, second save and unset -x, third
-# call our ps1_update function, fourth set the xterm title, fifth reset -x.
+# Okay, all functions are defined, now use bash-preexec to call it.
+ps1_precmd() {
+  # bash-preexec makes sure that $? is set properly.
+  PS1_ERROR=$?
 
-PROMPT_COMMAND='PS1_ERROR=$?'
-append_cmd PROMPT_COMMAND 'PS1_SAVE_SET_X=${-//[^x]/}; [[ -n $PS1_DEBUG ]] || set +x'
-append_cmd PROMPT_COMMAND ps1_update
-if [[ $(type -t __vte_prompt_command) == function ]]; then
-  # https://gnunn1.github.io/tilix-web/manual/vteconfig/
-  append_cmd PROMPT_COMMAND __vte_prompt_command
-fi
-append_cmd PROMPT_COMMAND '[[ -n $PS1_SAVE_SET_X ]] && set -x'
+  # Save and unset -x
+  declare save_set_x=${-//[^x]/}
+  [[ -n $PS1_DEBUG ]] || set +x
+
+  # Update prompt
+  ps1_update
+
+  # Restore -x
+  [[ -n $save_set_x ]] && set -x
+}
+precmd_functions+=(ps1_precmd)
 
 # The following lines enforce a consistent indentation for this file.
 # Keep this comment at the end of file.

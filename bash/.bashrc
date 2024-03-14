@@ -76,6 +76,7 @@ fi
 # Interactive settings
 #######################################################################
 
+[[ -r ~/.bashrc.preexec ]] && source ~/.bashrc.preexec
 [[ -r ~/.bashrc.prompt ]] && source ~/.bashrc.prompt
 [[ -r ~/.bashrc.rvm ]] && source ~/.bashrc.rvm    # after .bashrc.prompt
 [[ -r ~/.bashrc.tmux ]] && source ~/.bashrc.tmux  # after .bashrc.prompt
@@ -84,6 +85,11 @@ if [[ -r /usr/local/lib/powerline/bindings/bash/powerline.sh ]]; then
   # We don't want the actual prompt, just the tmux support.
   POWERLINE_NO_SHELL_PROMPT=1
   source /usr/local/lib/powerline/bindings/bash/powerline.sh
+fi
+
+# https://gnunn1.github.io/tilix-web/manual/vteconfig/
+if [[ $(type -t __vte_prompt_command) == function ]]; then
+  precmd_functions+=(__vte_prompt_command)
 fi
 
 export GPG_TTY=$(tty)
