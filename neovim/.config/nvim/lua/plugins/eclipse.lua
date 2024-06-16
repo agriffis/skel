@@ -22,4 +22,11 @@ return {
       },
     },
   },
+
+  {
+    'mfussenegger/nvim-jdtls',
+    opts = function(_, opts)
+      opts.cmd = { vim.fn.exepath('jdtls'), '-Djava.compile.nullAnalysis.mode=automatic' }
+    end,
+  },
 }

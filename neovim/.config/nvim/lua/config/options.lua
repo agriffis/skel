@@ -11,6 +11,7 @@ require('clipboard')
 --------------------------------------------------------------------------------
 -- Augment/override lazyvim settings
 --------------------------------------------------------------------------------
+vim.opt.autowrite = false
 vim.opt.backspace = '2' -- allow backspacing over everything in insert mode
 vim.opt.backupcopy = 'yes' -- best for inotify
 vim.opt.conceallevel = 0 -- don't hide stuff

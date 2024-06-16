@@ -48,6 +48,18 @@ return {
     end,
   },
 
+  {
+    'catppuccin/nvim',
+    name = 'catppuccin',
+    --  opts = {
+    --    transparent_background = true,
+    --  },
+  },
+
+  {
+    'olimorris/onedarkpro.nvim',
+  },
+
   -- Configure LazyVim to load colorscheme via themer
   {
     'LazyVim/LazyVim',

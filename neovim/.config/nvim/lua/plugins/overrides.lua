@@ -109,4 +109,27 @@ return {
       },
     },
   },
+
+  -- Additional keys for neotree
+  {
+    'nvim-neo-tree/neo-tree.nvim',
+    keys = {
+      {
+        '<leader>fe',
+        function()
+          require('neo-tree.command').execute { action = 'focus', dir = LazyVim.root() }
+        end,
+        desc = 'Explore project (NeoTree)',
+      },
+      {
+        '<leader>fE',
+        function()
+          require('neo-tree.command').execute { action = 'focus', dir = vim.fn.expand('%:p:h') }
+        end,
+        desc = 'Explore current dir (NeoTree)',
+      },
+      { '<leader>e', '<leader>fe', desc = 'Explore project (NeoTree)', remap = true },
+      { '<leader>E', '<leader>fE', desc = 'Explore current dir (NeoTree)', remap = true },
+    },
+  },
 }
