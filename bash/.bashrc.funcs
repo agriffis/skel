@@ -450,10 +450,16 @@ funcdup() {
   eval "$x"
 }
 
+# slice -- echo a subset of positional parameters
+slice() {
+  local start=$1 count=$2
+  printf '%s\n' "${@:start + 3:count}"
+}
+
 # echo1 -- echo the first positional parameter,
 # for getting the first element from a globbed list
 echo1() {
-  echo "$1"
+  slice 0 1 "$@"
 }
 
 # setarray -- use temporary IFS $3 to parse $2 to an array $1
