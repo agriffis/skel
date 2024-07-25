@@ -64,6 +64,10 @@ isslow() {
   ! islocal "$1"
 }
 
+isfunc() {
+  [[ $(PATH= type -t "$1") == function ]]
+}
+
 # readlink -- Emulate Linux's readlink binary.
 if ! type -p readlink >/dev/null && type -p perl >/dev/null; then
   readlink() { perl -e 'print readlink($ARGV[0]), "\n"' "$1"; }

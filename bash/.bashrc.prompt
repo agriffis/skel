@@ -533,7 +533,7 @@ ps1_update() {
   # postprocess
   for x in "${PS1_MODS_RAN[@]}"; do
     x="ps1_mod_${x}_postprocess"
-    [[ $(type -t "$x") != function ]] || "$x"
+    isfunc "$x" && "$x"
   done
 }
 
