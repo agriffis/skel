@@ -1,0 +1,30 @@
+# .bashrc.mise
+#
+# Mise integration
+#
+# based on the output of `mise activate bash`
+#======================================================================
+
+type -f mise &>/dev/null || return 0
+
+export MISE_SHELL=bash
+export __MISE_ORIG_PATH="$PATH"
+
+mise() {
+  case $1 in
+  deactivate|s|shell)
+    if [[ ! " $* " =~ " (--help|-h) " ]]; then
+      eval "$(command mise "$@")"
+      mise_precmd() { true; }
+      return $?
+    fi
+    ;;
+  esac
+  command mise "$@"
+}
+
+mise_precmd() {
+  eval "$(mise hook-env -s bash)"
+}
+
+precmd_functions+=(mise_precmd)

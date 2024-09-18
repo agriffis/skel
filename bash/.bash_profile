@@ -44,11 +44,6 @@ if [[ -d $jh ]]; then
 fi
 unset jh
 
-# https://docs.volta.sh/advanced/installers#skipping-volta-setup
-export VOLTA_HOME="$HOME/.volta"
-# https://docs.volta.sh/advanced/pnpm
-export VOLTA_FEATURE_PNPM=1
-
 # https://bun.sh/
 export BUN_INSTALL="$HOME/.bun"
 
