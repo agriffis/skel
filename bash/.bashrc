@@ -92,6 +92,9 @@ if [[ $(type -t __vte_prompt_command) == function ]]; then
   precmd_functions+=(__vte_prompt_command)
 fi
 
+# https://github.com/atuinsh/atuin?tab=readme-ov-file#bash
+type atuin &>/dev/null && eval "$(atuin init bash --disable-up-arrow)"
+
 export GPG_TTY=$(tty)
 
 # Aliases
