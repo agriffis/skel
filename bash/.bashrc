@@ -79,7 +79,6 @@ fi
 [[ -r ~/.bashrc.preexec ]] && source ~/.bashrc.preexec
 [[ -r ~/.bashrc.mise ]] && source ~/.bashrc.mise
 [[ -r ~/.bashrc.prompt ]] && source ~/.bashrc.prompt
-[[ -r ~/.bashrc.rvm ]] && source ~/.bashrc.rvm    # after .bashrc.prompt
 [[ -r ~/.bashrc.tmux ]] && source ~/.bashrc.tmux  # after .bashrc.prompt
 
 if [[ -r /usr/local/lib/powerline/bindings/bash/powerline.sh ]]; then
