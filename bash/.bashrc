@@ -184,6 +184,7 @@ unalias vim &>/dev/null
 [[ ! -r ~/.bashrc.mine ]] || source ~/.bashrc.mine
 [[ ! -r ~/.bashrc.local ]] || source ~/.bashrc.local
 
+#======================================================================
 # The following lines enforce a consistent indentation for this file.
 # Keep this comment at the end of file.
 #
@@ -195,4 +196,4 @@ unalias vim &>/dev/null
 # indent-tabs-mode: nil
 # End:
 #
-# vim:shiftwidth=2 expandtab smarttab
+# vim:shiftwidth=2 expandtab smarttab filetype=sh
