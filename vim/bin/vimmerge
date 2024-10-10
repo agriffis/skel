@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # vimmerge -- 2-way or 3-way merging with vim
 #
