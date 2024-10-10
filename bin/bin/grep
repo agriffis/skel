@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # this was just a bad GNU idea
 unset GREP_OPTIONS

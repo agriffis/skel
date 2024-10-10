@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # ompa -- quick script in the spirit of eatpaste, to generate omnipaste urls.
 #

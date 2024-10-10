@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 degrees=${0##*/}
 if [[ ! $degrees -gt 0 ]]; then

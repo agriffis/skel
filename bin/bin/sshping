@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # 
 # sshping -- determine if an ssh server is reachable, honoring .ssh/config
 #

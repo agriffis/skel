@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # $Id: nite 4885 2013-10-14 11:56:38Z aron $
 #
 # nite -- toggle settings, especially xterms and gnome-terminals, 

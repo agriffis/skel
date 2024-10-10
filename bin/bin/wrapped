@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # $Id: wrapped 4161 2010-09-22 12:53:10Z agriffis $
 #
 # wrapped -- call the next instance of $1 in PATH

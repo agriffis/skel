@@ -1,4 +1,6 @@
-#!/bin/bash -e
+#!/usr/bin/env bash
+
+set -e
 
 if [[ -z $* ]]; then
     echo "syntax: sortphotos topdir [images]"

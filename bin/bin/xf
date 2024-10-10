@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/usr/bin/env bash
 # $Id: xf 4036 2010-04-13 23:16:41Z agriffis $
 #
 # xf - Call as xf (extract), xvf (extract verbose), tf (list), tvf (list verbose).
@@ -6,6 +6,8 @@
 #
 # Copyright 2007 Aron Griffis <agriffis@n01se.net>
 # Released under the GNU GPL v2
+
+set -e
 
 cmd=${0##*/}
 t=${cmd//[!t]/}

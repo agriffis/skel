@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 read rows columns <<<"$(stty size </dev/tty)" 2>/dev/null
 

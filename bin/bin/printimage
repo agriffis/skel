@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 read w h <<<$(identify -format "%w %h\n" "$1")
 

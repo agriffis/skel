@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 main() {
   if [[ $1 == @ && $2 == check ]]; then
@@ -10,13 +10,25 @@ main() {
     set -- @ --to=unix:@mykitty "${@:2}"
   else
     case $(desk) in
-      GNOME:fractional)
+      gnome:fractional)
         overrides=(
           linux_display_server=wayland
-          font_size=12
+          font_size=10
           hide_window_decorations=yes
         ) ;;
-      GNOME:*)
+      gnome:*)
+        overrides=(
+          linux_display_server=wayland
+          font_size=10
+          hide_window_decorations=yes
+        ) ;;
+      sway:1)
+        overrides=(
+          linux_display_server=wayland
+          font_size=18
+          hide_window_decorations=yes
+        ) ;;
+      sway:*)
         overrides=(
           linux_display_server=wayland
           font_size=10
@@ -38,14 +50,20 @@ main() {
 }
 
 desk() {
+  local base=${XDG_SESSION_DESKTOP:-$XDG_CURRENT_DESKTOP}
+  base=${base,,} # lowercase, because source vars don't agree
   local sub
-  if [[ $XDG_CURRENT_DESKTOP == GNOME ]]; then
-    local exp=$(gsettings get org.gnome.mutter experimental-features)
-    if [[ $exp == *scale-monitor-framebuffer* ]]; then
-      sub=fractional
-    fi
-  fi
-  echo "$XDG_CURRENT_DESKTOP:$sub"
+  case $base in
+    gnome)
+      local exp=$(gsettings get org.gnome.mutter experimental-features)
+      if [[ $exp == *scale-monitor-framebuffer* ]]; then
+        sub=fractional
+      fi ;;
+    sway)
+      local scale=$(swaymsg -r -t get_outputs | jq '.[] | select(.focused) | .scale')
+      sub=${scale%.*} ;;
+  esac
+  echo "$base:$sub"
 }
 
 main "$@"

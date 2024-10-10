@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # $Id: cronwrap 4313 2011-03-08 15:41:59Z agriffis $
 #
 # cronwrap -- locking, logging and conditional email for cron jobs

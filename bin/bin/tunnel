@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -x
 
@@ -14,36 +14,46 @@ main() {
   host=${1:-gg}-tunnel
   shift
 
-  declare -a forwards vars
+  while true; do (
+    declare -a forwards vars
+    cleanup() {
+      trap - 0 2
+      echo 'pausing before retry, press ctrl-c to quit'
+      for ((i = 5; i; i--)); do echo -n "$i "; sleep 1; done
+      echo retrying
+      exit 0 # so that we'll loop
+    }
+    prepend_cleanup() { eval "cleanup() { $*; $(type cleanup | tail -n +4)"; }
+    trap cleanup 0 2
 
-  if [[ $HOSTNAME. == penguin.* ]]; then
-    forwards+=( -o 'GatewayPorts yes' )
-  fi
+    if [[ $HOSTNAME. == penguin.* ]]; then
+      forwards+=( -o 'GatewayPorts yes' )
+    fi
 
-  declare waypipe_sock
-  if [[ -n $WAYLAND_DISPLAY ]] && which waypipe &>/dev/null; then
-    waypipe_sock=$(mktemp -u /tmp/waypipe.XXXXXX)
-    waypipe -s $waypipe_sock client &
-    forwards+=( -R $waypipe_sock:$waypipe_sock )
-    vars+=( WAYPIPE_SOCK="$waypipe_sock" )
-  fi
+    declare waypipe_sock
+    if [[ -n $WAYLAND_DISPLAY ]] && which waypipe &>/dev/null; then
+      waypipe_sock=$(mktemp -u /tmp/waypipe.XXXXXX)
+      waypipe -c lz4 -s $waypipe_sock client &
+      declare waypipe_pid=$!
+      forwards+=( -R $waypipe_sock:$waypipe_sock )
+      vars+=( WAYPIPE_SOCK="$waypipe_sock" )
+      prepend_cleanup 'kill $waypipe_pid; rm -f $waypipe_sock; wait $waypipe_pid'
+    fi
 
-  declare remote_dbus_session_bus_address
-  if [[ $DBUS_SESSION_BUS_ADDRESS == unix:path=/* ]]; then
-    remote_dbus_session_bus_address=/tmp/dbus-session-${HOSTNAME%%.*}
-    forwards+=( -R $remote_dbus_session_bus_address:${DBUS_SESSION_BUS_ADDRESS#unix:path=} )
-    vars+=( DBUS_SESSION_BUS_ADDRESS="$remote_dbus_session_bus_address" )
-  fi
+    declare remote_dbus_session_bus_address
+    if [[ $DBUS_SESSION_BUS_ADDRESS == unix:path=/* ]]; then
+      remote_dbus_session_bus_address=/tmp/dbus-session-${HOSTNAME%%.*}-$EPOCHSECONDS
+      forwards+=( -R $remote_dbus_session_bus_address:${DBUS_SESSION_BUS_ADDRESS#unix:path=} )
+      vars+=( DBUS_SESSION_BUS_ADDRESS="unix:path=$remote_dbus_session_bus_address" )
+    fi
 
-  case $host in
-    gg-tunnel) vars+=( TMUX_SESSION=scampersand ) ;;
-    jj-tunnel) vars+=( TMUX_SESSION=scamperjam ) ;;
-  esac
+    case $host in
+      (gg-tunnel) vars+=( TMUX_SESSION=scampersand ) ;;
+      (jj-tunnel) vars+=( TMUX_SESSION=scamperjam ) ;;
+    esac
 
-  while true; do
     ssh -t -Y "${forwards[@]}" "$host" "tunnel --remote $(printf '%q ' ${vars[@]})"
-    sleep 2
-  done
+  ) || break; done
 
   exit # always exit at bottom of main
 }
@@ -71,7 +81,7 @@ remote() {
   fi
 
   if [[ -e $WAYPIPE_SOCK ]] && which waypipe &>/dev/null && [[ ! -n $WAYLAND_DISPLAY ]]; then
-    exec waypipe -s "$WAYPIPE_SOCK" server -- env -u WAYPIPE_SOCK tunnel --remote
+    exec waypipe -c lz4 -s "$WAYPIPE_SOCK" server -- env -u WAYPIPE_SOCK tunnel --remote
     return
   fi
 

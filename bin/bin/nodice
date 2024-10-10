@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 pass=$(dd if=/dev/random ibs=1 count=${1:-8} 2>/dev/null | \
 tr '\000-\377' '0-9A-Za-z0-9A-Za-z0-9A-Za-z0-9A-Za-z0-9A-Za-z')

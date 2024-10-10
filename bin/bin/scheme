@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # scheme -- change color scheme for terminals and applications
 #
@@ -37,38 +37,39 @@ main() {
         die "Error loading $opt_config"
     fi
 
-    if $opt_eval; then
-        if [[ $# -gt 0 ]]; then
-            get_scheme_vars "$1"
-        else
-            get_scheme_vars "$(get_state)"
+    case ${1:-restore} in
+      restore)
+        declare old_scheme=$(get_state)
+        if [[ -z $old_scheme ]]; then
+          die "Don't know the current scheme, can't restore"
         fi
-        exit 0
-    fi
+        set -- "$old_scheme" "${@:2}"
+        ;;
 
-    if [[ $# -gt 0 ]]; then
-        set_scheme "${1//-/_}"
+      toggle)
+        declare old_scheme=$(get_state)
+        if [[ -z $old_scheme ]]; then
+          die "Don't know the current scheme, can't toggle"
+        fi
+        declare new_scheme=$(get_scheme_var "$old_scheme" toggle)
+        if [[ -z $new_scheme ]]; then
+          die "Can't toggle from $old_scheme, missing \$lookup"
+        fi
+        set -- "$new_scheme" "${@:2}"
+        ;;
+
+      *)
+        set -- "${1//-/_}" "${@:2}"
+        ;;
+    esac
+
+    if $opt_eval; then
+        get_scheme_vars "$1"
     else
-        toggle_scheme
-    fi
-}
-
-toggle_scheme() {
-    declare old_scheme new_scheme
-
-    old_scheme=$(get_state)
-
-    if [[ -z $old_scheme ]]; then
-        die "Don't know the current scheme, can't toggle"
+        set_scheme "$1"
     fi
 
-    new_scheme=$(get_scheme_var "$old_scheme" toggle)
-
-    if [[ -z $new_scheme ]]; then
-        die "Can't toggle from $old_scheme, missing \$lookup"
-    fi
-
-    set_scheme "$new_scheme"
+    exit
 }
 
 get_state() {
@@ -102,7 +103,7 @@ set_scheme() {
 
     wait # for anything backgrounded
 
-    after_update_hook "${parsed_opts[@]}" "${params[@]}"
+    after_update_hook "${parsed_opts[@]}" "$@"
     exit 0
 }
 
@@ -582,10 +583,13 @@ update_gnome() {
 update_gtk() {
     declare gtk_theme="$1" background="$2"
     if [[ -z $gtk_theme ]]; then
+        # N.B. gsettings returns value surrounded in single quotes.
         declare current=$(gsettings get org.gnome.desktop.interface gtk-theme 2>/dev/null)
-        case "$current:$background" in
-            *Adwaita*:light) gtk_theme=Adwaita ;;
-            *Adwaita*:dark) gtk_theme=Adwaita-dark ;;
+        case "${current//\'/}:$background" in
+            Adwaita:dark) gtk_theme=Adwaita-dark ;;
+            Adwaita-dark:light) gtk_theme=Adwaita ;;
+            adw-gtk3:dark) gtk_theme=adw-gtk3-dark ;;
+            adw-gtk3-dark:light) gtk_theme=adw-gtk3 ;;
         esac
     fi
     if [[ -n $gtk_theme ]]; then

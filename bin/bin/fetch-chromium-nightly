@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 nightly=/usr/local/chromium-nightly
 sandbox=$nightly/chrome_sandbox

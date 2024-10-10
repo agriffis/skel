@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 TT=$HOME/Dropbox/tt-$1.txt
 shift
