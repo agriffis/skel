@@ -28,6 +28,10 @@ return {
     lazy = true,
     ft = { 'clojure' },
     config = function(_, opts)
+      local _, content = pcall(vim.fn.readfile, '.nrepl-host', '', 1)
+      if content then
+        vim.g['conjure#client#clojure#nrepl#connection#default_host'] = content[1]
+      end
       require('conjure.main').main()
       require('conjure.mapping')['on-filetype']()
     end,

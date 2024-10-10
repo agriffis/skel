@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # clipboard provider for neovim
 #
@@ -54,6 +54,11 @@ pasteboard-provider() {
 }
 
 wayland-provider() {
+  if [[ -n $TMUX ]]; then
+    local d=$(tmux showenv WAYLAND_DISPLAY 2>/dev/null)
+    [[ $d != -* ]] || return
+    [[ -n $d ]] && export "$d"
+  fi
   [[ -n $WAYLAND_DISPLAY ]] || return
   case $1 in
     copy) type -P wl-copy &>/dev/null && spit | wl-copy --trim-newline --type=text/plain ;;
@@ -62,6 +67,11 @@ wayland-provider() {
 }
 
 xclip-provider() {
+  if [[ -n $TMUX ]]; then
+    local d=$(tmux showenv DISPLAY 2>/dev/null)
+    [[ $d != -* ]] || return
+    [[ -n $d ]] && export "$d"
+  fi
   [[ -n $DISPLAY ]] && type -P xclip &>/dev/null && ! xdpyinfo | grep -q Apple || return
   case $1 in
     copy) spit | xclip -i -selection clipboard ;;

@@ -2,6 +2,12 @@ local Util = require('lazyvim.util')
 
 return {
   -- Disable lots of stuff.
+  {
+    'LazyVim/LazyVim',
+    opts = {
+      news = { lazyvim = false, neovim = false },
+    },
+  },
   { 'goolord/alpha-nvim', enabled = false },
   { 'nvimdev/dashboard-nvim', enabled = false },
   {
@@ -10,7 +16,15 @@ return {
   },
   { 'echasnovski/mini.indentscope', enabled = false },
   { 'echasnovski/mini.pairs', enabled = false },
-  { 'hrsh7th/nvim-cmp', opts = { completion = { autocomplete = false } } },
+  {
+    'hrsh7th/nvim-cmp',
+    opts = function(_, opts)
+      opts.completion.autocomplete = false
+      -- Don't replace normal vim completion.
+      opts.mapping['<C-P>'] = nil
+      opts.mapping['<C-N>'] = nil
+    end,
+  },
   { 'lukas-reineke/indent-blankline.nvim', enabled = false },
   { 'RRethy/vim-illuminate', enabled = false },
   { 'nvim-treesitter/nvim-treesitter-context', enabled = false },
@@ -76,38 +90,6 @@ return {
         })
       end
     end,
-  },
-
-  -- Additional keys for telescope (assuming it isn't disabled by fzf.lua)
-  {
-    'nvim-telescope/telescope.nvim',
-    keys = {
-      -- Add ctrl-p as an alternate key for the file finder.
-      {
-        '<c-p>',
-        Util.telescope('files'),
-        desc = 'Find Files (project)',
-      },
-
-      -- Replace <leader>ff to open in the cwd of the current file.
-      {
-        '<leader>ff',
-        function()
-          return Util.telescope('find_files', { cwd = vim.fn.expand('%:p:h') })()
-        end,
-        'Find Files (alongside)',
-      },
-
-      -- Add bb as an alternate key for the buffers list.
-      { '<leader>bb', '<cmd>Telescope buffers show_all_buffers=true<cr>', desc = 'Switch Buffer' },
-
-      -- Search for current word with *
-      {
-        '<leader>*',
-        Util.telescope('grep_string'),
-        desc = 'Word (root dir)',
-      },
-    },
   },
 
   -- Additional keys for neotree

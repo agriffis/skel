@@ -3,6 +3,7 @@
 -- Add any additional keymaps here
 
 local my = require('my')
+local wk = require('which-key')
 
 -- Disable line movement keys, because these happen by mistake when I press esc
 -- followed by k/j.
@@ -25,49 +26,42 @@ vim.keymap.del('v', '>')
 vim.keymap.del('n', '<leader>xl')
 vim.keymap.del('n', '<leader>xq')
 
-my.spacekeys {
-  b = {
-    -- lazyvim: these are mapped to https://github.com/echasnovski/mini.bufremove which preserves
-    -- the current window, but I'm not used to that.
-    d = { '<cmd>bd<cr>', 'Delete buffer' },
-    D = { '<cmd>bd!<cr>', 'Delete buffer (force)' },
-    o = { '<cmd>BufferLineCloseOthers<cr>', 'Delete other buffers' },
-  },
-  u = {
-    -- lazyvim: <leader>i conflicts with toggling indent guides
-    p = { vim.show_pos, 'Inspect position' },
-  },
-  w = {
-    ['+'] = { '<c-w>+', 'Increase height' },
-    ['-'] = { '<c-w>-', 'Decrease height' },
-    ['>'] = { '<c-w>>', 'Increase width' },
-    ['<'] = { '<c-w><', 'Decrease width' },
-    ['_'] = { '<c-w>_', 'Max height' },
-    ['|'] = { '<c-w>|', 'Max width' },
-    ['='] = { '<c-w>=', 'Equally high and wide' },
-    c = { '<c-w>c', 'Close window' },
-    h = { '<c-w>h', 'Go to window left' },
-    H = { '<c-w>H', 'Move window to far left' },
-    j = { '<c-w>j', 'Go to window below' },
-    J = { '<c-w>J', 'Move window to bottom' },
-    k = { '<c-w>k', 'Go to window above' },
-    K = { '<c-w>K', 'Move window to top' },
-    l = { '<c-w>l', 'Go to window right' },
-    L = { '<c-w>L', 'Move window to far right' },
-    o = { '<c-w>o', 'Close other windows' },
-    s = { '<c-w>s', 'Split window' },
-    T = { '<c-w>T', 'Break out into a new tab' },
-    v = { '<c-w>v', 'Split window vertically' },
-    w = { '<c-w>w', 'Switch to other window' },
-    x = { '<c-w>x', 'Swap current with next' },
-  },
+-- Restore normal vim completion.
+-- vim.keymap.del('i', '<c-p>')
+-- vim.keymap.del('i', '<c-n>')
+
+wk.add {
   -- lazyvim: <leader>ur is unwieldy
-  ['<space>'] = {
+  {
+    '<leader><space>',
     '<cmd>nohlsearch<bar>diffupdate<bar>normal! <c-l><cr>',
-    'clear hlsearch / diff update / redraw',
+    desc = 'clear hlsearch / diff update / redraw',
   },
   -- lazyvim: <leader>` is unwieldy
-  ['<tab>'] = { '<cmd>b#<cr>', 'Switch to previous buffer' },
+  { '<leader><tab>', '<cmd>b#<cr>', desc = 'Switch to previous buffer' },
+  -- lazyvim: these are mapped to https://github.com/echasnovski/mini.bufremove which preserves
+  -- the current window, but I'm not used to that.
+  { '<leader>bD', '<cmd>bd!<cr>', desc = 'Delete buffer (force)' },
+  { '<leader>bd', '<cmd>bd<cr>', desc = 'Delete buffer' },
+  { '<leader>bo', '<cmd>BufferLineCloseOthers<cr>', desc = 'Delete other buffers' },
+  -- lazyvim: <leader>i conflicts with toggling indent guides
+  { '<leader>up', vim.show_pos, desc = 'Inspect position' },
+  { '<leader>wH', '<c-w>H', desc = 'Move window to far left' },
+  { '<leader>wJ', '<c-w>J', desc = 'Move window to bottom' },
+  { '<leader>wK', '<c-w>K', desc = 'Move window to top' },
+  { '<leader>wL', '<c-w>L', desc = 'Move window to far right' },
+  { '<leader>w_', '<c-w>_', desc = 'Max height' },
+  { '<leader>wc', '<c-w>c', desc = 'Close window' },
+  { '<leader>wh', '<c-w>h', desc = 'Go to window left' },
+  { '<leader>wj', '<c-w>j', desc = 'Go to window below' },
+  { '<leader>wk', '<c-w>k', desc = 'Go to window above' },
+  { '<leader>wl', '<c-w>l', desc = 'Go to window right' },
+  { '<leader>wo', '<c-w>o', desc = 'Close other windows' },
+  { '<leader>ws', '<c-w>s', desc = 'Split window' },
+  { '<leader>wv', '<c-w>v', desc = 'Split window vertically' },
+  { '<leader>ww', '<c-w>w', desc = 'Switch to other window' },
+  { '<leader>wx', '<c-w>x', desc = 'Swap current with next' },
+  { '<leader>w|', '<c-w>|', desc = 'Max width' },
 }
 
 -- while waiting for https://github.com/LazyVim/LazyVim/pull/1240

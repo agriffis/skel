@@ -60,6 +60,10 @@ return {
     'olimorris/onedarkpro.nvim',
   },
 
+  {
+    'overcache/NeoSolarized',
+  },
+
   -- Configure LazyVim to load colorscheme via themer
   {
     'LazyVim/LazyVim',

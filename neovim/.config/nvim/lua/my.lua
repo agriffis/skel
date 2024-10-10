@@ -161,11 +161,6 @@ function my.source(x, opts)
   vim.cmd('source ' .. x)
 end
 
-function my.spacekeys(mappings, options)
-  options = my.merge({ prefix = '<leader>' }, options or {})
-  require('which-key').register(mappings, options)
-end
-
 function my.t(s)
   return vim.api.nvim_replace_termcodes(s, true, true, true)
 end

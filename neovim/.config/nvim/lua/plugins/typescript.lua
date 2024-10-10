@@ -3,24 +3,14 @@ return {
     'neovim/nvim-lspconfig',
     opts = function(_, opts)
       opts.inlay_hints.enabled = false
-      vim.list_extend(opts.servers.tsserver.keys, {
-        {
-          '<leader>cR',
-          function()
-            vim.lsp.buf.code_action {
-              apply = true,
-              context = {
-                only = { 'source.removeUnused.ts' },
-                diagnostics = {},
-              },
-            }
-          end,
-          desc = 'Remove unused imports',
-        },
-      })
     end,
   },
 
+  -- project-wide TypeScript type-checking using the TypeScript compiler (tsc). It displays the
+  -- type-checking results in a quickfix list and provides visual notifications about the progress
+  -- and completion of type-checking.
+  --
+  -- Command is :TSC
   {
     'dmmulroy/tsc.nvim',
     -- https://github.com/dmmulroy/tsc.nvim?tab=readme-ov-file#configuration
