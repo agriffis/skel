@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 main() {
   ensure-ssh-identity "$@"
@@ -8,7 +8,7 @@ main() {
 
   # Use VPN or not
   declare dom=scampernet
-  if [[ $(where-am-i) != $dom ]]; then
+  if grep -q tail71bb0 /etc/resolv.conf; then
     dom=tail71bb0.ts.net
   fi
 
@@ -24,7 +24,7 @@ main() {
     set -- "$host.$dom" "tmux new-session -ADEs $session"
   fi
 
-  case ${HOSTNAME%%.*}/$(where-am-i)/${0##*/} in
+  case ${HOSTNAME%%.*}/${0##*/} in
     */gosh)
       # mosh handles quoting differently from ssh
       eval mosh -- "$@"
