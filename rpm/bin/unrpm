@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # $Id: unrpm 4036 2010-04-13 23:16:41Z agriffis $
 #
 # unrpm: unpack an rpm into a build dir
