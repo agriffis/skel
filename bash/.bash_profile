@@ -37,13 +37,6 @@ frontpath PATH /usr/lib{64,}/ccache/bin /usr/lib{64,}/ccache
 # flatpak so you don't have to "flatpak run ..."
 addpath PATH /var/lib/flatpak/exports/bin
 
-jh=$(first_test -d "$JAVA_HOME" /opt/graalvm /usr/java/latest /usr/lib/jvm/java)
-if [[ -d $jh ]]; then
-  export JAVA_HOME="$jh"
-  frontpath PATH "$JAVA_HOME/bin"
-fi
-unset jh
-
 # https://bun.sh/
 export BUN_INSTALL="$HOME/.bun"
 
@@ -56,7 +49,6 @@ frontpath PATH ~/node_modules/.bin # yarn global add
 frontpath PATH ~/.npm-local/bin # npm i -g
 frontpath PATH ~/.local/bin # make install
 frontpath PATH "$BUN_INSTALL/bin" # bun add -g
-frontpath PATH "$VOLTA_HOME/bin" # volta node/pnpm
 frontpath PATH ~/bin # personal and overrides
 
 # remove . security hole from PATH, added by some foolish sysadmins
