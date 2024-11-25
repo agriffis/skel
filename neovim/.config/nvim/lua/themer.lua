@@ -26,6 +26,7 @@ local default_opts = {
     end
     return false -- it didn't work
   end,
+  should_syn_reset = true,
 }
 
 local theme_opts = {
@@ -40,6 +41,8 @@ local theme_opts = {
       }
       return true
     end,
+    -- reset causes us to lose our transparency
+    should_syn_reset = false,
   },
 }
 
@@ -55,7 +58,7 @@ local function try_theme(theme, bg)
     if bg and bg ~= '' then
       vim.opt.background = bg
     end
-    if vim.fn.exists('syntax_on') then
+    if opts.should_syn_reset and vim.fn.exists('syntax_on') then
       vim.cmd('syn reset')
     end
   end

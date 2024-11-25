@@ -8,6 +8,9 @@ local my = require('my')
 -- sticky; they cannot be reconfigured effectively once set.
 require('clipboard')
 
+-- Override the default local leader
+vim.g.maplocalleader = ','
+
 --------------------------------------------------------------------------------
 -- Augment/override lazyvim settings
 --------------------------------------------------------------------------------
