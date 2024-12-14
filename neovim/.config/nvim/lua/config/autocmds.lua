@@ -25,19 +25,24 @@ vim.api.nvim_create_autocmd('BufReadPost', {
   command = [[normal! gg]],
 })
 
--- Enable permanent signcolumn when editing code
-vim.api.nvim_create_autocmd('User', {
-  group = MyGroup,
-  pattern = 'Code',
-  callback = function()
-    -- vim.opt_local.cursorline = true
-    -- vim.opt_local.number = true
-    vim.opt_local.signcolumn = 'yes'
-  end,
-})
+-- Enable permanent signcolumn when editing code.
+local function hacking()
+  --vim.opt_local.cursorline = true
+  vim.opt_local.number = true
+  vim.opt_local.signcolumn = 'yes'
+end
+
+-- Hacking mode when LSP attaches.
+vim.api.nvim_create_autocmd('User', { group = MyGroup, pattern = 'Code', callback = hacking })
 require('lazyvim.util').lsp.on_attach(function()
   vim.cmd([[doautocmd User Code]])
 end)
+
+-- Some known filetypes for hacking, especially where the LSP takes a while to attach.
+vim.api.nvim_create_autocmd(
+  'FileType',
+  { group = MyGroup, pattern = { 'clojure', 'java' }, callback = hacking }
+)
 
 -- Disable LazyVim spellcheck defaults
 -- https://www.lazyvim.org/configuration/general#auto-commands

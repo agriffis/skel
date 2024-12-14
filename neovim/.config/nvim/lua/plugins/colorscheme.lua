@@ -64,6 +64,40 @@ return {
     'overcache/NeoSolarized',
   },
 
+  {
+    'folke/tokyonight.nvim',
+    opts = {
+      style = 'night',
+      light_style = 'day',
+      dim_inactive = true,
+
+      on_colors = function(c)
+        if vim.o.background == 'light' then
+          -- Use white background instead of light gray.
+          -- Darkened backgrounds use light gray instead of dark gray.
+          local r = {
+            [c.bg] = '#ffffff',
+            [c.bg_dark] = c.bg,
+          }
+          for k, v in pairs(c) do
+            c[k] = r[v] or v
+          end
+        end
+      end,
+
+      on_highlights = function(hl, c)
+        -- Make the dividers more visible.
+        -- We also set the character to a thicker bar in vim.opt.fillchars
+        hl.WinSeparator = { fg = c.fg_gutter }
+
+        -- Enable dim_inactive to work on gitsigns.
+        -- https://github.com/folke/tokyonight.nvim/issues/326#issuecomment-2143501061
+        hl.FoldColumn = { bg = 'none' }
+        hl.SignColumn = { bg = 'none' }
+      end,
+    },
+  },
+
   -- Configure LazyVim to load colorscheme via themer
   {
     'LazyVim/LazyVim',

@@ -9,60 +9,56 @@
 -- CC0 Public Domain Dedication at
 -- http://creativecommons.org/publicdomain/zero/1.0/
 --------------------------------------------------------------------------------
-local my = require('my')
-
 local M = {}
 
-local default_opts = {
-  load = function(theme)
-    ---@diagnostic disable-next-line: param-type-mismatch
-    local status, err = pcall(vim.cmd, 'colorscheme ' .. theme)
-    if status then
-      return true
-    end
-    -- Don't splash error for "Vim(colorscheme):E185: Cannot find color scheme 'foobar'"
-    if err ~= nil and err:match(':([^:]+)') ~= 'E185' then
-      error(err)
-    end
-    return false -- it didn't work
-  end,
-  should_syn_reset = true,
-}
+---@alias LoadFn fun(theme: string, bg: string, opts: ThemerOpts): boolean
 
-local theme_opts = {
-  solarized = {
-    force_bg = 'dark',
-  },
-  tokyonight = {
-    load = function(_, bg)
-      require('tokyonight').load {
-        style = bg == 'dark' and 'night' or 'day',
-        transparent = true,
-      }
-      return true
-    end,
-    -- reset causes us to lose our transparency
-    should_syn_reset = false,
-  },
-}
+---@class ThemerOpts
+---@field force_bg? string
+---@field load? LoadFn
+---@field should_syn_reset? boolean
+
+---@param theme string
+---@return boolean
+local function try_colorscheme(theme)
+  ---@diagnostic disable-next-line: param-type-mismatch
+  local status, err = pcall(vim.cmd, 'colorscheme ' .. theme)
+  if status then
+    return true
+  end
+  -- Don't splash error for "Vim(colorscheme):E185: Cannot find color scheme 'foobar'"
+  if err ~= nil and err:match(':([^:]+)') ~= 'E185' then
+    error(err)
+  end
+  return false -- it didn't work
+end
 
 -- Try to apply a theme, restoring the current background setting afterward (for
 -- themes that default to light or dark but support both)
-local function try_theme(theme, bg)
-  local opts = my.merge(default_opts, theme_opts[theme] or {})
+---@type LoadFn
+local function default_load(theme, bg, opts)
   bg = opts.force_bg or bg
   if bg and bg ~= '' then
     vim.opt.background = bg
   end
-  if opts.load(theme, bg) then
+  if try_colorscheme(theme) then
     if bg and bg ~= '' then
       vim.opt.background = bg
     end
     if opts.should_syn_reset and vim.fn.exists('syntax_on') then
       vim.cmd('syn reset')
     end
+    return true
   end
+  return false
 end
+
+---@type table<string, ThemerOpts>
+local theme_opts = {
+  solarized = {
+    force_bg = 'dark',
+  },
+}
 
 local bg_file = vim.fn.expand('~/.vim/background')
 local theme_file = vim.fn.expand('~/.vim/theme')
@@ -81,20 +77,23 @@ local function load_theme()
     return
   end
 
+  --- Update globals
   tried_theme = theme
   tried_bg = bg
 
-  try_theme(theme, bg)
+  local opts = theme_opts[theme] or {}
+  local load = opts.load or default_load
+  return load(theme, bg, opts)
 end
 
 function M.setup()
-  if not _G.themer_timer then
+  if not M.themer_timer then
     -- Load theme immediately.
     load_theme()
 
     -- Load theme in timer. Wait 3s on init then run every second.
-    _G.themer_timer = vim.loop.new_timer()
-    themer_timer:start(3000, 1000, vim.schedule_wrap(load_theme))
+    M.themer_timer = vim.uv.new_timer()
+    M.themer_timer:start(3000, 1000, vim.schedule_wrap(load_theme))
   end
 end
 

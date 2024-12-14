@@ -1,3 +1,6 @@
+-- This is different from https://www.lazyvim.org/extras/formatting/prettier because we use
+-- prettierd instead of raw prettier, for speed.
+
 local supported = {
   'css',
   'graphql',

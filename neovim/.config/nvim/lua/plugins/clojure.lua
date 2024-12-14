@@ -1,33 +1,31 @@
-local sexp_filetypes = { 'clojure', 'lisp', 'scheme' }
+-- Replicating https://www.lazyvim.org/extras/lang/clojure without the bugs
 
 return {
-  -- Add clojure to treesitter.
+  -- Syntax parsing for clojure.
   {
     'nvim-treesitter/nvim-treesitter',
-    opts = function(_, opts)
-      if type(opts.ensure_installed) == 'table' then
-        vim.list_extend(opts.ensure_installed, { 'clojure' })
-      end
-    end,
+    opts = {
+      ensure_installed = { 'clojure' },
+    },
   },
 
+  -- Static clojure LSP.
   {
     'neovim/nvim-lspconfig',
     opts = {
-      -- make sure mason installs the server
       servers = {
         clojure_lsp = {},
       },
     },
   },
 
-  { 'tpope/vim-classpath', lazy = true, ft = { 'java', 'clojure' } },
-
+  -- Dynamic clojure dev with nrepl.
   {
     'Olical/conjure',
-    lazy = true,
-    ft = { 'clojure' },
+    event = 'LazyFile',
     config = function(_, opts)
+      -- Enable conjure to respect .nrepl-host.
+      -- https://github.com/Olical/conjure/discussions/594
       local _, content = pcall(vim.fn.readfile, '.nrepl-host', '', 1)
       if content then
         vim.g['conjure#client#clojure#nrepl#connection#default_host'] = content[1]
@@ -35,65 +33,40 @@ return {
       require('conjure.main').main()
       require('conjure.mapping')['on-filetype']()
     end,
-  },
-
-  {
-    'guns/vim-sexp',
-    lazy = true,
-    ft = sexp_filetypes,
     init = function()
-      vim.g.sexp_mappings = {
-        sexp_indent = '', -- prefer == bound to conform for zprint
-        sexp_indent_top = '', -- don't bind =- either
-      }
+      -- Prefer LSP for jump-to-definition and symbol-doc, and use conjure
+      -- alternatives with <localleader>K and <localleader>gd
+      vim.g['conjure#mapping#doc_word'] = 'K'
+      vim.g['conjure#mapping#def_word'] = 'gd'
+
+      -- Disable the popup HUD. It never has enough info.
+      vim.g['conjure#log#hud#enabled'] = false
+
+      -- Enable folding of results when they exceed 10 lines.
+      vim.g['conjure#log#fold#enabled'] = true
+
+      -- Jump to top of latest result.
+      vim.g['conjure#log#jump_to_latest#enabled'] = true
+
+      -- Enable "go to definition" and "eval file" when connecting to nrepl inside vagrant VM.
+      -- The dot works because of vim-rooter.
+      vim.g['conjure#path_subs'] = { ['/home/agilepublisher/cubchicken'] = '.' }
+
+      -- Don't start babashka if nrepl isn't available.
+      vim.g['conjure#client#clojure#nrepl#connection#auto_repl#enabled'] = false
     end,
   },
 
-  -- TODO the mappings provided by vim-sexp-mappings-for-regular-people
-  -- seem to be broken or overridden by which-key, especially word motions.
+  -- Autocomplete with conjure.
   {
-    'tpope/vim-sexp-mappings-for-regular-people',
-    lazy = true,
-    ft = sexp_filetypes,
-    init = function()
-      vim.g.sexp_enable_insert_mode_mappings = 0
-      vim.g.sexp_insert_after_wrap = 0
-    end,
-    config = function()
-      vim.api.nvim_create_autocmd({ 'FileType' }, {
-        group = vim.api.nvim_create_augroup('MySexpMappings', { clear = true }),
-        pattern = sexp_filetypes,
-        callback = function()
-          vim.keymap.set(
-            'n',
-            '><',
-            '<Plug>(sexp_emit_head_element)',
-            { desc = 'Emit head element', buffer = true, silent = true }
-          )
-          vim.keymap.set(
-            'n',
-            '<>',
-            '<Plug>(sexp_emit_tail_element)',
-            { desc = 'Emit tail element', buffer = true, silent = true }
-          )
-          vim.keymap.set(
-            'n',
-            '<<',
-            '<Plug>(sexp_capture_prev_element)',
-            { desc = 'Capture previous element', buffer = true, silent = true }
-          )
-          vim.keymap.set(
-            'n',
-            '>>',
-            '<Plug>(sexp_capture_next_element)',
-            { desc = 'Capture next element', buffer = true, silent = true }
-          )
-        end,
-      })
+    'hrsh7th/nvim-cmp',
+    dependencies = { 'PaterJason/cmp-conjure' },
+    opts = function(_, opts)
+      table.insert(opts.sources, { name = 'conjure' })
     end,
   },
 
-  -- Add zprint to conform.
+  -- Use zprint for clojure formatting.
   {
     'stevearc/conform.nvim',
     opts = {
@@ -102,4 +75,14 @@ return {
       },
     },
   },
+
+  -- Make sure this fd-leaking monstrosity is disabled.
+  {
+    'm00qek/baleia.nvim',
+    enabled = false,
+  },
+
+  -- Set vim file search path from the java classpath.
+  -- Temporarily disabled to see if we miss this.
+  --{ 'tpope/vim-classpath', lazy = true, ft = { 'java', 'clojure' } },
 }

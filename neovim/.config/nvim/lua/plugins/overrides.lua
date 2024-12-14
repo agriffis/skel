@@ -1,37 +1,49 @@
 local Util = require('lazyvim.util')
 
 return {
-  -- Disable lots of stuff.
+  { 'LazyVim/LazyVim', opts = { news = { lazyvim = false, neovim = false } } },
+
   {
-    'LazyVim/LazyVim',
+    'folke/snacks.nvim',
     opts = {
-      news = { lazyvim = false, neovim = false },
+      dashboard = { enabled = false },
+      -- Disable word highlighting. This used to be document_highlight in the lsp config.
+      words = { enabled = false },
     },
   },
-  { 'goolord/alpha-nvim', enabled = false },
-  { 'nvimdev/dashboard-nvim', enabled = false },
-  { 'folke/snacks.nvim', opts = { dashboard = { enabled = false } } },
+
   {
     'folke/flash.nvim',
     opts = { modes = { char = { enabled = false }, search = { enabled = false } } },
   },
-  { 'echasnovski/mini.indentscope', enabled = false },
-  { 'echasnovski/mini.pairs', enabled = false },
+
   {
     'hrsh7th/nvim-cmp',
     opts = function(_, opts)
+      -- Don't start completion until I press ctrl-space.
       opts.completion.autocomplete = false
-      -- Don't replace normal vim completion.
-      opts.mapping['<C-P>'] = nil
-      opts.mapping['<C-N>'] = nil
+      -- Don't replace normal vim ctrl-n ctrl-p completion.
+      local cmp = require('cmp')
+      opts.mapping['<C-n>'] = function(fallback)
+        if cmp.visible() then
+          cmp.select_next_item { behavior = cmp.SelectBehavior.Insert }
+        else
+          fallback()
+        end
+      end
+      opts.mapping['<C-p>'] = function(fallback)
+        if cmp.visible() then
+          cmp.select_prev_item { behavior = cmp.SelectBehavior.Insert }
+        else
+          fallback()
+        end
+      end
     end,
   },
-  { 'lukas-reineke/indent-blankline.nvim', enabled = false },
-  { 'RRethy/vim-illuminate', enabled = false },
-  { 'nvim-treesitter/nvim-treesitter-context', enabled = false },
+
   {
     'windwp/nvim-ts-autotag',
-    enabled = false,
+    -- enabled = false,
     opts = {
       autotag = {
         -- https://github.com/windwp/nvim-ts-autotag/issues/124
@@ -39,6 +51,16 @@ return {
         -- https://github.com/windwp/nvim-ts-autotag/issues/151
         enable_close_on_slash = false,
       },
+    },
+  },
+
+  -- Don't highlight word under cursor.
+  {
+    'neovim/nvim-lspconfig',
+    opts = {
+      -- N.B. This setting no longer does anything. See config for snacks above, instead.
+      -- https://github.com/LazyVim/LazyVim/issues/4777
+      document_highlight = { enabled = false },
     },
   },
 

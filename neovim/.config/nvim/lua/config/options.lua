@@ -19,6 +19,7 @@ vim.opt.backspace = '2' -- allow backspacing over everything in insert mode
 vim.opt.backupcopy = 'yes' -- best for inotify
 vim.opt.conceallevel = 0 -- don't hide stuff
 vim.opt.cursorline = false -- enabled in autocmds.lua
+vim.opt.fillchars = { eob = ' ' } -- kill the tilde
 vim.opt.hidden = true -- enable background buffers
 vim.opt.history = 100 -- keep 100 lines of command line history
 vim.opt.joinspaces = false -- two spaces after a period is for old fogeys
@@ -31,7 +32,7 @@ vim.opt.number = false -- enabled in autocmds.lua
 vim.opt.relativenumber = false
 vim.opt.ruler = true -- show the cursor position all the time
 vim.opt.shada = "!,'10,f0,h,s100" -- keep fast by avoiding lots of file/dir stats
-vim.opt.signcolumn = 'auto'
+vim.opt.signcolumn = 'auto' -- enabled in autocmds.lua
 -- override lazyvim default for statuscolumn for now, because it keeps shifting the indent (exactly
 -- the thing that it's supposed to avoid)
 vim.opt.stc = ''
@@ -73,4 +74,13 @@ vim.opt.hlsearch = false -- by default, don't highlight matches after they're fo
 vim.opt.grepprg = 'rg --hidden --line-number --smart-case --sort-files'
 
 -- Windowing
+vim.opt.fillchars = {
+  horiz = '━',
+  horizup = '┻',
+  horizdown = '┳',
+  vert = '┃',
+  vertleft = '┫',
+  vertright = '┣',
+  verthoriz = '╋',
+}
 vim.opt.winwidth = 40 -- min width for current window (default 20)

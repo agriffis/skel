@@ -6,15 +6,10 @@
 -- Note that even with autoformat disabled, you can always invoke the formatter
 -- directly with <leader>cf
 
--- Disable autoformat per buffer, to be re-enabled by editorconfig. This is
--- different from disabling autoformat globally, which would prevent us from
--- selectively enabling it per buffer.
-vim.api.nvim_create_autocmd({ 'BufNewFile', 'BufReadPre' }, {
-  group = vim.api.nvim_create_augroup('MyAutoformat', { clear = true }),
-  callback = function(event)
-    vim.b[event.buf].autoformat = false
-  end,
-})
+-- Disable autoformat globally, to be re-enabled per-buffer by editorconfig.
+-- This works because LazyVim honors the buffer setting in priority over the
+-- global setting if it is non-nil.
+vim.g.autoformat = false
 
 -- Recognize editorconfig custom property to enable autoformatting.
 require('editorconfig').properties.autoformat = function(bufnr, val)
