@@ -1,5 +1,7 @@
 -- Replicating https://www.lazyvim.org/extras/lang/clojure without the bugs
 
+local lisp_filetypes = { 'clojure', 'fennel', 'lisp', 'scheme' }
+
 return {
   -- Syntax parsing for clojure.
   {
@@ -7,6 +9,22 @@ return {
     opts = {
       ensure_installed = { 'clojure' },
     },
+  },
+
+  -- Paredit!
+  -- https://github.com/julienvincent/nvim-paredit?tab=readme-ov-file
+  {
+    'julienvincent/nvim-paredit',
+    ft = lisp_filetypes,
+    init = function()
+      vim.api.nvim_create_autocmd('FileType', {
+        pattern = lisp_filetypes,
+        callback = function()
+          -- https://github.com/echasnovski/mini.pairs/blob/main/doc/mini-pairs.txt
+          vim.b.minipairs_disable = true
+        end,
+      })
+    end,
   },
 
   -- Static clojure LSP.
