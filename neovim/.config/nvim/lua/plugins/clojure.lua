@@ -13,6 +13,11 @@ return {
 
   -- Paredit!
   -- https://github.com/julienvincent/nvim-paredit?tab=readme-ov-file
+  --
+  -- The text object selections (af for example) don't work. They're trampled on
+  -- by the LazyVim treesitter text objects, and I couldn't figure out how to
+  -- fix it. But the treesitter text objects provide ab (a "block") and it works
+  -- pretty well for forms.
   {
     'julienvincent/nvim-paredit',
     ft = lisp_filetypes,

@@ -52,7 +52,7 @@ return {
       -- Omit buffer from default sources, so we're only getting "smart"
       -- completions from LSP etc.
       opts.sources.default = my.filter(function(v)
-        return v ~= 'buffer' and v ~= 'snippet'
+        return v ~= 'buffer' and v ~= 'snippets'
       end, opts.sources.default)
 
       -- Don't show completion menu until I press ctrl-space.
