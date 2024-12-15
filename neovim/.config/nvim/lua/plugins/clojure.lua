@@ -78,10 +78,23 @@ return {
   -- Autocomplete with conjure.
   {
     'hrsh7th/nvim-cmp',
+    optional = true,
     dependencies = { 'PaterJason/cmp-conjure' },
     opts = function(_, opts)
       table.insert(opts.sources, { name = 'conjure' })
     end,
+  },
+  {
+    'saghen/blink.cmp',
+    optional = true,
+    dependencies = { 'PaterJason/cmp-conjure', 'saghen/blink.compat' },
+    opts = {
+      sources = {
+        compat = { 'conjure' },
+        providers = { conjure = { kind = 'Conjure' } },
+      },
+      appearance = { kind_icons = { Conjure = '🪄' } },
+    },
   },
 
   -- Use zprint for clojure formatting.

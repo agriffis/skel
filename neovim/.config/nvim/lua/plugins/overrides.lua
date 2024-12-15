@@ -1,3 +1,4 @@
+local my = require('my')
 local Util = require('lazyvim.util')
 
 return {
@@ -9,6 +10,7 @@ return {
       dashboard = { enabled = false },
       -- Disable word highlighting. This used to be document_highlight in the lsp config.
       words = { enabled = false },
+      scroll = { enabled = false },
     },
   },
 
@@ -19,6 +21,7 @@ return {
 
   {
     'hrsh7th/nvim-cmp',
+    optional = true,
     opts = function(_, opts)
       -- Don't start completion until I press ctrl-space.
       opts.completion.autocomplete = false
@@ -38,6 +41,44 @@ return {
           fallback()
         end
       end
+    end,
+  },
+
+  -- LazyVim switched from nvim-cmp to blink.cmp in v14
+  {
+    'saghen/blink.cmp',
+    optional = true,
+    opts = function(_, opts)
+      -- Omit buffer from default sources, so we're only getting "smart"
+      -- completions from LSP etc.
+      opts.sources.default = my.filter(function(v)
+        return v ~= 'buffer'
+      end, opts.sources.default)
+
+      -- Don't show completion menu until I press ctrl-space or ctrl-n.
+      opts.completion.menu.auto_show = false
+
+      -- Start completing with tab/ctrl-n and auto-accept unless esc/ctrl-e
+      opts.keymap = {
+        preset = 'enter',
+
+        -- Change tab to accept ghost text item.
+        ['<Tab>'] = {
+          'snippet_forward',
+          function(cmp)
+            local completion_list = require('blink.cmp.completion.list')
+            if next(completion_list.items) then
+              vim.schedule(function()
+                completion_list.accept {
+                  index = completion_list.selected_item_idx or 1,
+                }
+              end)
+              return true
+            end
+          end,
+          'fallback',
+        },
+      }
     end,
   },
 
