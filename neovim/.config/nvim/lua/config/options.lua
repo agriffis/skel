@@ -31,7 +31,7 @@ vim.opt.paragraphs = '' -- otherwise NROFF macros screw up CSS
 vim.opt.number = false -- enabled in autocmds.lua
 vim.opt.relativenumber = false
 vim.opt.ruler = true -- show the cursor position all the time
-vim.opt.shada = "!,'10,f0,h,s100" -- keep fast by avoiding lots of file/dir stats
+--vim.opt.shada = "!,'10,f0,h,s100" -- keep fast by avoiding lots of file/dir stats
 vim.opt.signcolumn = 'auto' -- enabled in autocmds.lua
 -- override lazyvim default for statuscolumn for now, because it keeps shifting the indent (exactly
 -- the thing that it's supposed to avoid)
