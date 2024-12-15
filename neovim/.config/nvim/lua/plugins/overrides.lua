@@ -52,13 +52,14 @@ return {
       -- Omit buffer from default sources, so we're only getting "smart"
       -- completions from LSP etc.
       opts.sources.default = my.filter(function(v)
-        return v ~= 'buffer'
+        return v ~= 'buffer' and v ~= 'snippet'
       end, opts.sources.default)
 
-      -- Don't show completion menu until I press ctrl-space or ctrl-n.
+      -- Don't show completion menu until I press ctrl-space.
       opts.completion.menu.auto_show = false
 
-      -- Start completing with tab/ctrl-n and auto-accept unless esc/ctrl-e
+      -- This is essentially the default keymap from LazyVim but without the C-y map that I don't
+      -- understand, and with this alternate tab map.
       opts.keymap = {
         preset = 'enter',
 
