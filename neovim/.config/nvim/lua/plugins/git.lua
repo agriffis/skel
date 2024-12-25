@@ -1,6 +1,7 @@
 return {
   {
     'sindrets/diffview.nvim',
+    cmd = { 'DiffviewFileHistory', 'DiffviewLog', 'DiffviewOpen' },
     keys = {
       { '<leader>gf', '<cmd>DiffviewFileHistory %<cr>', desc = 'Diffview current file history' },
       { '<leader>gd', '<cmd>DiffviewOpen<cr>', desc = 'Diffview open' },
@@ -17,24 +18,31 @@ return {
       'ibhagwan/fzf-lua',
     },
     config = true,
-    --keys = {
-    --{ '<leader>gg', '<cmd>Neogit<cr>', desc = 'Neogit status' },
-    --{
-    --  '<leader>gl',
-    --  function()
-    --    require('neogit').action('log', 'log_current')
-    --  end,
-    --  desc = 'Neogit log',
-    --},
-    --{
-    --  '<leader>gf',
-    --  function()
-    --    local file = vim.fn.expand('%')
-    --    require('neogit').action('log', 'log_current', { '--', file })
-    --  end,
-    --  desc = 'Neogit log (current file)',
-    --},
-    --},
+    keys = {
+      {
+        '<leader>gg',
+        function()
+          require('neogit').open { kind = 'split' }
+        end,
+        desc = 'Neogit status',
+      },
+      {
+        '<leader>gl',
+        function()
+          require('neogit').open { 'log', kind = 'split' }
+        end,
+        desc = 'Neogit log',
+      },
+      {
+        '<leader>gf',
+        -- This isn't working yet and I don't know why.
+        function()
+          local file = vim.fn.expand('%')
+          require('neogit').action('log', 'log_current', { '--', file })
+        end,
+        desc = 'Neogit log (current file)',
+      },
+    },
   },
 
   -- mainly for :Gvdiffsplit but maybe could be done with neogit

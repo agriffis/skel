@@ -13,11 +13,6 @@ return {
 
   -- Paredit!
   -- https://github.com/julienvincent/nvim-paredit?tab=readme-ov-file
-  --
-  -- The text object selections (af for example) don't work. They're trampled on
-  -- by the LazyVim treesitter text objects, and I couldn't figure out how to
-  -- fix it. But the treesitter text objects provide ab (a "block") and it works
-  -- pretty well for forms.
   {
     'julienvincent/nvim-paredit',
     ft = lisp_filetypes,
@@ -25,11 +20,98 @@ return {
       vim.api.nvim_create_autocmd('FileType', {
         pattern = lisp_filetypes,
         callback = function()
-          -- https://github.com/echasnovski/mini.pairs/blob/main/doc/mini-pairs.txt
-          vim.b.minipairs_disable = true
+          -- Disable default mini.ai textobjects in favor of nvim-paredit's
+          -- element/form/top-level-form.
+          -- https://github.com/echasnovski/mini.ai/blob/main/doc/mini-ai.txt
+          vim.b.miniai_config = {
+            custom_textobjects = {
+              -- These are on the right track, but they don't work yet, in other
+              -- words this will disable but doesn't *enable* the paredit
+              -- mapping. I think that the right answer might actually be to
+              -- define these according to mini.ai's expectations, either using
+              -- the mini.ai-provided internals or what's provided by
+              -- nvim-paredit.
+              --
+              -- For now, the mini.ai-provided ab ("balanced
+              -- parens/brackets/braces") already works pretty well.
+              --
+              --['e'] = false, -- not actually mapped by mini.ai
+              --['f'] = false,
+              --['F'] = false,
+            },
+          }
         end,
       })
     end,
+    -- Two problems with the following:
+    -- 1. It's not effective. Something overrides. Maybe need to use lazyvim's
+    --    top-level keys.
+    -- 2. Some of the funcs don't exist yet, see
+    --    https://github.com/julienvincent/nvim-paredit/issues/86
+    --opts = function()
+    --  local api = require('nvim-paredit.api')
+    --  return {
+    --    keys = {
+    --      ['w'] = {
+    --        api.move_to_next_element_head,
+    --        'Next element head',
+    --        repeatable = false,
+    --        mode = { 'n', 'x', 'o', 'v' },
+    --      },
+    --      ['b'] = {
+    --        api.move_to_prev_element_head,
+    --        'Previous element head',
+    --        repeatable = false,
+    --        mode = { 'n', 'x', 'o', 'v' },
+    --      },
+    --      ['e'] = {
+    --        api.move_to_next_element_tail,
+    --        'Next element tail',
+    --        repeatable = false,
+    --        mode = { 'n', 'x', 'o', 'v' },
+    --      },
+    --      ['ge'] = {
+    --        api.move_to_prev_element_tail,
+    --        'Previous element tail',
+    --        repeatable = false,
+    --        mode = { 'n', 'x', 'o', 'v' },
+    --      },
+    --      --['W'] = {
+    --      --  api.move_to_next_form_start,
+    --      --  'Next form start',
+    --      --  repeatable = false,
+    --      --  mode = { 'n', 'x', 'o', 'v' },
+    --      --},
+    --      --['E'] = {
+    --      --  api.move_to_next_form_end,
+    --      --  'Next form end',
+    --      --  repeatable = false,
+    --      --  mode = { 'n', 'x', 'o', 'v' },
+    --      --},
+    --      --['gE'] = {
+    --      --  api.move_to_prev_form_end,
+    --      --  'Previous form end',
+    --      --  repeatable = false,
+    --      --  mode = { 'n', 'x', 'o', 'v' },
+    --      --},
+    --    },
+    --  }
+    --end,
+  },
+  {
+    'echasnovski/mini.pairs',
+    opts = {
+      -- These options are provided by LazyVim's plugin/coding.lua, not by
+      -- mini.pairs upstream. Disable them because they make LISP editing
+      -- harder. There doesn't seem to be an easy way to make this depend on the
+      -- filetype.
+      -- Don't skip autopair based on next character.
+      skip_next = false,
+      -- Don't skip autopair even inside strings.
+      skip_ts = false,
+      -- Don't skip autopair even when next char is closing pair.
+      skip_unbalanced = false,
+    },
   },
 
   -- Static clojure LSP.

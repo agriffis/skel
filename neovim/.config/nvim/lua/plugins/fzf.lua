@@ -43,27 +43,19 @@ return {
       preview = {
         layout = 'vertical', -- default is 'flex'
       },
-      --X fzf_opts = {
-      --X   ['--no-scrollbar'] = true,
-      --X   --      ['--ansi'] = true,
-      --X   --      ['--exact'] = true,
-      --X   --      ['--height'] = '100%',
-      --X   --      ['--info'] = 'inline',
-      --X   --      ['--keep-right'] = true, -- https://github.com/ibhagwan/fzf-lua/issues/269
-      --X   --      ['--layout'] = 'reverse',
-      --X   --      ['--prompt'] = '> ',
-      --X },
-      grep = {
-        rg_opts = table.concat({
-          '--column',
-          '--line-number',
-          '--no-heading',
-          '--color=always',
-          '--smart-case',
-          '--max-columns=512',
-          '-g !.git',
-        }, ' '),
-      },
+    },
+    grep = {
+      rg_opts = table.concat({
+        '--column',
+        '--line-number',
+        '--no-heading',
+        '--color=always',
+        '--smart-case',
+        '--max-columns=4096',
+        '--hidden',
+        '-g !.git',
+        '-e',
+      }, ' '),
     },
   },
   keys = function(_, plugin_keys)
