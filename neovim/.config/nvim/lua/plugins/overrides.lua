@@ -59,27 +59,42 @@ return {
       -- Don't show completion menu until I press ctrl-space.
       opts.completion.menu.auto_show = false
 
-      -- This is essentially the default keymap from LazyVim but without the C-y map that I don't
-      -- understand, and with this alternate tab map.
-      opts.keymap = {
-        preset = 'enter',
+      -- Don't consider ghost text visible.
+      local function is_open()
+        return require('blink.cmp.completion.windows.menu').win:is_open()
+        -- or require('blink.cmp.completion.windows.ghost_text').is_open()
+      end
+      local function if_open_then(cmd)
+        return function(cmp)
+          return is_open() and cmp[cmd]()
+        end
+      end
+      local function show_menu()
+        if is_open() then
+          return
+        end
+        vim.schedule(function()
+          require('blink.cmp.completion.windows.menu').auto_show = true
+          require('blink.cmp.completion.trigger').show {
+            force = true,
+            trigger_kind = 'manual',
+          }
+        end)
+        return true
+      end
 
-        -- Change tab to accept ghost text item.
-        ['<Tab>'] = {
-          'snippet_forward',
-          function(cmp)
-            local completion_list = require('blink.cmp.completion.list')
-            if next(completion_list.items) then
-              vim.schedule(function()
-                completion_list.accept {
-                  index = completion_list.selected_item_idx or 1,
-                }
-              end)
-              return true
-            end
-          end,
-          'fallback',
-        },
+      opts.keymap = {
+        preset = 'none',
+        ['<C-space>'] = { show_menu, 'show_documentation', 'hide_documentation' },
+        ['<C-e>'] = { 'hide', 'fallback' },
+        ['<CR>'] = { if_open_then('accept'), 'fallback' },
+        ['<Tab>'] = { 'accept', 'fallback' },
+        ['<Up>'] = { if_open_then('select_prev'), 'fallback' },
+        ['<Down>'] = { if_open_then('select_next'), 'fallback' },
+        ['<C-p>'] = { if_open_then('select_prev'), 'fallback' },
+        ['<C-n>'] = { if_open_then('select_next'), 'fallback' },
+        ['<C-b>'] = { 'scroll_documentation_up', 'fallback' },
+        ['<C-f>'] = { 'scroll_documentation_down', 'fallback' },
       }
     end,
   },
