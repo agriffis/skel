@@ -28,7 +28,7 @@ vim.api.nvim_create_autocmd('BufReadPost', {
 -- Enable permanent signcolumn when editing code.
 local function hacking()
   --vim.opt_local.cursorline = true
-  vim.opt_local.number = true
+  --vim.opt_local.number = true
   vim.opt_local.signcolumn = 'yes'
 end
 

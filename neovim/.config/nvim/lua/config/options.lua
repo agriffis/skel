@@ -74,6 +74,7 @@ vim.opt.hlsearch = false -- by default, don't highlight matches after they're fo
 vim.opt.grepprg = 'rg --hidden --line-number --smart-case --sort-files'
 
 -- Windowing
+vim.opt.tabpagemax = 999
 vim.opt.fillchars = {
   horiz = '━',
   horizup = '┻',
