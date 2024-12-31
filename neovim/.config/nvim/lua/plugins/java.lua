@@ -4,19 +4,20 @@
 local saved_server_opts
 
 return {
-  -- Capture server_opts especially for lazyvim-configured
-  -- server_opts.capabilities that we can't otherwise access in nvim-jdtls
-  -- setup.
   {
     'neovim/nvim-lspconfig',
-    opts = {
-      setup = {
+    opts = function(_, opts)
+      vim.list_extend(opts.inlay_hints.exclude, { 'java' })
+      opts.setup = {
         jdtls = function(_, server_opts)
+          -- Capture server_opts especially for lazyvim-configured
+          -- server_opts.capabilities that we can't otherwise access in nvim-jdtls
+          -- setup.
           saved_server_opts = server_opts
           return true -- avoid duplicate servers
         end,
-      },
-    },
+      }
+    end,
   },
 
   -- Enable debug and hot code replacement for autotest.
