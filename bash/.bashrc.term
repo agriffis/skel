@@ -49,7 +49,7 @@ setup-TERM() {
       terms=("$TERM" xterm-256color xterm) ;;
     rxvt-*)
       terms=("$TERM" rxvt xterm) ;;
-    xterm-256color|xterm-kitty)
+    xterm-256color|xterm-kitty|xterm-ghostty)
       terms=("$TERM" xterm-256color xterm) ;;
     screen*)
       terms=(screen-256color "$TERM" screen) ;;
@@ -63,7 +63,7 @@ setup-TERM() {
     # both appear to be broken, so we search explicitly.
     declare -a toes
     toes=($(
-      for d in ~/.terminfo /etc/terminfo /lib/terminfo /usr/share/terminfo; do
+      for d in ~/.terminfo ~/.local/share/terminfo /etc/terminfo /lib/terminfo /usr/share/terminfo; do
         [[ -d $d ]] && toe "$d"
       done | awk '{print $1}'
     ))
