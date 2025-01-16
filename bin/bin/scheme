@@ -157,10 +157,11 @@ die() {
 load_default_schemes() {
     light_background=light
     light_iterm2_scheme=CLRS
-    # background foreground then ANSI 0-15
+    # background foreground then ANSI 0-15 then cursor
     light_xterm_colors="#ffffff #000000 #000000 #8b4b4b #4b8b4b #8b8b4b
                         #4b4b8b #8b4b8b #4b8b8b #d9d9d9 #262626 #c99b9b
-                        #9bc99b #c9c99b #9b9bc9 #c99bc9 #9bc9c9 #ffffff"
+                        #9bc99b #c9c99b #9b9bc9 #c99bc9 #9bc9c9 #ffffff
+                        #e0af68"
     light_emacs_theme=spacemacs-light # doom-one-light
     light_vim_theme=alabaster # default
     light_bat_theme=GitHub
@@ -170,7 +171,8 @@ load_default_schemes() {
     dark_iterm2_scheme=Floraverse
     dark_xterm_colors="#000000 #e8e8d3 #2e3436 #cc0000 #4e9a06 #edd400
                        #3465a4 #92659a #07c7ca #d3d7cf #6e706b #ef2929
-                       #8ae234 #fce94f #729fcf #c19fbe #63e9e9 #eeeeec"
+                       #8ae234 #fce94f #729fcf #c19fbe #63e9e9 #eeeeec
+                       #f7768e"
     dark_emacs_theme=spacemacs-dark # doom-one
     dark_vim_theme=alabaster # inkpot
     dark_bat_theme='Monokai Extended' # default
@@ -179,7 +181,8 @@ load_default_schemes() {
     tokyonight_background=dark
     tokyonight_xterm_colors="#000000 #c0caf5 #15161e #f7768e #9ece6a #e0af68
                              #7aa2f7 #bb9af7 #7dcfff #a9b1d6 #414868 #f7768e
-                             #9ece6a #e0af68 #7aa2f7 #bb9af7 #7dcfff #c0caf5"
+                             #9ece6a #e0af68 #7aa2f7 #bb9af7 #7dcfff #c0caf5
+                             #f7768e"
     tokyonight_vim_theme=tokyonight
     tokyonight_toggle=tokyoday
     # background #1a1b26
@@ -449,13 +452,13 @@ update_gnome_terminal() {
     # unpack xterm_colors string
     declare xterm_foreground xterm_background
     xterm_colors=( $xterm_colors )
-    if [[ ${#xterm_colors[@]} != 18 ]]; then
+    if [[ ${#xterm_colors[@]} -lt 18 ]]; then
         echo "Invalid xterm_colors (${#xterm_colors[@]} elements)" >&2
         return
     fi
     xterm_background="${xterm_colors[0]}"
     xterm_foreground="${xterm_colors[1]}"
-    xterm_colors=( "${xterm_colors[@]:2}" )
+    xterm_colors=( "${xterm_colors[@]:2:16}" )
 
     # we'd like to use gsettings--it's a nicer front end--but it
     # doesn't handle the settings lists that gnome-terminal uses for its
@@ -499,13 +502,15 @@ update_kitty() {
     # unpack xterm_colors string
     declare xterm_foreground xterm_background
     xterm_colors=( $xterm_colors )
-    if [[ ${#xterm_colors[@]} != 18 ]]; then
+    if [[ ${#xterm_colors[@]} -lt 18 ]]; then
         echo "Invalid xterm_colors (${#xterm_colors[@]} elements)" >&2
         return
     fi
     xterm_background="${xterm_colors[0]}"
     xterm_foreground="${xterm_colors[1]}"
-    xterm_colors=( "${xterm_colors[@]:2}" )
+    cursor_color="${xterm_colors[18]:-none}"
+    cursor_text_color="#000000"  # kitty ignores if cursor color is none
+    xterm_colors=( "${xterm_colors[@]:2:16}" )
 
     # translate to kitty color names
     declare -a kolors
@@ -530,6 +535,8 @@ update_kitty() {
         color13=${xterm_colors[13]}
         color14=${xterm_colors[14]}
         color15=${xterm_colors[15]}
+        cursor=${cursor_color}
+        cursor_text_color=${cursor_text_color}
     )
 
     # apply to static config first
@@ -605,7 +612,7 @@ update_alacritty() {
 
     # unpack xterm_colors string
     xterm_colors=( $xterm_colors )
-    if [[ ${#xterm_colors[@]} != 18 ]]; then
+    if [[ ${#xterm_colors[@]} -lt 18 ]]; then
         echo "Invalid xterm_colors (${#xterm_colors[@]} elements)" >&2
         return
     fi
