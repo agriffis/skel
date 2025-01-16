@@ -3,5 +3,5 @@
 --hidden
 --type-add=freemarker:*.ftl
 --sort=path
---max-columns=100
+--max-columns=400
 --max-columns-preview
