@@ -175,7 +175,7 @@ git() {
 }
 
 # fedora /usr/bin/vi is vim-minimal
-alias vi=vim
+#alias vi=vim
 
 # fedora has a stupid vim alias
 unalias vim &>/dev/null
