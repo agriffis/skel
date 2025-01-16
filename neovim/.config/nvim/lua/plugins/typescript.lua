@@ -2,7 +2,10 @@ return {
   {
     'neovim/nvim-lspconfig',
     opts = function(_, opts)
-      -- opts.inlay_hints.enabled = false
+      vim.list_extend(
+        opts.inlay_hints.exclude,
+        { 'javascript', 'javascriptreact', 'typescript', 'typescriptreact' }
+      )
     end,
   },
 
