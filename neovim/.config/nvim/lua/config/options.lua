@@ -85,3 +85,10 @@ vim.opt.fillchars = {
   verthoriz = '╋',
 }
 vim.opt.winwidth = 40 -- min width for current window (default 20)
+
+-- https://github.com/MeanderingProgrammer/render-markdown.nvim/discussions/280
+vim.filetype.add {
+  extension = {
+    dataviewjs = 'javascript',
+  },
+}
