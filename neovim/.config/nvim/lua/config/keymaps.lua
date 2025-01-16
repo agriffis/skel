@@ -48,7 +48,7 @@ wk.add {
 }
 
 wk.add {
-  -- lazyvim: these are mapped to <tab> but t is easier
+  -- lazyvim: these are mapped to <leader><tab> but t is easier
   { '<leader>t1', '<cmd>1tabnext<cr>', { desc = 'Go to first tab' } },
   { '<leader>t2', '<cmd>2tabnext<cr>', { desc = 'Go to second tab' } },
   { '<leader>t3', '<cmd>3tabnext<cr>', { desc = 'Go to third tab' } },
@@ -60,9 +60,12 @@ wk.add {
   { '<leader>t9', '<cmd>9tabnext<cr>', { desc = 'Go to last tab' } },
   { '<leader>t]', '<cmd>tabnext<cr>', { desc = 'Next tab' } },
   { '<leader>t[', '<cmd>tabprevious<cr>', { desc = 'Previous tab' } },
-  { '<leader>tt', '<c-tab>', { desc = 'Go to alternate tab' } },
+  { '<leader>tt', '<cmd>tabnext #<cr>', { desc = 'Alternate tab' } },
   { '<leader>td', '<cmd>tabclose<cr>', { desc = 'Close tab' } },
   { '<leader>to', '<cmd>tabonly<cr>', { desc = 'Close other tabs' } },
+  -- and faster shortcuts with just <tab>
+  { '<tab>', '<cmd>tabnext<cr>', { desc = 'Next tab' } },
+  { '<s-tab>', '<cmd>tabprevious<cr>', { desc = 'Previous tab' } },
 }
 
 vim.keymap.set('n', '=', 'gq', { desc = 'Format code', remap = true })
