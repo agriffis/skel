@@ -43,60 +43,60 @@ return {
         end,
       })
     end,
-    -- Two problems with the following:
-    -- 1. It's not effective. Something overrides. Maybe need to use lazyvim's
-    --    top-level keys.
-    -- 2. Some of the funcs don't exist yet, see
-    --    https://github.com/julienvincent/nvim-paredit/issues/86
-    --opts = function()
-    --  local api = require('nvim-paredit.api')
-    --  return {
-    --    keys = {
-    --      ['w'] = {
-    --        api.move_to_next_element_head,
-    --        'Next element head',
-    --        repeatable = false,
-    --        mode = { 'n', 'x', 'o', 'v' },
-    --      },
-    --      ['b'] = {
-    --        api.move_to_prev_element_head,
-    --        'Previous element head',
-    --        repeatable = false,
-    --        mode = { 'n', 'x', 'o', 'v' },
-    --      },
-    --      ['e'] = {
-    --        api.move_to_next_element_tail,
-    --        'Next element tail',
-    --        repeatable = false,
-    --        mode = { 'n', 'x', 'o', 'v' },
-    --      },
-    --      ['ge'] = {
-    --        api.move_to_prev_element_tail,
-    --        'Previous element tail',
-    --        repeatable = false,
-    --        mode = { 'n', 'x', 'o', 'v' },
-    --      },
-    --      --['W'] = {
-    --      --  api.move_to_next_form_start,
-    --      --  'Next form start',
-    --      --  repeatable = false,
-    --      --  mode = { 'n', 'x', 'o', 'v' },
-    --      --},
-    --      --['E'] = {
-    --      --  api.move_to_next_form_end,
-    --      --  'Next form end',
-    --      --  repeatable = false,
-    --      --  mode = { 'n', 'x', 'o', 'v' },
-    --      --},
-    --      --['gE'] = {
-    --      --  api.move_to_prev_form_end,
-    --      --  'Previous form end',
-    --      --  repeatable = false,
-    --      --  mode = { 'n', 'x', 'o', 'v' },
-    --      --},
-    --    },
-    --  }
-    --end,
+    opts = function()
+      local api = require('nvim-paredit.api')
+      -- Two problems with the following:
+      -- 1. It's not effective. Something overrides. Maybe need to use lazyvim's
+      --    top-level keys.
+      -- 2. Some of the funcs don't exist yet, see
+      --    https://github.com/julienvincent/nvim-paredit/issues/86
+      --return {
+      --  keys = {
+      --    ['w'] = {
+      --      api.move_to_next_element_head,
+      --      'Next element head',
+      --      repeatable = false,
+      --      mode = { 'n', 'x', 'o', 'v' },
+      --    },
+      --    ['b'] = {
+      --      api.move_to_prev_element_head,
+      --      'Previous element head',
+      --      repeatable = false,
+      --      mode = { 'n', 'x', 'o', 'v' },
+      --    },
+      --    ['e'] = {
+      --      api.move_to_next_element_tail,
+      --      'Next element tail',
+      --      repeatable = false,
+      --      mode = { 'n', 'x', 'o', 'v' },
+      --    },
+      --    ['ge'] = {
+      --      api.move_to_prev_element_tail,
+      --      'Previous element tail',
+      --      repeatable = false,
+      --      mode = { 'n', 'x', 'o', 'v' },
+      --    },
+      --    --['W'] = {
+      --    --  api.move_to_next_form_start,
+      --    --  'Next form start',
+      --    --  repeatable = false,
+      --    --  mode = { 'n', 'x', 'o', 'v' },
+      --    --},
+      --    --['E'] = {
+      --    --  api.move_to_next_form_end,
+      --    --  'Next form end',
+      --    --  repeatable = false,
+      --    --  mode = { 'n', 'x', 'o', 'v' },
+      --    --},
+      --    --['gE'] = {
+      --    --  api.move_to_prev_form_end,
+      --    --  'Previous form end',
+      --    --  repeatable = false,
+      --    --  mode = { 'n', 'x', 'o', 'v' },
+      --    --},
+      --  },
+      --}
+    end,
   },
   {
     'echasnovski/mini.pairs',
