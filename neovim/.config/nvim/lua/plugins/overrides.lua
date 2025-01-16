@@ -10,7 +10,7 @@ return {
       dashboard = { enabled = false },
       indent = { enabled = false },
       -- Disable word highlighting. This used to be document_highlight in the lsp config.
-      words = { enabled = false },
+      --words = { enabled = false },
       scroll = { enabled = false },
     },
   },
