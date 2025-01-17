@@ -72,16 +72,21 @@ return {
       dim_inactive = true,
 
       on_colors = function(c)
-        if vim.o.background == 'light' then
-          -- Use white background instead of light gray.
-          -- Darkened backgrounds use light gray instead of dark gray.
-          local r = {
-            [c.bg] = '#ffffff',
+        local r = vim.o.background == 'light'
+            and {
+              -- Use white background instead of light gray.
+              -- Darkened backgrounds use light gray instead of dark gray.
+              [c.bg] = '#ffffff',
+              [c.bg_dark] = c.bg,
+            }
+          or {
+            -- Use black background instead of dark gray.
+            -- Lighter backgrounds use dark gray instead of light gray.
+            [c.bg] = '#000000',
             [c.bg_dark] = c.bg,
           }
-          for k, v in pairs(c) do
-            c[k] = r[v] or v
-          end
+        for k, v in pairs(c) do
+          c[k] = r[v] or v
         end
       end,
 
