@@ -1,97 +1,104 @@
 [push]
-    default = simple
+  default = simple
+  autoSetupRemote = true
 
 [pull]
-    ff = only
+  ff = only
 
 [core]
-    pager = less -QRSX
-    #pager = delta
+  pager = env TERM=xterm less -QRSX
+  #pager = delta
 
-#[interactive]
-#    diffFilter = delta --color-only --24-bit-color always
+[interactive]
+#   diffFilter = delta --color-only --24-bit-color always
 
 [alias]
-    # Common abbreviations
-    ci = commit -v
-    co = checkout
-    id = describe
-    st = status
-    sub = submodule
-    up = checkout
-    update = checkout
-    uncommit = reset --soft HEAD~1
-    amend = commit --amend -C HEAD
-    purge = clean -fdx
-    pushf = push --force-with-lease
-    changed = diff --name-only
-    wip = commit -a -m wip
+  # Common abbreviations
+  ci = commit -v
+  co = checkout
+  id = describe
+  st = status
+  sub = submodule
+  up = checkout
+  update = checkout
+  uncommit = reset --soft HEAD~1
+  amend = commit --amend -C HEAD
+  purge = clean -fdx
+  pushf = push --force-with-lease
+  top = rev-parse --show-toplevel
+  #changed = "!f(){ cd \"${GIT_PREFIX:-$PWD}\"; git status -s \"$@\" | awk '{print $NF}'; }; f"
+  changed = "!f(){ cd \"${GIT_PREFIX:-$PWD}\"; if [[ -d ${@:$#} ]]; then IFS=$'\n' read -rd '' -a names < <(git diff --name-only \"$@\"); printf '%s\n' \"${names[@]#$GIT_PREFIX}\"; else git diff --name-only \"$@\"; fi; }; f"
+  wip = commit -a -m wip
 
-    # Diffs
-    di = diff
-    diffc = diff --cached
-    diffw = diff --ignore-space-change
-    diw = diffw
-    diffcw = diff --cached --ignore-space-change
-    showw = show --ignore-space-change
+  # Diffs
+  di = diff
+  diffc = diff --cached
+  diffw = diff --ignore-space-change
+  diw = diffw
+  diffcw = diff --cached --ignore-space-change
+  showw = show --ignore-space-change
 
-    # Runs diff using vimdiff to compare versions
-    vimdiff = difftool -t vimdiff
+  # Runs diff using vimdiff to compare versions
+  vimdiff = difftool -t vimdiff
 
-    # Check In All
-    cia = commit -v -a
+  # Check In All
+  cia = commit -v -a
 
-    # Returns relative path to repo root ("cd up" in absurd git vernacular)
-    root = rev-parse --show-cdup
+  # Returns relative path to repo root ("cd up" in absurd git vernacular)
+  root = rev-parse --show-cdup
 
-    # ReBase Upstream
-    rbu = rebase @{upstream}
+  # ReBase Upstream
+  rbu = rebase @{upstream}
 
-    # diff from main fork point
-    idb = !git merge-base --fork-point
-    diffb = "!f(){ b=$1; shift; git diff $(git idb \"$b\") \"$@\"; }; f"
-    lsb = "!f(){ b=$1; shift; git diffb \"$b\" --name-only \"$@\"; }; f"
-    main-branch = !git show-ref --verify --quiet refs/heads/main && echo main || echo master
-    idm = "!git idb \"$(git main-branch)\""
-    diffm = "!git diff \"$(git idm)\""
-    lsm = diffm --name-only
+  # diff from main fork point
+  idb = !git merge-base --fork-point
+  diffb = "!f(){ b=$1; shift; git diff $(git idb \"$b\") \"$@\"; }; f"
+  lsb = "!f(){ b=$1; shift; git diffb \"$b\" --name-only \"$@\"; }; f"
+  main-branch = !git show-ref --verify --quiet refs/heads/main && echo main || echo master
+  idm = "!git idb \"$(git main-branch)\""
+  diffm = "!git diff \"$(git idm)\""
+  lsm = diffm --name-only
 
-    # Log, One Line
-    lol = log --graph --pretty=lol
+  # Log, One Line
+  lol = log --graph --pretty=lol
 
-    # Log, One Line, All (refs) - shows the relationship of all refs in the repository
-    lola = !git lol --all
+  # Log, One Line, All (refs) - shows the relationship of all refs in the repository
+  lola = !git lol --all
 
-    # Log, One Line, outbound - shows the commits on HEAD not on upstream
-    lolo = !git lol @{upstream}..HEAD
+  # Log, One Line, outbound - shows the commits on HEAD not on upstream
+  lolo = !git lol @{upstream}..HEAD
 
-    # Log, One Line "Y" format - compares HEAD vs upstream back to the merge point
-    loly = !git lol ^$(git merge-base HEAD @{upstream})^@ HEAD @{upstream}
+  # Log, One Line "Y" format - compares HEAD vs upstream back to the merge point
+  loly = !git lol ^$(git merge-base HEAD @{upstream})^@ HEAD @{upstream}
 
-    # log Full (format)
-    logf = log -p --stat
+  # log Full (format)
+  logf = log -p --stat
 
-    # fetch and show log of upstream commits
-    inbound = !bash -c "\"git fetch; git log -p --stat HEAD..@{upstream}\""
+  # log bulleted list
+  bull = log --pretty=bull
 
-    # Show list of contributors
-    contrib = !git log "--pretty=format:'%an %ae%n%cn %ce'" |sort |uniq -c |sort
+  # fetch and show log of upstream commits
+  inbound = !bash -c "\"git fetch; git log -p --stat HEAD..@{upstream}\""
 
-    # Working with submodules
-    sdiff = !git diff && git submodule foreach 'git diff'
-    spush = push --recurse-submodules=on-demand
-    supdate = submodule update --remote --rebase
+  # Show list of contributors
+  contrib = !git log "--pretty=format:'%an %ae%n%cn %ce'" |sort |uniq -c |sort
 
-    cleanup = !git branch --merged | grep -Ev '^[*] (main|master)$' | xargs -n 1 -r git branch -d
+  # Working with submodules
+  sdiff = !git diff && git submodule foreach 'git diff'
+  spush = push --recurse-submodules=on-demand
+  supdate = submodule update --remote --rebase
+
+  cleanup = !git branch --merged | grep -Ev '^[*] (main|master)$' | xargs -n 1 -r git branch -d
 
 [pretty]
-    #lol = "%C(yellow bold)%h%C(reset) %C(red)(%an)%C(reset)%C(blue bold)%d%C(reset) %s %C(cyan)(%as)%C(reset)"
-    lol = "%as %C(bold blue)%h%Creset%C(bold red)%d%Creset %C(bold yellow)(%an)%Creset %s"
-    lolol = "%C(yellow bold)%h%Creset by %C(red)%an%Creset (%as)%C(cyan bold)%d%Creset%n%s%n%n%b"
+  #lol = "%C(yellow bold)%h%C(reset) %C(red)(%an)%C(reset)%C(blue bold)%d%C(reset) %s %C(cyan)(%as)%C(reset)"
+  lol = "%as %C(bold blue)%h%Creset%C(bold red)%d%Creset %C(bold yellow)(%an)%Creset %s"
+  lolol = "%C(yellow bold)%h%Creset by %C(red)%an%Creset (%as)%C(cyan bold)%d%Creset%n%s%n%n%b"
+  bull = "- %h %s"
 
 [notes]
-    displayRef = refs/notes/[t]ickets
-    displayRef = refs/notes/[t]esters
+  displayRef = refs/notes/[t]ickets
+  displayRef = refs/notes/[t]esters
 
 # [color "diff"]
 #     #plain = blue
@@ -117,25 +124,41 @@
 #     nobranch = red bold
 
 [diff]
-    renameLimit = 3000
-    submodule = log
+  renameLimit = 3000
+  submodule = log
+  tool = difftastic
+[difftool]
+  prompt = false
+[difftool "difftastic"]
+  cmd = difft "$LOCAL" "$REMOTE"
+[pager]
+  difftool = true
+  #diff = "ov -F --section-delimiter '^diff' --section-header"
+  #log = "ov -F --section-delimiter '^commit' --section-header-num 3"
+  #show = "ov -F --header 3"
+
 
 [status]
-    submodulesummary = 1
+  submodulesummary = 1
 
 [merge]
-    tool = vimmerge
+  tool = vimmerge
 [mergetool "vimmerge"]
-    cmd = vimmerge \"$MERGED\"
+  cmd = vimmerge \"$MERGED\"
 [mergetool "vim"]
-    cmd = vim -O \"$BASE\" \"$LOCAL\" \"$MERGED\" \"$REMOTE\"
+  cmd = vim -O \"$BASE\" \"$LOCAL\" \"$MERGED\" \"$REMOTE\"
 [mergetool]
-    keepBackup = false
+  keepBackup = false
 
 [tig "bind"]
-    status = C !git ci
+  status = C !git ci
 
 [include]
-    path = .gitconfig.mine
+  path = .gitconfig.mine
 [init]
-	defaultBranch = main
+  defaultBranch = main
+[safe]
+  directory = /home/amy/src/tizra/evergreen
+[user]
+  name = Aron Griffis
+  email = aron@scampersand.com
