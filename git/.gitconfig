@@ -150,6 +150,9 @@
 [mergetool]
   keepBackup = false
 
+[rebase]
+  autoSquash = true
+
 [tig "bind"]
   status = C !git ci
 
