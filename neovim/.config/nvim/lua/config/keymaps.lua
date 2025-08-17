@@ -63,9 +63,6 @@ wk.add {
   { '<leader>tt', '<cmd>tabnext #<cr>', { desc = 'Alternate tab' } },
   { '<leader>td', '<cmd>tabclose<cr>', { desc = 'Close tab' } },
   { '<leader>to', '<cmd>tabonly<cr>', { desc = 'Close other tabs' } },
-  -- and faster shortcuts with just <tab>
-  { '<tab>', '<cmd>tabnext<cr>', { desc = 'Next tab' } },
-  { '<s-tab>', '<cmd>tabprevious<cr>', { desc = 'Previous tab' } },
 }
 
 vim.keymap.set('n', '=', 'gq', { desc = 'Format code', remap = true })

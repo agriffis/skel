@@ -61,26 +61,19 @@ return {
   keys = function(_, plugin_keys)
     local ko = to_keys_object(plugin_keys)
 
-    -- Remove some of the LazyVim defaults
-    ko['<leader><space>'] = nil
-    ko['<leader>fF'] = nil
-    ko['<leader>fb'] = nil
-    ko['<leader>,'] = nil
-
-    -- I don't know why this breaks c-j c-k window navigation.
-    --ko['<c-j>']
-
-    -- Swap ss/sS in the LazyVim defaults
+    -- Swap some of the LazyVim defaults
     ko = vim.tbl_extend('force', ko, {
       ['<leader>ss'] = ko['<leader>sS'], -- LSP workspace symbols
       ['<leader>sS'] = ko['<leader>ss'], -- LSP document symbols
+      ['<leader>ff'] = ko['<leader>fF'], -- cwd files, doesn't work right
+      ['<c-p>'] = ko['<leader>ff'], -- project files, also <leader><space>
+      ['<leader>:'] = ko['<leader>sC'], -- Vim command
+      ['<leader>*'] = ko['<leader>sw'], -- Search for word in project
     })
 
-    -- Swap sc/sC in the LazyVim defaults
-    ko = vim.tbl_extend('force', ko, {
-      ['<leader>sc'] = ko['<leader>sC'], -- Vim command
-      ['<leader>sC'] = ko['<leader>sc'], -- Vim command history
-    })
+    -- Remove some leftover cruft
+    ko['<leader>fF'] = nil
+    ko['<leader>sC'] = nil
 
     -- Now our preferred bindings. Following work without needing to find
     -- project root because we're always in the project root thanks to
@@ -88,17 +81,14 @@ return {
     -- stylua: ignore
     ko = vim.tbl_extend('force', ko, {
       ['<leader>bb'] = { function() require('fzf-lua').buffers() end, desc = 'Choose from open buffers' },
-      ['<c-p>'] = { function() require('fzf-lua').files() end, desc = 'Open file in project', },
+      --['<c-p>'] = { function() require('fzf-lua').files() end, desc = 'Open file in project', },
       --['<leader><space>'] = { function() require('fzf-lua').files() end, desc = 'Open file in project', },
       ['<leader>ff'] = { function() require('fzf-lua').files { cwd = vim.fn.expand('%:p:h') } end, desc = 'Open file in current dir', },
-      ['<leader>fr'] = { function() require('fzf-lua').oldfiles() end, desc = 'Open recent file', },
-      ['<leader>fR'] = { function() require('fzf-lua').oldfiles() end, desc = 'Open recent file', },
-      ['<leader>sp'] = { function() require('fzf-lua').live_grep() end, desc = 'Search project', },
-      ['<leader>sP'] = { function() require('fzf-lua').live_grep { search = vim.fn.expand('<cword>'), } end, desc = 'Search project (current word)', },
-      ['<leader>/'] = { function() require('fzf-lua').live_grep() end, desc = 'Search project' },
-      ['<leader>?'] = { function() require('fzf-lua').live_grep { cwd = vim.fn.expand('%:p:h') } end, desc = 'Search current dir' },
-      ['<leader>*'] = { function() require('fzf-lua').live_grep { search = vim.fn.expand('<cword>'), } end, desc = 'Search project (current word)', },
-      ['<leader>sR'] = { function() require('fzf-lua').resume() end, desc = 'Resume last search' }
+      --['<leader>fr'] = { function() require('fzf-lua').oldfiles() end, desc = 'Open recent file', },
+      --['<leader>fR'] = { function() require('fzf-lua').oldfiles() end, desc = 'Open recent file', },
+      --['<leader>/'] = { function() require('fzf-lua').live_grep() end, desc = 'Search project' },
+      --['<leader>?'] = { function() require('fzf-lua').live_grep { cwd = vim.fn.expand('%:p:h') } end, desc = 'Search current dir' },
+      ['<leader>*'] = { LazyVim.pick('grep_cword'), desc = 'Search project (current word)' },
     })
 
     -- Mutate content of plugin_keys

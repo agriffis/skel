@@ -2,6 +2,15 @@
 
 local lisp_filetypes = { 'clojure', 'fennel', 'lisp', 'scheme' }
 
+local clojure_root_markers = {
+  'bb.edn',
+  'build.boot',
+  'deps.edn',
+  'pom.xml',
+  'project.clj',
+  'shadow-cljs.edn',
+}
+
 return {
   -- Syntax parsing for clojure.
   {
@@ -98,6 +107,8 @@ return {
       --}
     end,
   },
+
+  -- N.B. disabled in overrides.lua in favor of nvim-autopairs.
   {
     'echasnovski/mini.pairs',
     opts = {
@@ -119,7 +130,23 @@ return {
     'neovim/nvim-lspconfig',
     opts = {
       servers = {
-        clojure_lsp = {},
+        clojure_lsp = {
+          filetypes = lisp_filetypes,
+          -- Two different root-finding functions available to us:
+          --
+          -- require('lspconfig.util').root_pattern(...) looks for each file individually, so
+          -- it will prioritize /foo/.git over /foo/bar/deps.edn.
+          --
+          -- vim.fs.find() looks for all files at once, so it stops at the first found.
+          root_dir = function(fname)
+            local cwd = vim.fs.dirname(fname)
+            local found = vim.fs.find(clojure_root_markers, {
+              path = cwd,
+              upward = true,
+            })[1]
+            return found and vim.fs.dirname(found) or cwd
+          end,
+        },
       },
     },
   },
@@ -127,22 +154,29 @@ return {
   -- Dynamic clojure dev with nrepl.
   {
     'Olical/conjure',
-    event = 'LazyFile',
+    branch = 'main',
+    ft = lisp_filetypes,
     config = function(_, opts)
+      -- Enable "go to definition" and "eval file" when connecting to nrepl inside vagrant VM.
+      local project_root = LazyVim.root()
+      vim.g['conjure#path_subs'] = { ['/home/agilepublisher/cubchicken'] = project_root }
+
       -- Enable conjure to respect .nrepl-host.
       -- https://github.com/Olical/conjure/discussions/594
-      local _, content = pcall(vim.fn.readfile, '.nrepl-host', '', 1)
+      local conjure_root = vim.fs.root(0, clojure_root_markers) or project_root
+      local _, content = pcall(vim.fn.readfile, vim.fs.joinpath(conjure_root, '.nrepl-host'), '', 1)
       if content then
         vim.g['conjure#client#clojure#nrepl#connection#default_host'] = content[1]
       end
+
       require('conjure.main').main()
       require('conjure.mapping')['on-filetype']()
     end,
     init = function()
       -- Prefer LSP for jump-to-definition and symbol-doc, and use conjure
       -- alternatives with <localleader>K and <localleader>gd
-      vim.g['conjure#mapping#doc_word'] = 'K'
-      vim.g['conjure#mapping#def_word'] = 'gd'
+      --vim.g['conjure#mapping#doc_word'] = 'K'
+      --vim.g['conjure#mapping#def_word'] = 'gd'
 
       -- Disable the popup HUD. It never has enough info.
       vim.g['conjure#log#hud#enabled'] = false
@@ -152,10 +186,6 @@ return {
 
       -- Jump to top of latest result.
       vim.g['conjure#log#jump_to_latest#enabled'] = true
-
-      -- Enable "go to definition" and "eval file" when connecting to nrepl inside vagrant VM.
-      -- The dot works because of vim-rooter.
-      vim.g['conjure#path_subs'] = { ['/home/agilepublisher/cubchicken'] = '.' }
 
       -- Don't start babashka if nrepl isn't available.
       vim.g['conjure#client#clojure#nrepl#connection#auto_repl#enabled'] = false

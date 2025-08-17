@@ -28,36 +28,58 @@ export SHELL=$BASH
 source ~/.bashrc.funcs
 source ~/.bashrc.pathfuncs
 
-frontpath PATH /usr/local/bin /usr/local/sbin
-addpath PATH /usr/bin /bin /usr/sbin /sbin
-
-# ccache on Gentoo and Debian respectively
-frontpath PATH /usr/lib{64,}/ccache/bin /usr/lib{64,}/ccache
-
-# flatpak so you don't have to "flatpak run ..."
-addpath PATH /var/lib/flatpak/exports/bin
-
 # https://bun.sh/
 export BUN_INSTALL="$HOME/.bun"
 
-frontpath PATH ~/.cargo/bin # cargo install
-frontpath PATH ~/.cask/bin # homebrew
-frontpath PATH ~/.emacs.d/bin # doom emacs
-frontpath PATH ~/.gem/bin # gem install --user-install --bindir ~/.gem/bin
-frontpath PATH ~/go/bin # go install
-frontpath PATH ~/node_modules/.bin # yarn global add
-frontpath PATH ~/.npm-local/bin # npm i -g
-frontpath PATH ~/.local/bin # make install
-frontpath PATH "$BUN_INSTALL/bin" # bun add -g
-frontpath PATH ~/bin # personal and overrides
+setpath() {
+  local paths=(
+    # Personal overrides first
+    ~/bin
 
-# remove . security hole from PATH, added by some foolish sysadmins
-rmpath PATH .
+    # General third-party install area
+    ~/.local/bin
 
-# fix for POSIX.2 idiocy that assumes you mean . when there's an empty
-# element in PATH
-rmpath PATH ''
-export PATH
+    # Language-specific installs
+    "$BUN_INSTALL/bin"
+    ~/.cargo/bin
+    ~/.cask/bin
+    ~/.gem/bin
+    ~/.go/bin
+    ~/.npm-local/bin
+    ~/.yarn/bin
+
+    # ccache on Gentoo and Debian respectively
+    /usr/lib{64,}/ccache/bin
+    /usr/lib{64,}/ccache
+
+    /usr/local/{,s}bin
+
+    # System-provided path
+    "$PATH"
+
+    /usr/{,s}bin
+    /{,s}bin
+
+    # Flatpak launchers for easy access
+    /var/lib/flatpak/exports/bin
+  )
+  local oIFS=$IFS
+  IFS=:
+  local path=${paths[*]}
+  IFS=$oIFS
+  cleanpath path
+
+  # Remove . security hole from PATH, added by some foolish sysadmins.
+  rmpath path .
+
+  # Fix for POSIX.2 idiocy that assumes you mean . when there's an empty
+  # element in PATH.
+  rmpath path ''
+
+  export PATH=$path
+}
+setpath
+unset -f setpath
 
 # locale
 # ------

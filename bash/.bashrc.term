@@ -49,7 +49,9 @@ setup-TERM() {
       terms=("$TERM" xterm-256color xterm) ;;
     rxvt-*)
       terms=("$TERM" rxvt xterm) ;;
-    xterm-256color|xterm-kitty|xterm-ghostty)
+    ghostty|xterm-ghostty)
+      terms=(ghostty xterm-ghostty xterm-256color xterm) ;;
+    xterm-256color|xterm-kitty)
       terms=("$TERM" xterm-256color xterm) ;;
     screen*)
       terms=(screen-256color "$TERM" screen) ;;

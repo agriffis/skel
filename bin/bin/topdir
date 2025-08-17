@@ -5,16 +5,12 @@ if [[ -n $TOPDIR ]]; then
   exit
 fi
 
-is_topdir_topdir() {
-  [[ -e $1/.topdir ]]
+is_project_topdir() {
+  [[ -e $1/.topdir || -e $1/.project ]]
 }
 
 is_yarn_topdir() {
   [[ -e $1/yarn.lock ]]
-}
-
-is_tags_topdir() {
-  [[ -e $1/tags ]]
 }
 
 is_bzr_topdir() {
@@ -54,9 +50,8 @@ is_svn_trunk() {
 }
 
 is_topdir() {
-  is_topdir_topdir "$1" || \
+  is_project_topdir "$1" || \
   is_yarn_topdir "$1" || \
-  is_tags_topdir "$1" || \
   is_bzr_topdir "$1" || \
   is_git_topdir "$1" || \
   is_hg_topdir "$1" || \

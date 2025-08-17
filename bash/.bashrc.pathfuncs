@@ -98,7 +98,7 @@ addpath() {
 # syntax: cleanpath PATHvar
 # Clean up PATHvar by removing duplicate elements and doubled slashes
 cleanpath() {
-  declare e newpath oldpath=${!1} PATHvar=$1 IFS
+  declare e newpath oldpath=${!1} PATHvar=$1
 
   # Get rid of doubled slashes
   while [[ $oldpath == *//* ]]; do 
@@ -106,17 +106,19 @@ cleanpath() {
   done
 
   # Remove duplicate elements
-  IFS=':'
+  declare IFS=:
   for e in $oldpath; do
+    [[ -n $e ]] || continue
     # Remove trailing slash; the ? is to prevent removal of root dir!
     [[ $e == *?/ ]] && e=${e%/}
     # Append to newpath if not seen yet
     case :$newpath: in
       *:$e:*) continue ;;
-      *) newpath="$newpath:$e" ;;
+      ::) newpath=$e ;;
+      *) newpath=$newpath:$e ;;
     esac
   done
-  eval "$PATHvar='${newpath#:}'"
+  eval "$PATHvar=\$newpath"
 }
 
 #======================================================================

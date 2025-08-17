@@ -13,13 +13,13 @@ main() {
       gnome:fractional)
         overrides=(
           linux_display_server=wayland
-          font_size=10
+          font_size=11
           hide_window_decorations=yes
         ) ;;
       gnome:*)
         overrides=(
           linux_display_server=wayland
-          font_size=10
+          font_size=11
           hide_window_decorations=yes
         ) ;;
       sway:1)
@@ -31,7 +31,7 @@ main() {
       sway:*)
         overrides=(
           linux_display_server=wayland
-          font_size=10
+          font_size=12
           hide_window_decorations=yes
         ) ;;
       *)
@@ -61,7 +61,9 @@ desk() {
       fi ;;
     sway)
       local scale=$(swaymsg -r -t get_outputs | jq '.[] | select(.focused) | .scale')
-      sub=${scale%.*} ;;
+      if [[ $scale == 1.0* ]]; then
+        sub=1
+      fi ;;
   esac
   echo "$base:$sub"
 }

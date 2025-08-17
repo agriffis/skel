@@ -53,7 +53,7 @@ return {
       -- Omit buffer from default sources, so we're only getting "smart"
       -- completions from LSP etc.
       opts.sources.default = my.filter(function(v)
-        return v ~= 'buffer' and v ~= 'snippets'
+        return v ~= 'buffer'
       end, opts.sources.default)
 
       -- Don't show completion menu until I press ctrl-space.
@@ -135,7 +135,7 @@ return {
           {
             'gd',
             function()
-              require('fzf-lua').lsp_definitions { jump_to_single_result = true }
+              require('fzf-lua').lsp_definitions { jump1 = true }
             end,
             desc = 'Goto Definition',
             has = 'definition',
@@ -150,7 +150,7 @@ return {
           {
             'gI',
             function()
-              require('fzf-lua').lsp_implementations { jump_to_single_result = true }
+              require('fzf-lua').lsp_implementations { jump1 = true }
             end,
             desc = 'Goto Implementation',
           },
@@ -194,5 +194,17 @@ return {
       { '<leader>e', '<leader>fe', desc = 'Explore project (NeoTree)', remap = true },
       { '<leader>E', '<leader>fE', desc = 'Explore current dir (NeoTree)', remap = true },
     },
+  },
+
+  -- Replace mini.pairs with nvim-autopairs
+  -- https://github.com/LazyVim/LazyVim/discussions/2248
+  {
+    'windwp/nvim-autopairs',
+    event = 'InsertEnter',
+    opts = {},
+  },
+  {
+    'echasnovski/mini.pairs',
+    enabled = false,
   },
 }

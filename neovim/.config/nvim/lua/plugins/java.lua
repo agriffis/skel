@@ -37,6 +37,13 @@ return {
           hostName = 'autotest.dev.agilepublisher.com',
           port = 3100,
         },
+        {
+          type = 'java',
+          request = 'attach',
+          name = 'Debug (Attach) - systest',
+          hostName = 'systest.dev11.agilepublisher.com',
+          port = 3100,
+        },
       }
     end,
   },
@@ -44,8 +51,9 @@ return {
   {
     'mfussenegger/nvim-jdtls',
     opts = function(_, opts)
-      -- Look for David's formatter config.
-      local _, formatter_config = next(vim.fs.find({ 'updated-formatter.xml' }, {}))
+      -- Look for David's formatter config. This uses whatever is the actual CWD
+      -- because we don't necessarily have a buffer yet.
+      local _, formatter_config = next(vim.fs.find({ 'updated-formatter.xml' }, { upward = true }))
 
       -- Enable jdtls to work with unsaved code.
       -- This is passed into settings below.

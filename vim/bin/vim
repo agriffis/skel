@@ -1,4 +1,22 @@
 #!/usr/bin/env bash
 
-vim=$(type -P n${0##*/} || wrapped "$0")
-exec "$vim" "$@"
+main() {
+  local vim="$(type -P n${0##*/} || wrapped "$0")"
+
+  if false; then
+    local d=/tmp/nvim.$$
+    mkdir -p "$d"
+    local log=$d/nvim.log
+    local strace=$d/strace.log
+    exec strace -ff -o "$strace" "$vim" "-V20$log" "$@" || return
+  fi
+
+  # Trying to debug nvim hangs. Nope!
+  #unset DBUS_SESSION_BUS_ADDRESS
+  #unset DISPLAY
+  #unset WAYLAND_DISPLAY
+
+  exec "$vim" "$@"
+}
+
+main "$@"; exit

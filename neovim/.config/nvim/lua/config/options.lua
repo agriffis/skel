@@ -92,3 +92,22 @@ vim.filetype.add {
     dataviewjs = 'javascript',
   },
 }
+
+-- LazyVim root dir detection
+-- Each entry can be:
+-- * the name of a detector function like `lsp` or `cwd`
+-- * a pattern or array of patterns like `.git` or `lua`.
+-- * a function with signature `function(buf) -> string|string[]`
+-- https://www.lazyvim.org/configuration/general
+-- Default: { 'lsp', { '.git', 'lua' }, 'cwd' }
+--
+-- Remove lsp, so we can run clojure-lsp in tests/system while still using cubchicken as
+-- root. We have to remove it, not just demote it, because LazyVim.root.detect() finds all
+-- candidates and then prefers the longest.
+vim.g.root_spec = {
+  { '.git', 'lua' },
+  'lsp',
+  'cwd',
+}
+-- Disable the default in favor of vim-rooter (for now)
+--vim.g.root_spec = { 'cwd' }

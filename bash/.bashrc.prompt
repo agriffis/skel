@@ -432,9 +432,12 @@ ps1_mod_vagrant() {
     vbox_id_file=$top/.vagrant/machines/default/virtualbox/id
   if [[ -s $docker_id_file ]] && id=$(<$docker_id_file); then
     declare status=$(docker ps --filter id="$id" --format '{{.Status}}')
-    if [[ ${status,,} == up* ]]; then
-      ps1_micro "\[$(color yellow)\]"$'\uf0e7'  # lightning bolt
-    fi
+    case ${status,,} in
+      '') ;;
+      up*) ps1_micro "\[$(color yellow)\]" ;;
+      created*|exited*) ps1_micro "\[$(color yellow)\]"💤 ;;
+      *) ps1_micro "\[$(color yellow)\]"󱚟 ;;
+    esac
   elif [[ -s $libvirt_id_file ]] && id=$(<$libvirt_id_file); then
     declare status=$(virsh domstate "$libvirt_id" 2>/dev/null)
     if [[ $status == running ]]; then
@@ -476,7 +479,7 @@ ps1_mod_terminal_title() {
   declare start end title="$(ps1_get_terminal_title)"
   case $TERM in
     foot*|gnome*|rxvt*|screen*|vte*|xterm*) start=$'\[\033]0;' end=$'\007\]' ;;
-    tmux*) tmux rename-window "$title" &>/dev/null; return ;;
+    tmux*) [[ -n $TMUX ]] && tmux rename-window "$title" &>/dev/null; return ;;
     *) return ;;
   esac
   PS1+="$start$title$end"
@@ -518,7 +521,8 @@ cwd_is_slow() {
 # The ps1_update function calls the modules defined above and in the user
 # bashrc to construct the full prompt.
 ps1_update() {
-  declare x first_segment=true
+  declare x first_segment=true profile_start=${EPOCHREALTIME/./}
+  declare -a profiles
 
   # clean slate
   PS1=
@@ -527,6 +531,7 @@ ps1_update() {
   PS1_MODS_RAN=()
   for x in "${PS1_MODULES[@]}"; do
     ps1_mod_"$x" && PS1_MODS_RAN+=("$x")
+    profiles+=(${EPOCHREALTIME/./})
   done
   PS1_CACHE_MODS_RAN=( "${PS1_MODS_RAN[@]}" )  # backward compat
 
@@ -535,6 +540,12 @@ ps1_update() {
     x="ps1_mod_${x}_postprocess"
     isfunc "$x" && "$x"
   done
+
+  if [[ -n $PS1_PROFILING ]]; then
+    for ((x = 0; x < ${#PS1_MODULES[@]}; x++)); do
+      printf '%5d %s\n' $(( ${profiles[x]} - (x ? ${profiles[x-1]} : profile_start) )) ${PS1_MODULES[$x]}
+    done | sort -n
+  fi
 }
 
 # Okay, all functions are defined, now use bash-preexec to call it.

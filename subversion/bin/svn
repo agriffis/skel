@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 read rows columns <<<"$(stty size 2>/dev/null)"
 : ${columns:=1000}

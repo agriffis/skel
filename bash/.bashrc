@@ -47,6 +47,11 @@ unset MAILCHECK
 # TERM
 source ~/.bashrc.term
 
+# ghostty oddity
+if [[ $PWD == *?/ ]]; then
+  cd "${PWD%/}"
+fi
+
 # set umask before interactive test; this helps scp.
 # shared hosting should use writeable group.
 if [[ -e /etc/resolv.conf && \

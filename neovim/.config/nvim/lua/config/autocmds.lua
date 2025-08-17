@@ -15,15 +15,19 @@ local MyGroup = vim.api.nvim_create_augroup('MyGroup', { clear = true })
 -- When editing a file, always jump to the last cursor position.
 -- This duplicates an autocmd provided by fedora, so clear that.
 vim.api.nvim_create_augroup('fedora', { clear = true })
-vim.api.nvim_create_autocmd('BufReadPost', {
-  group = MyGroup,
-  command = [[if line("'\"") > 0 && line("'\"") <= line("$") | exe "normal! g'\"" | endif]],
-})
-vim.api.nvim_create_autocmd('BufReadPost', {
-  group = MyGroup,
-  pattern = 'COMMIT_EDITMSG',
-  command = [[normal! gg]],
-})
+-- commented because this scrolls the diff buffer in diffview
+--vim.api.nvim_create_autocmd('BufReadPost', {
+--  group = MyGroup,
+--  command = [[if line("'\"") > 0 && line("'\"") <= line("$") | exe "normal! g'\"" | endif]],
+--})
+--vim.api.nvim_create_autocmd('BufReadPost', {
+--  group = MyGroup,
+--  pattern = 'COMMIT_EDITMSG',
+--  command = [[normal! gg]],
+--})
+
+-- LazyVim equiv of above
+vim.api.nvim_create_augroup('last_loc', { clear = true })
 
 -- Enable permanent signcolumn when editing code.
 local function hacking()
