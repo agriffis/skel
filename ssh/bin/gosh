@@ -3,20 +3,23 @@
 main() {
   ensure-ssh-identity "$@"
 
-  declare host="${1:-gargan}"
+  declare host="${1:-junco}"
   shift
 
   # Use VPN or not
   declare dom=scampernet
-  if grep -q tail71bb0 /etc/resolv.conf; then
+  if [[ $host == *.* ]]; then
+    dom=${host#*.}
+    host=${host%%.*}
+  elif grep -q tail71bb0 /etc/resolv.conf; then
     dom=tail71bb0.ts.net
   fi
 
   case $host in
-    advent) host=gargan session=advent ;;
-    gargan|gg) host=gargan session=scampersand ;;
-    ggx) host=gargan session=ggx ;;
-    jasperodus|jj) host=jasperodus session=scamperjam ;;
+    advent) host=junco session=advent ;;
+    gargan) host=gargan session=scampersand ;;
+    junco) host=junco session=scampersand ;;
+    jx) host=junco session=jx ;;
   esac
 
   if [[ $# == 0 ]]; then

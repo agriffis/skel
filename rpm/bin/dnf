@@ -17,7 +17,7 @@ yum() {
     "$yum" "$@"
 }
 
-yum-search() {
+yum-searchx() {
     declare -A desc inst avail
     declare -a pkgs
 

@@ -110,7 +110,7 @@ return {
 
   -- N.B. disabled in overrides.lua in favor of nvim-autopairs.
   {
-    'echasnovski/mini.pairs',
+    'nvim-mini/mini.pairs',
     opts = {
       -- These options are provided by LazyVim's plugin/coding.lua, not by
       -- mini.pairs upstream. Disable them because they make LISP editing
@@ -138,13 +138,18 @@ return {
           -- it will prioritize /foo/.git over /foo/bar/deps.edn.
           --
           -- vim.fs.find() looks for all files at once, so it stops at the first found.
-          root_dir = function(fname)
-            local cwd = vim.fs.dirname(fname)
+          root_dir = function(bufnr, on_dir)
+            on_dir(vim.fs.abspath('.'))
+            local fname = vim.fn.bufname(bufnr)
+            local fdir = vim.fs.abspath(vim.fs.dirname(fname))
             local found = vim.fs.find(clojure_root_markers, {
-              path = cwd,
+              path = fdir,
               upward = true,
             })[1]
-            return found and vim.fs.dirname(found) or cwd
+            if found then
+              return on_dir(vim.fs.dirname(found))
+            end
+            return fdir
           end,
         },
       },
@@ -231,6 +236,5 @@ return {
   },
 
   -- Set vim file search path from the java classpath.
-  -- Temporarily disabled to see if we miss this.
-  --{ 'tpope/vim-classpath', lazy = true, ft = { 'java', 'clojure' } },
+  { 'tpope/vim-classpath', lazy = true, ft = { 'java', 'clojure' } },
 }

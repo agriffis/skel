@@ -58,6 +58,7 @@ return {
 
       -- Don't show completion menu until I press ctrl-space.
       opts.completion.menu.auto_show = false
+      opts.completion.ghost_text.show_with_menu = false
 
       -- Don't consider ghost text visible.
       local function is_open()
@@ -74,7 +75,7 @@ return {
           return
         end
         vim.schedule(function()
-          require('blink.cmp.completion.windows.menu').auto_show = true
+          -- require('blink.cmp.completion.windows.menu').auto_show = true
           require('blink.cmp.completion.trigger').show {
             force = true,
             trigger_kind = 'manual',
@@ -204,7 +205,7 @@ return {
     opts = {},
   },
   {
-    'echasnovski/mini.pairs',
+    'nvim-mini/mini.pairs',
     enabled = false,
   },
 }

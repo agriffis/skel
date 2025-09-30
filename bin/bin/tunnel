@@ -11,7 +11,7 @@ main() {
   ensure-ssh-identity "$@"
 
   declare host
-  host=${1:-gg}-tunnel
+  host=${1:-junco}-tunnel
   shift
 
   while true; do (
@@ -48,8 +48,8 @@ main() {
     fi
 
     case $host in
-      (gg-tunnel) vars+=( TMUX_SESSION=scampersand ) ;;
-      (jj-tunnel) vars+=( TMUX_SESSION=scamperjam ) ;;
+      (junco-tunnel) vars+=( TMUX_SESSION=scampersand ) ;;
+      (jx-tunnel) vars+=( TMUX_SESSION=jx ) ;;
     esac
 
     ssh -t -Y "${forwards[@]}" "$host" "tunnel --remote $(printf '%q ' ${vars[@]})"

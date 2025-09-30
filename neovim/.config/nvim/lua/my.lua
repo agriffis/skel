@@ -114,12 +114,12 @@ end)
 
 -- Prepend a to b. Returns new table, does not mutate.
 my.prepend = my.curry(function(a, b)
-  return vim.tbl_flatten { a, b }
+  return vim.iter({ a, b }):flatten():totable()
 end)
 
 -- Append a to b. Returns new table, does not mutate.
 my.append = my.curry(function(a, b)
-  return vim.tbl_flatten { b, a }
+  return vim.iter({ b, a }):flatten():totable()
 end)
 
 -- Check if s starts with ss.

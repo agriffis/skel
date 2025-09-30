@@ -1,7 +1,9 @@
+local my = require('my')
+
 -- LazyVim sets up some server options that get lost because we start jdtls
 -- separately from the usual LSP startup. Prepare to capture those options and
 -- apply them later on.
-local saved_server_opts
+--local saved_server_opts
 
 return {
   {
@@ -9,12 +11,8 @@ return {
     opts = function(_, opts)
       vim.list_extend(opts.inlay_hints.exclude, { 'java' })
       opts.setup = {
-        jdtls = function(_, server_opts)
-          -- Capture server_opts especially for lazyvim-configured
-          -- server_opts.capabilities that we can't otherwise access in nvim-jdtls
-          -- setup.
-          saved_server_opts = server_opts
-          return true -- avoid duplicate servers
+        jdtls = function()
+          return true -- defer to nvim-jdtls to start server
         end,
       }
     end,
@@ -95,7 +93,7 @@ return {
         return default_progress_handler(err, result, ctx)
       end
 
-      return vim.tbl_deep_extend('force', opts, saved_server_opts, {
+      return vim.tbl_deep_extend('force', opts, {
         jdtls = function(server)
           server.handlers = {
             ['language/status'] = my_status_handler,

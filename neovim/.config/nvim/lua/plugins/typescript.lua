@@ -1,3 +1,5 @@
+local my = require('my')
+
 return {
   {
     'neovim/nvim-lspconfig',
