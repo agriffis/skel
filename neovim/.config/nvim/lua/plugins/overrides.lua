@@ -9,9 +9,25 @@ return {
     opts = {
       dashboard = { enabled = false },
       indent = { enabled = false },
-      -- Disable word highlighting. This used to be document_highlight in the lsp config.
-      --words = { enabled = false },
       scroll = { enabled = false },
+    },
+    keys = {
+      {
+        '<leader>ff',
+        LazyVim.pick('files', { root = false }),
+        desc = 'Find Files (cwd)',
+      },
+      {
+        '<c-p>',
+        LazyVim.pick('files', { root = true }),
+        desc = 'Find Files (Root Dir)',
+      },
+      {
+        '<leader>*',
+        LazyVim.pick('grep_word'),
+        desc = 'Visual selection or word (Root Dir)',
+        mode = { 'n', 'x' },
+      },
     },
   },
 
@@ -123,79 +139,79 @@ return {
     },
   },
 
-  -- Modify keys for lsp to use fzf or avoid telescope.
-  {
-    'neovim/nvim-lspconfig',
-    opts = function()
-      -- keys.get() returns a singleton. We can load it here, make additions
-      -- (which amount to changes since they come later in the list), and these
-      -- will be applied when an LSP server attaches.
-      local keys = require('lazyvim.plugins.lsp.keymaps').get()
-      if require('lazyvim.util').has('fzf-lua') then
-        vim.list_extend(keys, {
-          {
-            'gd',
-            function()
-              require('fzf-lua').lsp_definitions { jump1 = true }
-            end,
-            desc = 'Goto Definition',
-            has = 'definition',
-          },
-          {
-            'gr',
-            function()
-              require('fzf-lua').lsp_references { ignore_current_line = true }
-            end,
-            desc = 'References',
-          },
-          {
-            'gI',
-            function()
-              require('fzf-lua').lsp_implementations { jump1 = true }
-            end,
-            desc = 'Goto Implementation',
-          },
-          {
-            'gy',
-            function()
-              require('fzf-lua').lsp_typedefs()
-            end,
-            desc = 'Goto T[y]pe Definition',
-          },
-        })
-      elseif not require('lazyvim.util').has('telescope.nvim') then
-        vim.list_extend(keys, {
-          { 'gd', vim.lsp.buf.definition, desc = 'Goto Definition', has = 'definition' },
-          { 'gr', vim.lsp.buf.references, desc = 'References' },
-          { 'gI', vim.lsp.buf.implementation, desc = 'Goto Implementation' },
-          { 'gy', vim.lsp.buf.type_definition, desc = 'Goto T[y]pe Definition' },
-        })
-      end
-    end,
-  },
+  -- -- Modify keys for lsp to use fzf or avoid telescope.
+  -- {
+  --   'neovim/nvim-lspconfig',
+  --   opts = function()
+  --     -- keys.get() returns a singleton. We can load it here, make additions
+  --     -- (which amount to changes since they come later in the list), and these
+  --     -- will be applied when an LSP server attaches.
+  --     local keys = require('lazyvim.plugins.lsp.keymaps').get()
+  --     if require('lazyvim.util').has('fzf-lua') then
+  --       vim.list_extend(keys, {
+  --         {
+  --           'gd',
+  --           function()
+  --             require('fzf-lua').lsp_definitions { jump1 = true }
+  --           end,
+  --           desc = 'Goto Definition',
+  --           has = 'definition',
+  --         },
+  --         {
+  --           'gr',
+  --           function()
+  --             require('fzf-lua').lsp_references { ignore_current_line = true }
+  --           end,
+  --           desc = 'References',
+  --         },
+  --         {
+  --           'gI',
+  --           function()
+  --             require('fzf-lua').lsp_implementations { jump1 = true }
+  --           end,
+  --           desc = 'Goto Implementation',
+  --         },
+  --         {
+  --           'gy',
+  --           function()
+  --             require('fzf-lua').lsp_typedefs()
+  --           end,
+  --           desc = 'Goto T[y]pe Definition',
+  --         },
+  --       })
+  --     elseif not require('lazyvim.util').has('telescope.nvim') then
+  --       vim.list_extend(keys, {
+  --         { 'gd', vim.lsp.buf.definition, desc = 'Goto Definition', has = 'definition' },
+  --         { 'gr', vim.lsp.buf.references, desc = 'References' },
+  --         { 'gI', vim.lsp.buf.implementation, desc = 'Goto Implementation' },
+  --         { 'gy', vim.lsp.buf.type_definition, desc = 'Goto T[y]pe Definition' },
+  --       })
+  --     end
+  --   end,
+  -- },
 
-  -- Additional keys for neotree
-  {
-    'nvim-neo-tree/neo-tree.nvim',
-    keys = {
-      {
-        '<leader>fe',
-        function()
-          require('neo-tree.command').execute { action = 'focus', dir = LazyVim.root() }
-        end,
-        desc = 'Explore project (NeoTree)',
-      },
-      {
-        '<leader>fE',
-        function()
-          require('neo-tree.command').execute { action = 'focus', dir = vim.fn.expand('%:p:h') }
-        end,
-        desc = 'Explore current dir (NeoTree)',
-      },
-      { '<leader>e', '<leader>fe', desc = 'Explore project (NeoTree)', remap = true },
-      { '<leader>E', '<leader>fE', desc = 'Explore current dir (NeoTree)', remap = true },
-    },
-  },
+  -- -- Additional keys for neotree
+  -- {
+  --   'nvim-neo-tree/neo-tree.nvim',
+  --   keys = {
+  --     {
+  --       '<leader>fe',
+  --       function()
+  --         require('neo-tree.command').execute { action = 'focus', dir = LazyVim.root() }
+  --       end,
+  --       desc = 'Explore project (NeoTree)',
+  --     },
+  --     {
+  --       '<leader>fE',
+  --       function()
+  --         require('neo-tree.command').execute { action = 'focus', dir = vim.fn.expand('%:p:h') }
+  --       end,
+  --       desc = 'Explore current dir (NeoTree)',
+  --     },
+  --     { '<leader>e', '<leader>fe', desc = 'Explore project (NeoTree)', remap = true },
+  --     { '<leader>E', '<leader>fE', desc = 'Explore current dir (NeoTree)', remap = true },
+  --   },
+  -- },
 
   -- Replace mini.pairs with nvim-autopairs
   -- https://github.com/LazyVim/LazyVim/discussions/2248

@@ -38,7 +38,7 @@ end
 
 -- Hacking mode when LSP attaches.
 vim.api.nvim_create_autocmd('User', { group = MyGroup, pattern = 'Code', callback = hacking })
-require('lazyvim.util').lsp.on_attach(function()
+require('snacks.').util.lsp.on({}, function()
   vim.cmd([[doautocmd User Code]])
 end)
 
@@ -51,3 +51,15 @@ vim.api.nvim_create_autocmd(
 -- Disable LazyVim spellcheck defaults
 -- https://www.lazyvim.org/configuration/general#auto-commands
 clear_lazyvim_augroup('wrap_spell')
+
+-- Special code reformatting for clojure.
+-- Disabled because zprint doesn't work very well in :indent-only mode.
+--vim.api.nvim_create_autocmd('FileType', {
+--  group = MyGroup,
+--  pattern = { 'clojure' },
+--  callback = function()
+--    -- See zprint.lua
+--    vim.keymap.set({ 'n', 'x' }, '=', '<leader>=2', { desc = 'Reindent with zprint', remap = true })
+--    vim.keymap.set('n', '==', '<leader>=22', { desc = 'Reindent with zprint', remap = true })
+--  end,
+--})

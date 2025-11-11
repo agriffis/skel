@@ -219,16 +219,6 @@ return {
     },
   },
 
-  -- Use zprint for clojure formatting.
-  {
-    'stevearc/conform.nvim',
-    opts = {
-      formatters_by_ft = {
-        clojure = { 'zprint' },
-      },
-    },
-  },
-
   -- Make sure this fd-leaking monstrosity is disabled.
   {
     'm00qek/baleia.nvim',

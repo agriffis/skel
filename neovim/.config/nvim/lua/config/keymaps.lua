@@ -65,8 +65,6 @@ wk.add {
   { '<leader>to', '<cmd>tabonly<cr>', { desc = 'Close other tabs' } },
 }
 
-vim.keymap.set('n', '=', 'gq', { desc = 'Format code', remap = true })
-
 -- while waiting for https://github.com/LazyVim/LazyVim/pull/1240
 vim.keymap.set('n', 'gd', vim.lsp.buf.definition, { desc = 'Goto Definition' })
 vim.keymap.set('n', 'gr', vim.lsp.buf.references, { desc = 'References' })
@@ -124,31 +122,66 @@ vim.keymap.set('v', 'p', '"_dP')
 vim.keymap.set('c', '%/', '<C-R>=expand("%:p:h")."/"<CR>')
 
 -- Format code with =
-vim.keymap.set('n', '=', 'gq', { desc = 'Format code', remap = true })
+vim.keymap.set({ 'n', 'x' }, '=', 'gq', { desc = 'Format code', remap = true })
 vim.keymap.set('n', '==', 'gqq', { desc = 'Format code', remap = true })
-vim.keymap.set('x', '=', 'gq', { desc = 'Format code', remap = true })
+
+-- Reformat code with alternate formatter with <leader>=1, <leader>=2, etc.
+for i = 1, 9 do
+  my.operator_register('op_reformat_code_alt_' .. i, {
+    setup = function()
+      local conform = require('conform')
+      local saved = {
+        formatters_by_ft = conform.formatters_by_ft,
+      }
+      -- Our alternate formatters are stored in the opts for conform.nvim, and we
+      -- have to fetch them from there because they don't carry into conform.
+      local alt_formatters = LazyVim.opts('conform.nvim').formatters_by_ft_alt
+      conform.formatters_by_ft = {}
+      for k, v in pairs(alt_formatters) do
+        conform.formatters_by_ft[k] = v[i]
+      end
+      return saved
+    end,
+    execute = 'gq',
+    cleanup = function(saved)
+      local conform = require('conform')
+      conform.formatters_by_ft = saved.formatters_by_ft
+    end,
+  })
+  vim.keymap.set(
+    { 'n', 'x' },
+    '<leader>=' .. i,
+    'v:lua.op_reformat_code_alt_' .. i .. '()',
+    { desc = 'Format code (alt ' .. i .. ')', expr = true, silent = true }
+  )
+  vim.keymap.set(
+    'n',
+    '<leader>=' .. i .. i,
+    'v:lua.op_reformat_code_alt_' .. i .. "() .. '_'",
+    { desc = 'Format code (alt ' .. i .. ')', expr = true, silent = true }
+  )
+end
 
 -- Reformat current paragraph with 80 textwidth
-my.operator_register('op_reformat_prose', function(type)
-  -- Save textwidth then override.
-  local tw_save = vim.opt.textwidth
-  local ai_save = vim.opt.autoindent
-  local inde_save = vim.opt.indentexpr
-  vim.opt.textwidth = 80
-  vim.opt.autoindent = true
-  vim.opt.indentexpr = 'indent()'
-  -- Convert motion to visual.
-  local commands = {
-    char = '`[v`]',
-    line = '`[V`]',
-    block = '`[\\<c-v>`]',
-  }
-  vim.cmd('noautocmd keepjumps normal! ' .. commands[type] .. 'gw')
-  -- Restore textwidth.
-  vim.opt.textwidth = tw_save
-  vim.opt.autoindent = ai_save
-  vim.opt.indentexpr = inde_save
-end)
+my.operator_register('op_reformat_prose', {
+  setup = function()
+    local saved = {
+      textwidth = vim.opt.textwidth,
+      autoindent = vim.opt.autoindent,
+      indentexpr = vim.opt.indentexpr,
+    }
+    vim.opt.textwidth = 80
+    vim.opt.autoindent = true
+    vim.opt.indentexpr = 'indent()'
+    return saved
+  end,
+  execute = 'gw',
+  cleanup = function(saved)
+    vim.opt.textwidth = saved.textwidth
+    vim.opt.autoindent = saved.autoindent
+    vim.opt.indentexpr = saved.indentexpr
+  end,
+})
 vim.keymap.set(
   'n',
   'gW',

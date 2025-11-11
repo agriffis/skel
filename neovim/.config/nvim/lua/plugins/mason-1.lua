@@ -3,4 +3,11 @@
 --  { 'mason-org/mason-lspconfig.nvim', version = '^1.0.0' },
 --}
 
-return {}
+return {
+  'mason-org/mason.nvim',
+  opts = {
+    registries = {
+      'file:~/src/mason-registry',
+    },
+  },
+}

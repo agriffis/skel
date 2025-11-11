@@ -183,37 +183,15 @@ function my.error(msg, name)
   vim.notify(msg, vim.log.levels.ERROR, { title = name })
 end
 
--- https://github.com/jose-elias-alvarez/nvim-lsp-ts-utils/discussions/109
-function my.format_code()
-  --local bufnr = vim.api.nvim_get_current_buf()
-  --local tsserver_is_attached = false
-  --for _, client in ipairs(vim.lsp.buf_get_clients(bufnr)) do
-  --  if client.name == "tsserver" then
-  --    tsserver_is_attached = true
-  --    break
-  --  end
-  --end
-  --if tsserver_is_attached then
-  --  local status, err = require('nvim-lsp-ts-utils').organize_imports_sync(bufnr, 2500)
-  --  if status then
-  --    vim.cmd('undo' .. 'join') -- for some reason undojoin breaks treesitter
-  --  else
-  --    my.error("organize_imports_sync failed with: " .. err)
-  --  end
-  --end
-  _G.zprint_generator._failed = false
-  vim.lsp.buf.format {
-    -- Prefer null-ls formatting.
-    filter = function(client)
-      return client.name ~= 'tsserver' and client.name ~= 'jdtls'
-    end,
-    timeout_ms = 5000,
-  }
-end
-
-function my.operator_register(name, fn)
-  _G[name] = function(type)
-    if type == nil then
+---@class (exact) OperatorRegisterOpts<T>
+---@field setup function
+---@field execute function | string
+---@field cleanup function
+---@param name string
+---@param opts OperatorRegisterOpts
+function my.operator_register(name, opts)
+  _G[name] = function(motion_type)
+    if motion_type == nil then
       vim.opt.opfunc = 'v:lua.' .. name
       return 'g@' -- calls back to this function
     end
@@ -228,16 +206,45 @@ function my.operator_register(name, fn)
     vim.opt.clipboard = ''
     vim.opt.selection = 'inclusive'
 
-    local status, err = pcall(fn, type)
+    -- custom setup
+    local status, result = pcall(opts.setup, motion_type)
+    local saved = status and result or nil
+    local err = not status and result or nil
 
-    -- boilerplate restore
+    if status then
+      -- convert motion to visual
+      local commands = {
+        char = '`[v`]',
+        line = '`[V`]',
+        block = '`[\\<c-v>`]',
+      }
+
+      -- execute
+      if type(opts.execute) == 'string' then
+        vim.cmd('noautocmd keepjumps normal! ' .. commands[motion_type] .. opts.execute)
+      else
+        status, result = pcall(opts.execute --[[@as function]], motion_type)
+        if not status then
+          err = result
+        end
+      end
+
+      -- custom cleanup
+      status, result = pcall(opts.cleanup, saved)
+      if not status then
+        err = result
+      end
+    end
+
+    -- boilerplate cleanup
     vim.fn.setreg('"', reg_save)
     vim.fn.setpos("'<", visual_marks_save[0])
     vim.fn.setpos("'>", visual_marks_save[1])
     vim.opt.clipboard = cb_save
     vim.opt.selection = sel_save
 
-    if not status then
+    -- if setup/execute/cleanup failed, raise error
+    if err then
       error(err)
     end
   end
