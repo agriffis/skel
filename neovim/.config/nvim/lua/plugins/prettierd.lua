@@ -2,6 +2,7 @@
 -- prettierd instead of raw prettier, for speed.
 
 local supported = {
+  'astro',
   'css',
   'graphql',
   'handlebars',

@@ -1,10 +1,5 @@
 local my = require('my')
 
--- LazyVim sets up some server options that get lost because we start jdtls
--- separately from the usual LSP startup. Prepare to capture those options and
--- apply them later on.
---local saved_server_opts
-
 return {
   {
     'neovim/nvim-lspconfig',

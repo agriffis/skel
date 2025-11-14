@@ -183,13 +183,7 @@ my.operator_register('op_reformat_prose', {
   end,
 })
 vim.keymap.set(
-  'n',
-  'gW',
-  'v:lua.op_reformat_prose()',
-  { desc = 'Reformat (80 columns)', expr = true, silent = true }
-)
-vim.keymap.set(
-  'x',
+  { 'n', 'x' },
   'gW',
   'v:lua.op_reformat_prose()',
   { desc = 'Reformat (80 columns)', expr = true, silent = true }
@@ -197,12 +191,6 @@ vim.keymap.set(
 vim.keymap.set(
   'n',
   'gWgW',
-  "v:lua.op_reformat_prose() .. '_'",
-  { desc = 'Reformat (80 columns)', expr = true, silent = true }
-)
-vim.keymap.set(
-  'n',
-  'gWW',
   "v:lua.op_reformat_prose() .. '_'",
   { desc = 'Reformat (80 columns)', expr = true, silent = true }
 )

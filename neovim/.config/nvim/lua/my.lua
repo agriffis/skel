@@ -183,7 +183,7 @@ function my.error(msg, name)
   vim.notify(msg, vim.log.levels.ERROR, { title = name })
 end
 
----@class (exact) OperatorRegisterOpts<T>
+---@class (exact) OperatorRegisterOpts
 ---@field setup function
 ---@field execute function | string
 ---@field cleanup function
