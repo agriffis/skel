@@ -129,16 +129,6 @@ return {
     },
   },
 
-  -- Don't highlight word under cursor.
-  {
-    'neovim/nvim-lspconfig',
-    opts = {
-      -- N.B. This setting no longer does anything. See config for snacks above, instead.
-      -- https://github.com/LazyVim/LazyVim/issues/4777
-      document_highlight = { enabled = false },
-    },
-  },
-
   -- Replace mini.pairs with nvim-autopairs
   -- https://github.com/LazyVim/LazyVim/discussions/2248
   {

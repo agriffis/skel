@@ -12,8 +12,7 @@ end
 
 local MyGroup = vim.api.nvim_create_augroup('MyGroup', { clear = true })
 
--- When editing a file, always jump to the last cursor position.
--- This duplicates an autocmd provided by fedora, so clear that.
+-- Disable Fedora-provided autocmd to jump to last cursor position in file.
 vim.api.nvim_create_augroup('fedora', { clear = true })
 -- commented because this scrolls the diff buffer in diffview
 --vim.api.nvim_create_autocmd('BufReadPost', {
@@ -51,15 +50,3 @@ vim.api.nvim_create_autocmd(
 -- Disable LazyVim spellcheck defaults
 -- https://www.lazyvim.org/configuration/general#auto-commands
 clear_lazyvim_augroup('wrap_spell')
-
--- Special code reformatting for clojure.
--- Disabled because zprint doesn't work very well in :indent-only mode.
---vim.api.nvim_create_autocmd('FileType', {
---  group = MyGroup,
---  pattern = { 'clojure' },
---  callback = function()
---    -- See zprint.lua
---    vim.keymap.set({ 'n', 'x' }, '=', '<leader>=2', { desc = 'Reindent with zprint', remap = true })
---    vim.keymap.set('n', '==', '<leader>=22', { desc = 'Reindent with zprint', remap = true })
---  end,
---})
