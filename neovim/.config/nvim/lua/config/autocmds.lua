@@ -37,7 +37,7 @@ end
 
 -- Hacking mode when LSP attaches.
 vim.api.nvim_create_autocmd('User', { group = MyGroup, pattern = 'Code', callback = hacking })
-require('snacks.').util.lsp.on({}, function()
+require('snacks').util.lsp.on({}, function()
   vim.cmd([[doautocmd User Code]])
 end)
 
