@@ -1,5 +1,4 @@
 local my = require('my')
-local Util = require('lazyvim.util')
 
 return {
   { 'LazyVim/LazyVim', opts = { news = { lazyvim = false, neovim = false } } },
