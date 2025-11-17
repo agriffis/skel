@@ -22,12 +22,6 @@ vim.keymap.del('v', '<')
 vim.keymap.del('v', '>')
 
 wk.add {
-  -- lazyvim: these are mapped to https://github.com/echasnovski/mini.bufremove which preserves
-  -- the current window, but I'm not used to that.
-  --{ '<leader>bD', '<cmd>bd!<cr>', desc = 'Delete buffer (force)' },
-  --{ '<leader>bd', '<cmd>bd<cr>', desc = 'Delete buffer' },
-  --{ '<leader>bo', '<cmd>BufferLineCloseOthers<cr>', desc = 'Delete other buffers' },
-  -- lazyvim: <leader>i conflicts with toggling indent guides
   { '<leader>up', vim.show_pos, desc = 'Inspect position' },
   { '<leader>wH', '<c-w>H', desc = 'Move window to far left' },
   { '<leader>wJ', '<c-w>J', desc = 'Move window to bottom' },
@@ -48,7 +42,7 @@ wk.add {
 }
 
 wk.add {
-  -- lazyvim: these are mapped to <leader><tab> but t is easier
+  -- lazyvim: some of these are mapped to <leader><tab> but t is easier
   { '<leader>t1', '<cmd>1tabnext<cr>', { desc = 'Go to first tab' } },
   { '<leader>t2', '<cmd>2tabnext<cr>', { desc = 'Go to second tab' } },
   { '<leader>t3', '<cmd>3tabnext<cr>', { desc = 'Go to third tab' } },

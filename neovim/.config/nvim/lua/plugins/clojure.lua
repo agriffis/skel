@@ -163,6 +163,7 @@ return {
   {
     'Olical/conjure',
     branch = 'main',
+    enabled = false,
     ft = lisp_filetypes,
     config = function(_, opts)
       -- Enable "go to definition" and "eval file" when connecting to nrepl inside vagrant VM.
@@ -182,9 +183,11 @@ return {
     end,
     init = function()
       -- Prefer LSP for jump-to-definition and symbol-doc, and use conjure
-      -- alternatives with <localleader>K and <localleader>gd
-      --vim.g['conjure#mapping#doc_word'] = 'K'
-      --vim.g['conjure#mapping#def_word'] = 'gd'
+      -- alternatives with <localleader>K and <localleader>gd. This works
+      -- because conjure prefixes mappings by <localleader> by default, unless
+      -- we pass a list. See :help conjure-configuration.
+      vim.g['conjure#mapping#doc_word'] = 'K'
+      vim.g['conjure#mapping#def_word'] = 'gd'
 
       -- Disable the popup HUD. It never has enough info.
       vim.g['conjure#log#hud#enabled'] = false

@@ -11,20 +11,54 @@ return {
       scroll = { enabled = false },
     },
     keys = {
+      { '<c-p>', LazyVim.pick('files', { root = true }), desc = 'Find Files (Root Dir)' },
       {
-        '<leader>ff',
-        LazyVim.pick('files', { root = false }),
+        '<leader>fX',
+        function()
+          return LazyVim.pick.open('files', { cwd = vim.fn.expand('%:p:h') })
+        end,
         desc = 'Find Files (cwd)',
       },
       {
-        '<c-p>',
-        LazyVim.pick('files', { root = true }),
-        desc = 'Find Files (Root Dir)',
+        '<leader>ff',
+        function()
+          return LazyVim.pick.open('files', { cwd = vim.fn.expand('%:p:h') })
+        end,
+        desc = 'Find Files (cwd)',
       },
       {
         '<leader>*',
-        LazyVim.pick('grep_word'),
-        desc = 'Visual selection or word (Root Dir)',
+        function()
+          return LazyVim.pick.open('grep_word')
+        end,
+        desc = 'Word (Root Dir)',
+        mode = { 'n', 'x' },
+      },
+      -- duplicated from git.lua for now
+      { '<leader>gf', '<cmd>DiffviewFileHistory %<cr>', desc = 'Diffview current file history' },
+      { '<leader>gd', '<cmd>DiffviewOpen<cr>', desc = 'Diffview open' },
+    },
+  },
+
+  -- https://github.com/LazyVim/LazyVim/discussions/6787#discussioncomment-14978197
+  {
+    'ibhagwan/fzf-lua',
+    optional = true,
+    keys = {
+      {
+        '<leader>ff',
+        function()
+          return LazyVim.pick.open('files', { cwd = vim.fn.expand('%:p:h') })
+        end,
+        desc = 'Find Files (cwd)',
+      },
+      {
+        '<leader>*',
+        function()
+          -- This is different from snacks which is grep_word
+          return LazyVim.pick.open('grep_cword')
+        end,
+        desc = 'Word (Root Dir)',
         mode = { 'n', 'x' },
       },
     },

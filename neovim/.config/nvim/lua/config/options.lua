@@ -105,7 +105,7 @@ vim.filetype.add {
 -- root. We have to remove it, not just demote it, because LazyVim.root.detect() finds all
 -- candidates and then prefers the longest.
 vim.g.root_spec = {
-  { '.git', 'lua' },
+  { '.git', 'lua', '.obsidian' },
   'lsp',
   'cwd',
 }
