@@ -102,6 +102,11 @@ return {
             end
             return fdir
           end,
+          settings = {
+            java = {
+              ['jdk-source-uri'] = vim.fs.joinpath(vim.env.JAVA_HOME, 'lib/src.zip'),
+            },
+          },
         },
       },
     },
