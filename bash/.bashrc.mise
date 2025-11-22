@@ -2,7 +2,8 @@
 #
 # Mise integration
 #
-# based on the output of `mise activate bash`
+# based on the output of `mise activate bash` to use precmd instead of
+# PROMPT_COMMAND
 #======================================================================
 
 type -f mise &>/dev/null || return 0
@@ -12,23 +13,46 @@ export MISE_SHELL=bash
 export __MISE_ORIG_PATH="$PATH"
 
 mise() {
-  case $1 in
-  deactivate|s|shell)
-    if [[ ! " $* " =~ " (--help|-h) " ]]; then
-      eval "$(command mise "$@")"
-      mise_precmd() { true; }
-      return $?
-    fi
-    ;;
-  esac
+  if [[ ! " $* " =~ ' '(--help|-h)' ' ]]; then
+    case $1 in
+      activate)
+        mise_precmd() { eval "$(mise hook-env -s bash)"; }
+        return
+        ;;
+      deactivate)
+        mise_precmd() { true; }
+        eval "$(command mise "$@")"
+        return
+        ;;
+      s|shell)
+        eval "$(command mise "$@")"
+        return
+        ;;
+      # https://github.com/jdx/mise/discussions/6475
+      use)
+        local file=$(mise use-what-file)
+        set -- use ${file:+--path "$file"} "${@:2}"
+        ;;
+      use-what-file)
+        local files f found
+        mapfile -t files <<<"$(mise config -J | jq -r '.[] | .path')"
+        for f in "${files[@]}"; do
+          if [[ -n $found && ${found%/*} != "${f%/*}" ]]; then
+            break
+          fi
+          found=$f
+        done
+        [[ -n $found ]] && echo "$found"
+        return
+        ;;
+    esac
+  fi
   command mise "$@"
 }
 
-mise_precmd() {
-  eval "$(mise hook-env -s bash)"
-}
-
+mise activate
 precmd_functions+=(mise_precmd)
+[[ $- == *i* ]] || mise_precmd
 
 #======================================================================
 # The following lines enforce a consistent indentation for this file.

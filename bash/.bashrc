@@ -66,8 +66,10 @@ fi
 # Python virtualenvwrapper wrapper
 [[ -r ~/.bashrc.virtualenvwrapper ]] && source ~/.bashrc.virtualenvwrapper
 
-# Ruby rvm -- disabled in favor of JIT loader below
-#[[ -r ~/.rvm/scripts/rvm ]] && source ~/.rvm/scripts/rvm
+# Set up mise. We do this even if non-interactive, so that mise-supplied tools
+# will be available on the path.
+[[ -r ~/.bashrc.preexec ]] && source ~/.bashrc.preexec
+[[ -r ~/.bashrc.mise ]] && source ~/.bashrc.mise
 
 # All done if non-interactive.
 # Note that ssh -t doesn't get past here.
@@ -81,8 +83,6 @@ fi
 # Interactive settings
 #######################################################################
 
-[[ -r ~/.bashrc.preexec ]] && source ~/.bashrc.preexec
-[[ -r ~/.bashrc.mise ]] && source ~/.bashrc.mise
 [[ -r ~/.bashrc.prompt ]] && source ~/.bashrc.prompt
 [[ -r ~/.bashrc.tmux ]] && source ~/.bashrc.tmux  # after .bashrc.prompt
 
@@ -98,7 +98,7 @@ if [[ $(type -t __vte_prompt_command) == function ]]; then
 fi
 
 # https://github.com/atuinsh/atuin?tab=readme-ov-file#bash
-type atuin &>/dev/null && eval "$(atuin init bash --disable-up-arrow)"
+type -f atuin &>/dev/null && eval "$(atuin init bash --disable-up-arrow)"
 
 export GPG_TTY=$(tty)
 

@@ -29,6 +29,7 @@
   #changed = "!f(){ cd \"${GIT_PREFIX:-$PWD}\"; git status -s \"$@\" | awk '{print $NF}'; }; f"
   changed = "!f(){ cd \"${GIT_PREFIX:-$PWD}\"; if [[ -d ${@:$#} ]]; then IFS=$'\n' read -rd '' -a names < <(git diff --name-only \"$@\"); printf '%s\n' \"${names[@]#$GIT_PREFIX}\"; else git diff --name-only \"$@\"; fi; }; f"
   wip = commit -a -m wip
+  shallow = clone --depth 1
 
   # Diffs
   di = diff
