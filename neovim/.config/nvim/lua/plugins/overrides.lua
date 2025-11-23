@@ -10,15 +10,28 @@ return {
       indent = { enabled = false },
       scroll = { enabled = false },
     },
+  },
+
+  -- Show hidden files by default.
+  -- https://github.com/LazyVim/LazyVim/discussions/6807#discussioncomment-15038023
+  {
+    'folke/snacks.nvim',
+    opts = {
+      picker = {
+        hidden = true,
+        sources = {
+          files = {
+            hidden = true,
+          },
+        },
+      },
+    },
+  },
+
+  {
+    'folke/snacks.nvim',
     keys = {
       { '<c-p>', LazyVim.pick('files', { root = true }), desc = 'Find Files (Root Dir)' },
-      {
-        '<leader>fX',
-        function()
-          return LazyVim.pick.open('files', { cwd = vim.fn.expand('%:p:h') })
-        end,
-        desc = 'Find Files (cwd)',
-      },
       {
         '<leader>ff',
         function()
