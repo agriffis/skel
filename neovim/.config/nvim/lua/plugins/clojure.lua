@@ -79,37 +79,39 @@ return {
   -- Static clojure LSP.
   {
     'neovim/nvim-lspconfig',
-    opts = {
-      servers = {
-        clojure_lsp = {
-          filetypes = lisp_filetypes,
-          -- Two different root-finding functions available to us:
-          --
-          -- require('lspconfig.util').root_pattern(...) looks for each file individually, so
-          -- it will prioritize /foo/.git over /foo/bar/deps.edn.
-          --
-          -- vim.fs.find() looks for all files at once, so it stops at the first found.
-          root_dir = function(bufnr, on_dir)
-            on_dir(vim.fs.abspath('.'))
-            local fname = vim.fn.bufname(bufnr)
-            local fdir = vim.fs.abspath(vim.fs.dirname(fname))
-            local found = vim.fs.find(clojure_root_markers, {
-              path = fdir,
-              upward = true,
-            })[1]
-            if found then
-              return on_dir(vim.fs.dirname(found))
-            end
-            return fdir
-          end,
-          settings = {
-            java = {
-              ['jdk-source-uri'] = vim.fs.joinpath(vim.env.JAVA_HOME, 'lib/src.zip'),
-            },
+    opts = function(_, opts)
+      local settings = {}
+      if vim.env.JAVA_HOME then
+        settings['jdk-source-uri'] = vim.fs.joinpath(vim.env.JAVA_HOME, 'lib/src.zip')
+      end
+      return vim.tbl_deep_extend('force', opts, {
+        servers = {
+          clojure_lsp = {
+            filetypes = lisp_filetypes,
+            -- Two different root-finding functions available to us:
+            --
+            -- require('lspconfig.util').root_pattern(...) looks for each file individually, so
+            -- it will prioritize /foo/.git over /foo/bar/deps.edn.
+            --
+            -- vim.fs.find() looks for all files at once, so it stops at the first found.
+            root_dir = function(bufnr, on_dir)
+              on_dir(vim.fs.abspath('.'))
+              local fname = vim.fn.bufname(bufnr)
+              local fdir = vim.fs.abspath(vim.fs.dirname(fname))
+              local found = vim.fs.find(clojure_root_markers, {
+                path = fdir,
+                upward = true,
+              })[1]
+              if found then
+                return on_dir(vim.fs.dirname(found))
+              end
+              return fdir
+            end,
+            settings = settings,
           },
         },
-      },
-    },
+      })
+    end,
   },
 
   -- Dynamic clojure dev with nrepl.
