@@ -10,7 +10,7 @@ type -f mise &>/dev/null || return 0
 
 export MISE_NODE_COREPACK=true
 export MISE_SHELL=bash
-export __MISE_ORIG_PATH="$PATH"
+export __MISE_ORIG_PATH=${__MISE_ORIG_PATH:-$PATH}
 
 mise() {
   if [[ ! " $* " =~ ' '(--help|-h)' ' ]]; then
