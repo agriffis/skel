@@ -1,0 +1,25 @@
+[tools]
+babashka = "latest"
+"cargo:atuin" = "latest"
+"cargo:serie" = "latest"
+"cargo:stylua" = "latest"
+claude = "latest"
+clojure = "latest"
+cmake = "latest"
+fx = "latest"
+node = "latest"
+"npm:@bitwarden/cli" = "latest"
+"npm:@github/copilot" = "latest"
+"npm:@vscode/vsce" = "latest"
+"pipx:posting" = "latest"
+python = "latest"
+rust = "latest"
+"ubi:borkdude/jet" = "latest"
+zellij = "latest"
+
+[settings]
+idiomatic_version_file_enable_tools = ["node"]
+
+[env]
+_.python.venv = { path = "{{env.HOME}}/.venv", create = true, uv_create_args = ['--seed'] }
+ET_NO_TELEMETRY = 1

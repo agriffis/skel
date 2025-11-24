@@ -3,6 +3,11 @@
 main() {
   ensure-ssh-identity "$@"
 
+  declare backend=et
+  case $1 in
+    et|mosh|ssh) backend=$1; shift ;;
+  esac
+
   declare host="${1:-junco}"
   shift
 
@@ -16,30 +21,19 @@ main() {
   fi
 
   case $host in
-    advent) host=junco session=advent ;;
-    gargan) host=gargan session=scampersand ;;
-    junco) host=junco session=scampersand ;;
-    jx) host=junco session=jx ;;
+    advent) host=junco.$dom session=advent ;;
+    junco) host=junco.$dom session=scampersand ;;
+    jx) host=junco.$dom session=jx ;;
   esac
 
-  if [[ $# == 0 ]]; then
-    # -E to avoid wiping out DISPLAY set by tunnel
-    set -- "$host.$dom" "tmux new-session -ADEs $session"
-  fi
+  # -E to avoid wiping out DISPLAY set by tunnel
+  declare cmd="tmux new-session -ADEs $session"
 
-  case ${HOSTNAME%%.*}/${0##*/} in
-    */gosh)
-      # mosh handles quoting differently from ssh
-      eval mosh -- "$@"
-      ;;
-
-    */sssh) 
-      ssh -t "$@"
-      ;;
-
-    *)
-      echo "what is $0?" >&2; exit 1
-      ;;
+  case $backend in
+    et) et -c "$cmd" "$host" ;;
+    mosh) eval mosh -- "$host" "$cmd" ;;
+    ssh) ssh -t "$host" "$cmd" ;;
+    *) echo "what is $backend?" >&2; exit 1 ;;
   esac
 
   exit # always exit at bottom of main
