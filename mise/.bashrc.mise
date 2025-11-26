@@ -8,51 +8,62 @@
 
 type -f mise &>/dev/null || return 0
 
-export MISE_NODE_COREPACK=true
-export MISE_SHELL=bash
-export __MISE_ORIG_PATH=${__MISE_ORIG_PATH:-$PATH}
-
-mise() {
-  if [[ ! " $* " =~ ' '(--help|-h)' ' ]]; then
-    case $1 in
-      activate)
-        mise_precmd() { eval "$(mise hook-env -s bash)"; }
-        return
-        ;;
-      deactivate)
-        mise_precmd() { true; }
-        eval "$(command mise "$@")"
-        return
-        ;;
-      s|shell)
-        eval "$(command mise "$@")"
-        return
-        ;;
-      # https://github.com/jdx/mise/discussions/6475
-      use)
-        local file=$(mise use-what-file)
-        set -- use ${file:+--path "$file"} "${@:2}"
-        ;;
-      use-what-file)
-        local files f found
-        mapfile -t files <<<"$(mise config -J | jq -r '.[] | .path')"
-        for f in "${files[@]}"; do
-          if [[ -n $found && ${found%/*} != "${f%/*}" ]]; then
-            break
-          fi
-          found=$f
-        done
-        [[ -n $found ]] && echo "$found"
-        return
-        ;;
-    esac
+_mini-mise() {
+  if [[ " $* " =~ ' '(--help|-h)' ' ]]; then
+    command mise "$@"
+    return
   fi
-  command mise "$@"
+
+  case $1 in
+    activate)
+      cat <<'EOT'
+        export MISE_NODE_COREPACK=true
+        export MISE_SHELL=bash
+        export __MISE_ORIG_PATH=${__MISE_ORIG_PATH:-$PATH}
+        _mise-precmd() { eval "$(mise hook-env)"; }
+        if [[ " ${precmd_functions[*]} " != *" _mise-precmd "* ]]; then
+          precmd_functions+=( _mise-precmd )
+        fi
+EOT
+      ;;
+    deactivate)
+      _mise-precmd() { true; }
+      eval "$(command mise "$@")"
+      mise() { _mini-mise "$@"; }
+      ;;
+    reactivate)
+      eval "$(mise activate)"
+      ;;
+    s|shell)
+      eval "$(command mise "$@")"
+      ;;
+    # https://github.com/jdx/mise/discussions/6475
+    use)
+      local file=$(mise use-what-file)
+      command mise use ${file:+--path "$file"} "${@:2}"
+      ;;
+    use-what-file)
+      local files f found
+      mapfile -t files <<<"$(mise config -J | jq -r '.[] | .path')"
+      for f in "${files[@]}"; do
+        if [[ -n $found && ${found%/*} != "${f%/*}" ]]; then
+          break
+        fi
+        found=$f
+      done
+      [[ -n $found ]] && echo "$found"
+      ;;
+    *)
+      command mise "$@"
+      ;;
+  esac
 }
 
-mise activate
-precmd_functions+=(mise_precmd)
-[[ $- == *i* ]] || mise_precmd
+mise() { _mini-mise "$@"; }
+
+mise reactivate
+
+[[ $- == *i* ]] || eval "$(mise hook-env)"
 
 #======================================================================
 # The following lines enforce a consistent indentation for this file.
