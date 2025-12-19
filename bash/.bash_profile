@@ -123,6 +123,9 @@ export RSYNC_RSH=ssh
 # make pinentry-curses work for gpg-agent
 export GPG_TTY=$(tty)
 
+# don't send Eternal Eterminal telemetry
+export ET_NO_TELEMENTRY=1
+
 # Load user-specific settings
 [[ ! -r ~/.bash_profile.mine ]] || source ~/.bash_profile.mine
 [[ ! -r ~/.bash_profile.local ]] || source ~/.bash_profile.local
