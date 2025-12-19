@@ -72,8 +72,8 @@ vim.keymap.set('v', 'p', '"_dP')
 vim.keymap.set('c', '%/', '<C-R>=expand("%:p:h")."/"<CR>')
 
 -- Format code with =
-vim.keymap.set({ 'n', 'x' }, '=', 'gq', { desc = 'Format code', remap = true })
-vim.keymap.set('n', '==', 'gqq', { desc = 'Format code', remap = true })
+--vim.keymap.set({ 'n', 'x' }, '=', 'gq', { desc = 'Format code', remap = true })
+--vim.keymap.set('n', '==', 'gqq', { desc = 'Format code', remap = true })
 
 -- Reformat code with alternate formatter with <leader>=1, <leader>=2, etc.
 for i = 1, 9 do
