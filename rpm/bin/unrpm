@@ -109,7 +109,8 @@ die() {
 rpmbuild() {
     declare x topdir
     for x; do
-        x=$(readlink -f "$x")
+        [[ $x == -* ]] && continue
+        x=$(readlink -f "$x" 2>/dev/null)
         if [[ $x == */SPECS/*.spec ]]; then
             topdir=$(dirname "$(dirname "$x")")
             break
