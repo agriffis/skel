@@ -44,10 +44,6 @@ return {
   {
     'mfussenegger/nvim-jdtls',
     opts = function(_, opts)
-      -- Look for David's formatter config. This uses whatever is the actual CWD
-      -- because we don't necessarily have a buffer yet.
-      local _, formatter_config = next(vim.fs.find({ 'updated-formatter.xml' }, { upward = true }))
-
       -- Enable jdtls to work with unsaved code.
       -- This is passed into settings below.
       local jdtls = require('jdtls')
@@ -106,18 +102,6 @@ return {
             -- process, then run `make dev` instead of `make debug`, and disable
             -- autobuild here.
             autobuild = { enabled = true },
-
-            -- Enable jdtls-powered formatting using David's configuration. This
-            -- is much faster than calling bin/eclipse-formatter every time.
-            format = formatter_config and {
-              enabled = true,
-              settings = {
-                url = formatter_config,
-                profile = 'dgd (Tizra)',
-              },
-            } or {
-              enabled = false,
-            },
 
             -- These are the null annotations we're using in cubchicken. We have
             -- to set these explicitly to avoid jdtls from clearing the
