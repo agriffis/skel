@@ -54,28 +54,28 @@ return {
   },
 
   -- https://github.com/LazyVim/LazyVim/discussions/6787#discussioncomment-14978197
-  {
-    'ibhagwan/fzf-lua',
-    optional = true,
-    keys = {
-      {
-        '<leader>ff',
-        function()
-          return LazyVim.pick.open('files', { cwd = vim.fn.expand('%:p:h') })
-        end,
-        desc = 'Find Files (cwd)',
-      },
-      {
-        '<leader>*',
-        function()
-          -- This is different from snacks which is grep_word
-          return LazyVim.pick.open('grep_cword')
-        end,
-        desc = 'Word (Root Dir)',
-        mode = { 'n', 'x' },
-      },
-    },
-  },
+  --{
+  --  'ibhagwan/fzf-lua',
+  --  optional = true,
+  --  keys = {
+  --    {
+  --      '<leader>ff',
+  --      function()
+  --        return LazyVim.pick.open('files', { cwd = vim.fn.expand('%:p:h') })
+  --      end,
+  --      desc = 'Find Files (cwd)',
+  --    },
+  --    {
+  --      '<leader>*',
+  --      function()
+  --        -- This is different from snacks which is grep_word
+  --        return LazyVim.pick.open('grep_cword')
+  --      end,
+  --      desc = 'Word (Root Dir)',
+  --      mode = { 'n', 'x' },
+  --    },
+  --  },
+  --},
 
   {
     'folke/flash.nvim',
