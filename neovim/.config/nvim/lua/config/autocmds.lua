@@ -27,6 +27,7 @@ vim.api.nvim_create_augroup('fedora', { clear = true })
 
 -- LazyVim equiv of above
 vim.api.nvim_create_augroup('last_loc', { clear = true })
+vim.api.nvim_create_augroup('lazyvim_last_loc', { clear = true })
 
 -- Enable permanent signcolumn when editing code.
 local function hacking()
