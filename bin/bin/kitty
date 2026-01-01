@@ -28,7 +28,7 @@ main() {
           font_size=18
           hide_window_decorations=yes
         ) ;;
-      sway:*)
+      niri:*|sway:*)
         overrides=(
           linux_display_server=wayland
           font_size=12

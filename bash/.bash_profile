@@ -19,9 +19,6 @@ export _BASH_PROFILE=1
 # sometimes USER isn't set so just use LOGNAME
 : ${USER:=$LOGNAME}
 
-# make sure subprocesses know Bash rules :-)
-export SHELL=$BASH
-
 # PATH
 # ----
 
@@ -80,6 +77,10 @@ setpath() {
 }
 setpath
 unset -f setpath
+
+# make sure subprocesses know Bash rules :-)
+export BASH=$(which bash) # override macos forcing /bin/bash
+export SHELL=$BASH
 
 # locale
 # ------

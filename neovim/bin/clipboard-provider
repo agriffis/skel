@@ -4,12 +4,21 @@
 #
 # :help provider-clipboard
 
-#exec 2>> ~/clipboard-provider.out
-#set -x
+exec 3<&2
+
+if [[ -n $CLIPBOARD_PROVIDER_DEBUG ]]; then
+  #exec 2>> ~/clipboard-provider.out
+  exec 4>&2
+  set -x
+else
+  exec 4>/dev/null
+fi
+
+: ${TTY:=$(tty <&3 2>&4 | grep /dev/)}
+: ${TTY:=$(tmux display-message -p '#{pane_tty}' 2>&4 | grep /dev/)}
 
 : ${COPY_PROVIDERS:=tmux desktop}
 : ${PASTE_PROVIDERS:=tmux desktop}
-: ${TTY:=`(tty || tmux display-message -p '#{pane_tty}') 2>/dev/null | grep /dev/`}
 
 main() {
   declare p status=99
@@ -31,7 +40,7 @@ main() {
 }
 
 # N.B. buffer is global for simplicity
-slurp() { buffer=$(base64); }
+slurp() { buffer=$(base64 | tr -d '\r\n'); }
 spit() { base64 --decode <<<"$buffer"; }
 
 tmux-provider() {
@@ -43,46 +52,67 @@ tmux-provider() {
 }
 
 desktop-provider() {
-  pasteboard-provider "$@" || wayland-provider "$@" || xclip-provider "$@" || osc52-provider "$@"
+  # Previously had xclip between wayland and osc52, but I have no remaining
+  # systems that support it, 
+  pasteboard-provider "$@" || wayland-provider "$@" || osc52-provider "$@"
 }
 
 pasteboard-provider() {
   case $1 in
-    copy) type -P pbcopy &>/dev/null && spit | pbcopy ;;
-    paste) type -P pbpaste &>/dev/null && pbpaste ;;
+    copy) type -P pbcopy >&4 2>&4 && spit | pbcopy ;;
+    paste) type -P pbpaste >&4 2>&4 && pbpaste ;;
   esac
 }
 
 wayland-provider() {
   if [[ -n $TMUX ]]; then
-    local d=$(tmux showenv WAYLAND_DISPLAY 2>/dev/null)
+    local d=$(tmux showenv WAYLAND_DISPLAY 2>&4)
     [[ $d != -* ]] || return
     [[ -n $d ]] && export "$d"
   fi
   [[ -n $WAYLAND_DISPLAY ]] || return
   case $1 in
-    copy) type -P wl-copy &>/dev/null && spit | wl-copy --trim-newline --type=text/plain ;;
-    paste) type -P wl-paste &>/dev/null && wl-paste ;;
+    copy) type -P wl-copy >&4 2>&4 && spit | wl-copy --trim-newline --type=text/plain ;;
+    paste) type -P wl-paste >&4 2>&4 && wl-paste ;;
   esac
 }
 
 xclip-provider() {
   if [[ -n $TMUX ]]; then
-    local d=$(tmux showenv DISPLAY 2>/dev/null)
+    local d=$(tmux showenv DISPLAY 2>&4)
     [[ $d != -* ]] || return
     [[ -n $d ]] && export "$d"
   fi
-  [[ -n $DISPLAY ]] && type -P xclip &>/dev/null && ! xdpyinfo | grep -q Apple || return
+  # Don't xclip to Apple's XQuartz, it's more reliable to use OSC52.
+  [[ -n $DISPLAY ]] && type -P xclip >&4 2>&4 && ! xdpyinfo | grep -q Apple || return
   case $1 in
     copy) spit | xclip -i -selection clipboard ;;
     paste) xclip -o -selection clipboard ;;
   esac
 }
 
+OSC=$'\e]'
+DCS=$'\eP'
+ST=$'\e\\' #'
+SOH=$'\a'
+
+osc52() {
+  printf %s "${OSC}52;c;$1$SOH"
+}
+
+tmux-passthrough() {
+  printf %s "${DCS}tmux;" "${1//$'\e'/$'\e\e'}" "$ST" > "$TTY"
+}
+
 osc52-provider() {
-  [[ -n "$TTY" ]] || return
+  [[ -n $TTY ]] || return
   case $1 in
-    copy) printf $'\e]52;c;%s\a' "$buffer" > "$TTY" ;;
+    copy)
+      if [[ -n $TMUX ]]; then
+        tmux-passthrough "$(osc52 "$buffer")" > "$TTY"
+      else
+        osc52 "$buffer" > "$TTY"
+      fi ;;
     paste) return 1 ;;
   esac
 }

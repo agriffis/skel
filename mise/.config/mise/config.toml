@@ -4,7 +4,7 @@ claude = "latest"
 clojure = "latest"
 cmake = "latest"
 fx = "latest"
-node = "latest"
+node = "24"
 rust = "latest"
 zellij = "latest"
 "cargo:atuin" = "latest"
@@ -15,6 +15,9 @@ zellij = "latest"
 "npm:@vscode/vsce" = "latest"
 "ubi:borkdude/jet" = "latest"
 usage = "latest"
+"github:simulot/immich-go" = "latest"
+fzf = "latest"
+ripgrep = "latest"
 
 [settings]
 idiomatic_version_file_enable_tools = ["node"]
