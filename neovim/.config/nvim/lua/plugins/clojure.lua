@@ -59,7 +59,7 @@ return {
     },
   },
 
-  -- N.B. disabled in overrides.lua in favor of nvim-autopairs.
+  -- N.B. disabled in pairs.lua in favor of nvim-autopairs.
   {
     'nvim-mini/mini.pairs',
     opts = {
@@ -153,7 +153,7 @@ return {
       vim.g['conjure#log#jump_to_latest#enabled'] = true
 
       -- Don't start babashka if nrepl isn't available.
-      vim.g['conjure#client#clojure#nrepl#connection#auto_repl#enabled'] = false
+      --vim.g['conjure#client#clojure#nrepl#connection#auto_repl#enabled'] = false
     end,
   },
 

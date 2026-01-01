@@ -1,7 +1,15 @@
 local my = require('my')
 
 return {
-  { 'LazyVim/LazyVim', opts = { news = { lazyvim = false, neovim = false } } },
+  {
+    'LazyVim/LazyVim',
+    opts = {
+      news = {
+        lazyvim = false,
+        neovim = false,
+      },
+    },
+  },
 
   {
     'folke/snacks.nvim',
@@ -28,6 +36,24 @@ return {
     },
   },
 
+  -- Close snacks pickers when Esc is pressed.
+  -- https://github.com/folke/snacks.nvim/issues/1440
+  {
+    'folke/snacks.nvim',
+    opts = {
+      picker = {
+        enabled = true,
+        win = {
+          input = {
+            keys = {
+              ['<Esc>'] = { 'close', mode = { 'n', 'i' } },
+            },
+          },
+        },
+      },
+    },
+  },
+
   {
     'folke/snacks.nvim',
     keys = {
@@ -48,66 +74,21 @@ return {
         mode = { 'n', 'x' },
       },
       -- duplicated from git.lua for now
-      { '<leader>gf', '<cmd>DiffviewFileHistory %<cr>', desc = 'Diffview current file history' },
-      { '<leader>gd', '<cmd>DiffviewOpen<cr>', desc = 'Diffview open' },
+      --{ '<leader>gf', '<cmd>DiffviewFileHistory %<cr>', desc = 'Diffview current file history' },
+      --{ '<leader>gd', '<cmd>DiffviewOpen<cr>', desc = 'Diffview open' },
     },
   },
 
-  -- https://github.com/LazyVim/LazyVim/discussions/6787#discussioncomment-14978197
-  --{
-  --  'ibhagwan/fzf-lua',
-  --  optional = true,
-  --  keys = {
-  --    {
-  --      '<leader>ff',
-  --      function()
-  --        return LazyVim.pick.open('files', { cwd = vim.fn.expand('%:p:h') })
-  --      end,
-  --      desc = 'Find Files (cwd)',
-  --    },
-  --    {
-  --      '<leader>*',
-  --      function()
-  --        -- This is different from snacks which is grep_word
-  --        return LazyVim.pick.open('grep_cword')
-  --      end,
-  --      desc = 'Word (Root Dir)',
-  --      mode = { 'n', 'x' },
-  --    },
-  --  },
-  --},
-
   {
     'folke/flash.nvim',
-    opts = { modes = { char = { enabled = false }, search = { enabled = false } } },
+    opts = {
+      modes = {
+        char = { enabled = false },
+        search = { enabled = false },
+      },
+    },
   },
 
-  {
-    'hrsh7th/nvim-cmp',
-    optional = true,
-    opts = function(_, opts)
-      -- Don't start completion until I press ctrl-space.
-      opts.completion.autocomplete = false
-      -- Don't replace normal vim ctrl-n ctrl-p completion.
-      local cmp = require('cmp')
-      opts.mapping['<C-n>'] = function(fallback)
-        if cmp.visible() then
-          cmp.select_next_item { behavior = cmp.SelectBehavior.Insert }
-        else
-          fallback()
-        end
-      end
-      opts.mapping['<C-p>'] = function(fallback)
-        if cmp.visible() then
-          cmp.select_prev_item { behavior = cmp.SelectBehavior.Insert }
-        else
-          fallback()
-        end
-      end
-    end,
-  },
-
-  -- LazyVim switched from nvim-cmp to blink.cmp in v14
   {
     'saghen/blink.cmp',
     optional = true,
@@ -154,36 +135,12 @@ return {
         ['<Tab>'] = { 'accept', 'fallback' },
         ['<Up>'] = { if_open_then('select_prev'), 'fallback' },
         ['<Down>'] = { if_open_then('select_next'), 'fallback' },
-        ['<C-p>'] = { if_open_then('select_prev'), 'fallback' },
-        ['<C-n>'] = { if_open_then('select_next'), 'fallback' },
         ['<C-b>'] = { 'scroll_documentation_up', 'fallback' },
         ['<C-f>'] = { 'scroll_documentation_down', 'fallback' },
+        -- Use ctrl-n/p for normal vim completion unless blink is open.
+        ['<C-p>'] = { if_open_then('select_prev'), 'fallback' },
+        ['<C-n>'] = { if_open_then('select_next'), 'fallback' },
       }
     end,
-  },
-
-  {
-    'windwp/nvim-ts-autotag',
-    -- enabled = false,
-    opts = {
-      autotag = {
-        -- https://github.com/windwp/nvim-ts-autotag/issues/124
-        -- https://github.com/windwp/nvim-ts-autotag/issues/125
-        -- https://github.com/windwp/nvim-ts-autotag/issues/151
-        enable_close_on_slash = false,
-      },
-    },
-  },
-
-  -- Replace mini.pairs with nvim-autopairs
-  -- https://github.com/LazyVim/LazyVim/discussions/2248
-  {
-    'windwp/nvim-autopairs',
-    event = 'InsertEnter',
-    opts = {},
-  },
-  {
-    'nvim-mini/mini.pairs',
-    enabled = false,
   },
 }

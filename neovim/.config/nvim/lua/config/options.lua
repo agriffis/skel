@@ -70,7 +70,7 @@ vim.opt.completeopt = 'menu,preview'
 vim.opt.ignorecase = true -- "foo" matches "Foo", etc
 vim.opt.infercase = true -- adjust the case of the match with ctrl-p/ctrl-n
 vim.opt.smartcase = true -- ignorecase only when the pattern is all lower
-vim.opt.hlsearch = false -- by default, don't highlight matches after they're found
+-- vim.opt.hlsearch = false -- by default, don't highlight matches after they're found
 vim.opt.grepprg = 'rg --hidden --line-number --smart-case --sort-files'
 
 -- Windowing

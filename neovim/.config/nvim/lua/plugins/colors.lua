@@ -103,6 +103,11 @@ return {
     },
   },
 
+  {
+    'miikanissi/modus-themes.nvim',
+    config = true,
+  },
+
   -- Configure LazyVim to load colorscheme via themer
   {
     'LazyVim/LazyVim',

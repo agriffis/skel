@@ -13,7 +13,8 @@ end
 local MyGroup = vim.api.nvim_create_augroup('MyGroup', { clear = true })
 
 -- Disable Fedora-provided autocmd to jump to last cursor position in file.
-vim.api.nvim_create_augroup('fedora', { clear = true })
+clear_augroup('fedora')
+
 -- commented because this scrolls the diff buffer in diffview
 --vim.api.nvim_create_autocmd('BufReadPost', {
 --  group = MyGroup,
@@ -26,8 +27,7 @@ vim.api.nvim_create_augroup('fedora', { clear = true })
 --})
 
 -- LazyVim equiv of above
-vim.api.nvim_create_augroup('last_loc', { clear = true })
-vim.api.nvim_create_augroup('lazyvim_last_loc', { clear = true })
+clear_lazyvim_augroup('last_loc')
 
 -- Enable permanent signcolumn when editing code.
 local function hacking()
@@ -38,8 +38,10 @@ end
 
 -- Hacking mode when LSP attaches.
 vim.api.nvim_create_autocmd('User', { group = MyGroup, pattern = 'Code', callback = hacking })
-require('snacks').util.lsp.on({}, function()
-  vim.cmd([[doautocmd User Code]])
+require('snacks').util.lsp.on({}, function(buffer, client)
+  if client.name ~= 'marksman' then
+    vim.cmd([[doautocmd User Code]])
+  end
 end)
 
 -- Some known filetypes for hacking, especially where the LSP takes a while to attach.
