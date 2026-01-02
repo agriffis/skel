@@ -1,3 +1,5 @@
+local my = require('my')
+
 return {
   {
     'zbirenbaum/copilot.lua',
@@ -6,7 +8,10 @@ return {
     -- https://neovim.io/doc/user/plugins.html#editorconfig-custom-properties
     init = function()
       require('editorconfig').properties.copilot = function(bufnr, val)
-        vim.b[bufnr].copilot_should_attach = val == 'true'
+        vim.b[bufnr].editorconfig_copilot = my.is_enabled(val)
+        -- If copilot has already tried to attach, then we need to try again.
+        -- Don't use force = true, because we want should_attach to run so the
+        -- default filetype matching applies.
         require('copilot.command').attach { bufnr = bufnr }
       end
     end,
@@ -17,10 +22,10 @@ return {
     -- property handler will call back.
     opts = {
       should_attach = function(bufnr, bufname)
-        if not vim.b[bufnr].copilot_should_attach then
-          return false
-        end
-        return require('copilot.config.should_attach').default(bufnr, bufname)
+        local allowed_by_env = my.is_enabled(os.getenv('COPILOT_ATTACH'))
+        local allowed_by_editorconfig = vim.b[bufnr].editorconfig_copilot
+        return (allowed_by_env or allowed_by_editorconfig)
+          and require('copilot.config.should_attach').default(bufnr, bufname)
       end,
     },
   },

@@ -250,4 +250,12 @@ function my.operator_register(name, opts)
   end
 end
 
+function my.is_enabled(s)
+  if type(s) == 'string' then
+    s = string.lower(s)
+    return s == 'true' or s == '1' or s == 'on' or s == 'yes'
+  end
+  return s == true or s == 1
+end
+
 return my
