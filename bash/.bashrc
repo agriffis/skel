@@ -174,7 +174,15 @@ ls() {
 # git -- override what can't be aliased
 git() {
   case $1 in
-    stash) set -- -c commit.gpgsign=false "$@" ;;
+    push)
+      if [[ " $* " == " --force " ]]; then
+        echo "push --force disallowed by shell function" >&2
+        return 1
+      fi
+      ;;
+    stash)
+      set -- -c commit.gpgsign=false "$@"
+      ;;
   esac
   command git "$@"
 }
