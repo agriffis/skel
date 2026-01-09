@@ -175,7 +175,7 @@ ls() {
 git() {
   case $1 in
     push)
-      if [[ " $* " == *" --force "* ]]; then
+      if [[ " $* " == *" --force "* || " $* " == *" -f "* ]]; then
         echo "push --force disallowed by shell function" >&2
         return 1
       fi
