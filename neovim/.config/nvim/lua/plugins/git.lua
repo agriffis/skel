@@ -8,42 +8,42 @@ return {
     },
   },
 
-  -- Spiritual successor to fugitive (but still pretty raw).
-  -- Main benefit is that it integrates with diffview.nvim.
-  {
-    'NeogitOrg/neogit',
-    dependencies = {
-      'nvim-lua/plenary.nvim',
-      'sindrets/diffview.nvim',
-      'ibhagwan/fzf-lua',
-    },
-    config = true,
-    keys = {
-      {
-        '<leader>gg',
-        function()
-          require('neogit').open { kind = 'split' }
-        end,
-        desc = 'Neogit status',
-      },
-      {
-        '<leader>gl',
-        function()
-          require('neogit').open { 'log', kind = 'split' }
-        end,
-        desc = 'Neogit log',
-      },
-      {
-        '<leader>gf',
-        -- This isn't working yet and I don't know why.
-        function()
-          local file = vim.fn.expand('%')
-          require('neogit').action('log', 'log_current', { '--', file })
-        end,
-        desc = 'Neogit log (current file)',
-      },
-    },
-  },
+  -- -- Spiritual successor to fugitive (but still pretty raw).
+  -- -- Main benefit is that it integrates with diffview.nvim.
+  -- {
+  --   'NeogitOrg/neogit',
+  --   dependencies = {
+  --     'nvim-lua/plenary.nvim',
+  --     'sindrets/diffview.nvim',
+  --     'ibhagwan/fzf-lua',
+  --   },
+  --   config = true,
+  --   keys = {
+  --     {
+  --       '<leader>gg',
+  --       function()
+  --         require('neogit').open { kind = 'split' }
+  --       end,
+  --       desc = 'Neogit status',
+  --     },
+  --     {
+  --       '<leader>gl',
+  --       function()
+  --         require('neogit').open { 'log', kind = 'split' }
+  --       end,
+  --       desc = 'Neogit log',
+  --     },
+  --     {
+  --       '<leader>gf',
+  --       -- This isn't working yet and I don't know why.
+  --       function()
+  --         local file = vim.fn.expand('%')
+  --         require('neogit').action('log', 'log_current', { '--', file })
+  --       end,
+  --       desc = 'Neogit log (current file)',
+  --     },
+  --   },
+  -- },
 
   -- mainly for :Gvdiffsplit but maybe could be done with neogit
   {

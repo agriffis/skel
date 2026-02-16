@@ -53,3 +53,22 @@ vim.api.nvim_create_autocmd(
 -- Disable LazyVim spellcheck defaults
 -- https://www.lazyvim.org/configuration/general#auto-commands
 clear_lazyvim_augroup('wrap_spell')
+
+-- vim.api.nvim_create_autocmd('User', {
+--   pattern = 'TSUpdate',
+--   callback = function()
+--     print('hi')
+--     local path = vim.fn.expand('~/src/tree-sitter-freemarker')
+--     if vim.fn.isdirectory(path) == 1 then
+--       require('nvim-treesitter.parsers').freemarker = {
+--         install_info = {
+--           path = path,
+--           -- url = 'https://github.com/agriffis/tree-sitter-freemarker'
+--           queries = 'queries',
+--         },
+--       }
+--     end
+--   end,
+-- })
+
+-- vim.filetype.add { extension = { ftl = 'freemarker' } }

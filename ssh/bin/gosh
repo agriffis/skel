@@ -3,6 +3,11 @@
 main() {
   ensure-ssh-identity "$@"
 
+  declare pile=false
+  case $1 in
+    pile) pile=true; shift ;;
+  esac
+
   declare backend=et
   case $1 in
     et|mosh|ssh) backend=$1; shift ;;
@@ -28,6 +33,9 @@ main() {
 
   # -E to avoid wiping out DISPLAY set by tunnel
   declare cmd="tmux new-session -ADEs $session"
+  if $pile; then
+    cmd="tmux new-session -Et $session"
+  fi
 
   case $backend in
     et) et -c "$cmd" "$host" ;;

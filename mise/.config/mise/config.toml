@@ -18,6 +18,9 @@ usage = "latest"
 "github:simulot/immich-go" = "latest"
 fzf = "latest"
 ripgrep = "latest"
+"github:cli/cli" = "latest"
+java = "24"
 
 [settings]
 idiomatic_version_file_enable_tools = ["node"]
+experimental = true

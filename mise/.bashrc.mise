@@ -63,7 +63,7 @@ mise() { _mini-mise "$@"; }
 
 mise reactivate
 
-[[ $- == *i* ]] || eval "$(mise hook-env)"
+eval "$(mise hook-env)"
 
 #======================================================================
 # The following lines enforce a consistent indentation for this file.

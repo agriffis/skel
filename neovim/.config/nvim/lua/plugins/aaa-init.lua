@@ -89,6 +89,21 @@ return {
     },
   },
 
+  --{
+  --  'saghen/blink.cmp',
+  --  optional = true,
+  --  opts = {
+  --    completion = {
+  --      list = {
+  --        selection = {
+  --          -- https://cmp.saghen.dev/configuration/keymap.html#enter
+  --          preselect = false,
+  --        },
+  --      },
+  --    },
+  --  },
+  --},
+
   {
     'saghen/blink.cmp',
     optional = true,

@@ -92,7 +92,7 @@
   cleanup = !git branch --merged | grep -Ev '^[*] (main|master)$' | xargs -n 1 -r git branch -d
 
   # Recent branches
-  br = !git for-each-ref --sort=committerdate refs/heads/ --format='%(align:50)%(refname:short)%(end) %(align:20)%(authorname)%(end) %(committerdate:relative)' | grep -v '^archive/' | tail -n 8
+  br = !git for-each-ref --sort=committerdate refs/heads/ --format='%(align:50)%(refname:short)%(end) %(align:20)%(authorname)%(end) %(committerdate:relative)' | grep -v '^archive/' | tail -n 8 | tac
 
 [pretty]
   #lol = "%C(yellow bold)%h%C(reset) %C(red)(%an)%C(reset)%C(blue bold)%d%C(reset) %s %C(cyan)(%as)%C(reset)"
