@@ -1,0 +1,63 @@
+#!/usr/bin/env node
+
+const fs = require('fs/promises')
+const os = require('os')
+const path = require('path')
+
+// {
+//   "images": [
+//     {
+//       "startdate": "20240527",
+//       "fullstartdate": "202405270700",
+//       "enddate": "20240528",
+//       "url": "/th?id=OHR.MemorialFlags_EN-US5086740860_1920x1080.jpg&rf=LaDigue_1920x1080.jpg&pid=hp",
+//       "urlbase": "/th?id=OHR.MemorialFlags_EN-US5086740860",
+//       "copyright": "Field of flags set up for Memorial Day (© Andrew Seegmiller/Getty Images)",
+//       "copyrightlink": "https://www.bing.com/search?q=Memorial+Day&form=hpcapt&filters=HpDate%3a%2220240527_0700%22",
+//       "title": "Memorial Day",
+//       "quiz": "/search?q=Bing+homepage+quiz&filters=WQOskey:%22HPQuiz_20240527_MemorialFlags%22&FORM=HPQUIZ",
+//       "wp": true,
+//       "hsh": "aaf804e3f24f5e87c62a825ae31b6edc",
+//       "drk": 1,
+//       "top": 1,
+//       "bot": 1,
+//       "hs": []
+//     }
+//   ],
+//   "tooltips": {
+//     "loading": "Loading...",
+//     "previous": "Previous image",
+//     "next": "Next image",
+//     "walle": "This image is not available to download as wallpaper.",
+//     "walls": "Download this image. Use of this image is restricted to wallpaper only."
+//   }
+// }
+
+const BING =
+  'https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&mkt=en-US'
+const PICTURES = path.resolve(os.homedir(), 'Pictures/Wallpapers/Bing')
+
+async function main() {
+  const {
+    images: [{startdate, urlbase}],
+  } = await fetch(BING).then(r => r.json())
+  const suffix = '_UHD.jpg'
+  const url = new URL(`${urlbase}${suffix}`, BING)
+  const id = url.searchParams.get('id')
+  const filepath = path.resolve(PICTURES, `${startdate}-${id.replace(/^OHR[.]/, '')}`)
+  if (!await fs.access(filepath).catch(() => false)) {
+    await download(url, filepath)
+  }
+  const today = path.resolve(path.dirname(filepath), 'today.jpg')
+  await fs.unlink(today)
+  await fs.symlink(path.basename(filepath), today)
+}
+
+async function download(url, filepath) {
+  const response = await fetch(url)
+  if (!response.ok) throw new Error(`Failed to fetch (${response.status})`)
+  const buffer = Buffer.from(await response.arrayBuffer())
+  await fs.writeFile(filepath, buffer)
+}
+
+main()
