@@ -28,6 +28,11 @@ source ~/.bashrc.pathfuncs
 # https://bun.sh/
 export BUN_INSTALL="$HOME/.bun"
 
+# Add brew to path before running our setpath function
+if [[ -d /home/linuxbrew ]]; then
+  eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+fi
+
 setpath() {
   local paths=(
     # Personal overrides first
@@ -44,10 +49,6 @@ setpath() {
     ~/.go/bin
     ~/.npm-local/bin
     ~/.yarn/bin
-
-    # ccache on Gentoo and Debian respectively
-    /usr/lib{64,}/ccache/bin
-    /usr/lib{64,}/ccache
 
     /usr/local/{,s}bin
 
