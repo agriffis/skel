@@ -4,6 +4,7 @@ claude = "latest"
 clojure = "latest"
 cmake = "latest"
 fx = "latest"
+go = "latest"
 node = "24"
 rust = "latest"
 zellij = "latest"
@@ -20,6 +21,10 @@ fzf = "latest"
 ripgrep = "latest"
 "github:cli/cli" = "latest"
 java = "24"
+fd = "latest"
+pipx = "latest"
+meson = "latest"
+ninja = "latest"
 
 [settings]
 idiomatic_version_file_enable_tools = ["node"]
