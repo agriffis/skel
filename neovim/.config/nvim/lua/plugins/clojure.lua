@@ -152,6 +152,9 @@ return {
       -- Jump to top of latest result.
       vim.g['conjure#log#jump_to_latest#enabled'] = true
 
+      -- Don't override my defmethod report :fail
+      vim.g['conjure#client#clojure#nrepl#test#pretty_print_test_failures'] = false
+
       -- Don't start babashka if nrepl isn't available.
       --vim.g['conjure#client#clojure#nrepl#connection#auto_repl#enabled'] = false
     end,

@@ -89,21 +89,6 @@ return {
     },
   },
 
-  --{
-  --  'saghen/blink.cmp',
-  --  optional = true,
-  --  opts = {
-  --    completion = {
-  --      list = {
-  --        selection = {
-  --          -- https://cmp.saghen.dev/configuration/keymap.html#enter
-  --          preselect = false,
-  --        },
-  --      },
-  --    },
-  --  },
-  --},
-
   {
     'saghen/blink.cmp',
     optional = true,
@@ -118,27 +103,20 @@ return {
       opts.completion.menu.auto_show = false
       opts.completion.ghost_text.show_with_menu = false
 
-      -- Don't consider ghost text visible.
+      -- Don't consider ghost text "open"
       local function is_open()
         return require('blink.cmp.completion.windows.menu').win:is_open()
-        -- or require('blink.cmp.completion.windows.ghost_text').is_open()
       end
       local function if_open_then(cmd)
         return function(cmp)
           return is_open() and cmp[cmd]()
         end
       end
-      local function show_menu()
+      local function show_menu(cmp)
         if is_open() then
           return
         end
-        vim.schedule(function()
-          -- require('blink.cmp.completion.windows.menu').auto_show = true
-          require('blink.cmp.completion.trigger').show {
-            force = true,
-            trigger_kind = 'manual',
-          }
-        end)
+        cmp.show()
         return true
       end
 

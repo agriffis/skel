@@ -57,7 +57,6 @@ clear_lazyvim_augroup('wrap_spell')
 -- vim.api.nvim_create_autocmd('User', {
 --   pattern = 'TSUpdate',
 --   callback = function()
---     print('hi')
 --     local path = vim.fn.expand('~/src/tree-sitter-freemarker')
 --     if vim.fn.isdirectory(path) == 1 then
 --       require('nvim-treesitter.parsers').freemarker = {
@@ -70,5 +69,5 @@ clear_lazyvim_augroup('wrap_spell')
 --     end
 --   end,
 -- })
-
+--
 -- vim.filetype.add { extension = { ftl = 'freemarker' } }

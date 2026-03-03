@@ -1,5 +1,34 @@
 local my = require('my')
 
+local function parse_cleanup_xml(path)
+  local cleanups = {}
+  local file = io.open(vim.fn.expand(path), 'r')
+
+  if not file then
+    vim.notify('Could not find cleanups.xml at ' .. path, vim.log.levels.WARN)
+    return cleanups
+  end
+
+  for line in file:lines() do
+    -- Stop when we reach the end of the first profile
+    if line:match('</profile>') then
+      break
+    end
+
+    -- Extract the id and the value
+    -- Pattern looks for: id="cleanup.name" value="true"
+    local id, value = line:match('id="cleanup%.([^"]+)"%s+value="([^"]+)"')
+
+    if id and value then
+      -- Convert the string "true"/"false" into a boolean
+      cleanups[id] = (value == 'true')
+    end
+  end
+
+  file:close()
+  return cleanups
+end
+
 return {
   {
     'neovim/nvim-lspconfig',
@@ -118,6 +147,24 @@ return {
             -- Apply our modified extendedClientCapabilities to work with
             -- unsaved code.
             extendedClientCapabilities = extendedClientCapabilities,
+
+            format = {
+              settings = {
+                enabled = true,
+                url = vim.fn.expand('~/src/ss/clients/tizra/cubchicken/formatter.xml'),
+                profile = 'dgd (Tizra)',
+              },
+            },
+
+            -- This seems to load but I can't seem to trigger cleanups in any way.
+            cleanup = parse_cleanup_xml('~/src/ss/clients/tizra/cubchicken/java-cleanups.xml'),
+
+            saveActions = {
+              -- Disabled because it doesn't do anything
+              cleanup = false,
+              -- Disabled because it uses a different order from what's in the source tree
+              organizeImports = false,
+            },
 
             -- Not sure what all of these do, just stuff seen on the web.
             eclipse = { downloadSources = true },

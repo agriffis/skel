@@ -23,7 +23,17 @@ return {
         ts_ls = { enabled = false }, -- normally disabled in lazyvim
 
         -- Keep using vtsls but only for the features we want.
-        --vtsls = {},
+        vtsls = {
+          on_attach = function(client)
+            -- things tsgo already covers
+            client.server_capabilities.renameProvider = false
+            client.server_capabilities.hoverProvider = false
+            client.server_capabilities.definitionProvider = false
+            client.server_capabilities.referencesProvider = false
+            client.server_capabilities.documentHighlightProvider = false
+            client.server_capabilities.completionProvider = false
+          end,
+        },
 
         --- see https://www.lazyvim.org/extras/lang/typescript
         --- and https://www.lazyvim.org/extras/lang/typescript
