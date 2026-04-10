@@ -1,13 +1,19 @@
 local my = require('my')
 
+local ts_filetypes = {
+  'javascript',
+  'javascriptreact',
+  'javascript.jsx',
+  'typescript',
+  'typescriptreact',
+  'typescript.tsx',
+}
+
 return {
   {
     'neovim/nvim-lspconfig',
     opts = function(_, opts)
-      vim.list_extend(
-        opts.inlay_hints.exclude,
-        { 'javascript', 'javascriptreact', 'typescript', 'typescriptreact' }
-      )
+      vim.list_extend(opts.inlay_hints.exclude, ts_filetypes)
     end,
   },
 

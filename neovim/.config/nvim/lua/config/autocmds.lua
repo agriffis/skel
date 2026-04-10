@@ -6,14 +6,18 @@ local function clear_augroup(s)
   vim.api.nvim_create_augroup(s, { clear = true })
 end
 
+-- Disable Fedora-provided autocmd to jump to last cursor position in file.
+clear_augroup('fedora')
+
 local function clear_lazyvim_augroup(s)
   clear_augroup('lazyvim_' .. s)
 end
 
-local MyGroup = vim.api.nvim_create_augroup('MyGroup', { clear = true })
+-- LazyVim equiv of above, current disabled to see if it helps snacks jump to
+-- proper line search.
+--clear_lazyvim_augroup('last_loc')
 
--- Disable Fedora-provided autocmd to jump to last cursor position in file.
-clear_augroup('fedora')
+local MyGroup = vim.api.nvim_create_augroup('MyGroup', { clear = true })
 
 -- commented because this scrolls the diff buffer in diffview
 --vim.api.nvim_create_autocmd('BufReadPost', {
@@ -25,9 +29,6 @@ clear_augroup('fedora')
 --  pattern = 'COMMIT_EDITMSG',
 --  command = [[normal! gg]],
 --})
-
--- LazyVim equiv of above
-clear_lazyvim_augroup('last_loc')
 
 -- Enable permanent signcolumn when editing code.
 local function hacking()

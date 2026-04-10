@@ -10,5 +10,11 @@ local prod = {
 return vim.tbl_deep_extend('force', {
   'arongriffis.com/tree-sitter-freemarker',
   build = ':TSInstall freemarker',
-  opts = { extensions = { ftl = 'freemarker.html' } },
+  opts = {
+    extensions = {
+      ftl = 'freemarker.html',
+    },
+    folds = false,
+    indents = false,
+  },
 }, vim.uv.fs_stat(vim.fn.expand(dev.dir)) and dev or prod)

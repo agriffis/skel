@@ -68,6 +68,21 @@ return {
     opts = {
       numhl = true, -- :Gitsigns toggle_numhl
       current_line_blame = true, -- :Gitsigns toggle_current_line_blame
+      signs = {
+        add = { text = '▊' }, -- ▎
+        change = { text = '▊' }, -- ▎
+        delete = { text = '' },
+        topdelete = { text = '' },
+        changedelete = { text = '▊' }, -- ▎
+        untracked = { text = '▊' }, -- ▎
+      },
+      signs_staged = {
+        add = { text = '▊' }, -- ▎
+        change = { text = '▊' }, --▎
+        delete = { text = '' },
+        topdelete = { text = '' },
+        changedelete = { text = '▊' }, --▎
+      },
     },
     keys = {
       {

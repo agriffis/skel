@@ -97,8 +97,8 @@ return {
 
         -- Enable dim_inactive to work on gitsigns.
         -- https://github.com/folke/tokyonight.nvim/issues/326#issuecomment-2143501061
-        hl.FoldColumn = { bg = 'none' }
-        hl.SignColumn = { bg = 'none' }
+        --hl.FoldColumn = { bg = 'none' }
+        --hl.SignColumn = { bg = 'none' }
       end,
     },
   },

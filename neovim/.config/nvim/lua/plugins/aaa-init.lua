@@ -56,6 +56,64 @@ return {
 
   {
     'folke/snacks.nvim',
+    opts = {
+      picker = {
+        actions = {
+          -- Define a new action called 'multi_vsplit'
+          multi_vsplit = function(picker)
+            local items = picker:selected()
+            if #items == 0 then
+              items = { picker:current() }
+            end
+            picker:close()
+
+            -- Identify if the current buffer is a "clean" empty buffer.
+            local target_buf = vim.api.nvim_get_current_buf()
+            local is_empty = vim.api.nvim_buf_get_name(target_buf) == ''
+              and vim.api.nvim_get_option_value('modified', { buf = target_buf }) == false
+              and vim.api.nvim_buf_line_count(target_buf) <= 1
+              and vim.api.nvim_buf_get_lines(target_buf, 0, 1, false)[1] == ''
+
+            -- Open all selected files.
+            local opened_something = false
+            for _, item in ipairs(items) do
+              -- Ensure the item has a file path before trying to split
+              if item.file then
+                vim.cmd('vsplit ' .. vim.fn.fnameescape(item.file))
+                opened_something = true
+              end
+            end
+
+            if opened_something then
+              -- If we started on an empty buffer, delete it now that we've replaced it.
+              if is_empty and vim.api.nvim_buf_is_valid(target_buf) then
+                vim.api.nvim_buf_delete(target_buf, { force = true })
+              end
+
+              -- Equalize window sizes after opening.
+              vim.cmd('wincmd =')
+
+              -- Switch to the leftmost window.
+              vim.cmd('999wincmd h')
+            end
+          end,
+        },
+        win = {
+          input = {
+            keys = {
+              -- Use ctrl-v to open all selected files in separate vert splits.
+              -- This overrides the default ctrl-v binding which only opens a single
+              -- vertical split.
+              ['<C-v>'] = { 'multi_vsplit', mode = { 'n', 'i' } },
+            },
+          },
+        },
+      },
+    },
+  },
+
+  {
+    'folke/snacks.nvim',
     keys = {
       { '<c-p>', LazyVim.pick('files', { root = true }), desc = 'Find Files (Root Dir)' },
       {
@@ -93,10 +151,10 @@ return {
     'saghen/blink.cmp',
     optional = true,
     opts = function(_, opts)
-      -- Omit buffer from default sources, so we're only getting "smart"
-      -- completions from LSP etc.
+      -- Omit buffer/snippets from default sources, so we're only getting
+      -- "smart" completions from LSP etc.
       opts.sources.default = my.filter(function(v)
-        return v ~= 'buffer'
+        return v ~= 'buffer' and v ~= 'snippets'
       end, opts.sources.default)
 
       -- Don't show completion menu until I press ctrl-space.
