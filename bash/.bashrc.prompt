@@ -40,6 +40,7 @@ source ~/.bashrc.funcs
 : ${PS1_CHAR_MERGE:=$'\ue726'}        #   (devicons)
 : ${PS1_CHAR_REBASE:=$'\ue726'}       #   (devicons)
 : ${PS1_CHAR_HG:=$'\u263f'}           # ☿  (unicode)
+: ${PS1_CHAR_JUJUTSU:=$'\U1f977'}     # 🥷 (ninja emoji)
 : ${PS1_CHAR_SVN:=$'\U1d5e6'}         # 𝗦  (unicode)
 : ${PS1_CHAR_PYTHON:=$'\ue73c'}       #   (devicons)
 : ${PS1_CHAR_RUBY:=$'\ue739'}         #   (devicons)
@@ -341,6 +342,9 @@ ps1_mod_git() {
   declare top="$(ps1_cache_get GIT_TOP)"
   [[ -n $top ]] || return
 
+  # jj colocated repo -- let ps1_mod_jj handle it
+  [[ -e $top/.jj ]] && return
+
   declare status=$(git -C "$top" status --short --branch --untracked-files=no)
   [[ -n $status ]] || return
 
@@ -362,6 +366,33 @@ ps1_mod_git() {
   ps1_segment "$fg" "$bg" "$PS1_CHAR_BRANCH $branch${dirty:+ ${dirty[*]}}"
 }
 ps1_add git
+
+# MODULE: jj -- show the current jujutsu change
+ps1_mod_jj() {
+  cwd_is_slow && return 1
+  if [[ -e .jj ]]; then
+    ps1_cache_set JJ_TOP "$PWD"
+  elif [[ $(ps1_cache_get JJ_CWD) != "$PWD" ]]; then
+    ps1_cache_set JJ_TOP "$(find_parent_with .jj)"
+  fi
+  ps1_cache_set JJ_CWD "$PWD"
+  declare top="$(ps1_cache_get JJ_TOP)"
+  [[ -n $top ]] || return
+
+  declare label fg bg dirty=''
+  label=$(jj --no-pager -R "$top" log -r @ --no-graph \
+    --template 'separate(" ", if(bookmarks, bookmarks, change_id.shortest(4)), description.first_line())' 2>/dev/null)
+  [[ -n $label ]] || return
+
+  if jj --no-pager -R "$top" diff --summary 2>/dev/null | grep -q .; then
+    fg=$PS1_COLOR_WARNING_FG bg=$PS1_COLOR_WARNING_BG
+    dirty=" $PS1_CHAR_DIRTY"
+  else
+    fg=$PS1_COLOR_SUCCESS_FG bg=$PS1_COLOR_SUCCESS_BG
+  fi
+  ps1_segment "$fg" "$bg" "$PS1_CHAR_JUJUTSU $label$dirty"
+}
+ps1_add jj after git
 
 # MODULE: svn -- show the subversion source and revision
 ps1_mod_svn() {
