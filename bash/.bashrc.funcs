@@ -36,7 +36,7 @@ isnfs() {
   # Branch depending on OS where df has different options.
   case $OSTYPE in
     darwin*|linux*|*bsd*|*BSD*)
-      dfout=`/bin/df -l "$1" 2>/dev/null`
+      dfout=`command df -l "$1" 2>/dev/null`
       case "$dfout" in
         */*) return 1 ;;  # looks like local
         *)   return 0 ;;  # looks like NFS
