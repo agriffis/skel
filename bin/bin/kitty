@@ -13,7 +13,7 @@ main() {
       gnome:fractional)
         overrides=(
           linux_display_server=wayland
-          font_size=11
+          font_size=12
           hide_window_decorations=yes
         ) ;;
       gnome:*)
@@ -31,7 +31,7 @@ main() {
       niri:*|sway:*)
         overrides=(
           linux_display_server=wayland
-          font_size=11
+          font_size=9
           hide_window_decorations=yes
         ) ;;
       *)
@@ -50,7 +50,7 @@ main() {
 }
 
 desk() {
-  local base=${XDG_SESSION_DESKTOP:-$XDG_CURRENT_DESKTOP}
+  local base=${XDG_CURRENT_DESKTOP:-$XDG_SESSION_DESKTOP}
   base=${base,,} # lowercase, because source vars don't agree
   local sub
   case $base in
