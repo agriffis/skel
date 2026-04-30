@@ -14,7 +14,8 @@ return {
   -- Tag closing plugins.
   {
     'windwp/nvim-ts-autotag',
-    -- enabled = false,
+    -- Disabled 2026-04-14 because it kept throwing Lua exceptions.
+    enabled = false,
     opts = {
       autotag = {
         -- Disable auto close on slash, instead ctrl-/ inserts the closing tag

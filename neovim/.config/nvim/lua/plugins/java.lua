@@ -119,6 +119,9 @@ return {
             ['language/status'] = my_status_handler,
             ['$/progress'] = my_progress_handler,
           }
+          -- Work around assertion failure when trying to reformat.
+          server.flags = server.flags or {}
+          server.flags.allow_incremental_sync = false
         end,
 
         -- https://github.com/mfussenegger/nvim-jdtls?tab=readme-ov-file#configuration-verbose

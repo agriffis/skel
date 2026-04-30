@@ -41,8 +41,7 @@ return {
           end,
         },
 
-        --- see https://www.lazyvim.org/extras/lang/typescript
-        --- and https://www.lazyvim.org/extras/lang/typescript
+        --- see https://www.lazyvim.org/extras/lang/typescript/tsgo
         tsgo = {
           keys = {
             {
