@@ -8,7 +8,6 @@ go = "latest"
 node = "24"
 rust = "latest"
 zellij = "latest"
-"cargo:atuin" = "latest"
 "cargo:serie" = "latest"
 "cargo:stylua" = "latest"
 "npm:@bitwarden/cli" = "latest"
@@ -26,6 +25,8 @@ pipx = "latest"
 meson = "latest"
 ninja = "latest"
 jj = "latest"
+jq = "latest"
+pi = "latest"
 
 [settings]
 idiomatic_version_file_enable_tools = ["node"]
