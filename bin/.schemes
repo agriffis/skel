@@ -1,0 +1,18 @@
+# others: alabaster, PaperColor, tokyonight
+light_vim_theme=modus
+dark_vim_theme=tokyonight
+
+after_update_hook() {
+  if [[ $HOSTNAME == wren* ]]; then
+    case " $* " in
+      *' dark '*) qs -c noctalia-shell ipc call darkMode setDark ;;
+      *) qs -c noctalia-shell ipc call darkMode setLight ;;
+    esac
+  fi
+  case $HOSTNAME in
+    bergamot*|penguin*|tomagreb*|wren*|teal*)
+      [[ -n $DISPLAY || -t 1 ]] && ssh-add -l &>/dev/null || return 0
+      ssh junco scheme "$@" ;;
+  esac
+}
+
