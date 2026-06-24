@@ -49,6 +49,11 @@ EOT
         if [[ -n $found && ${found%/*} != "${f%/*}" ]]; then
           break
         fi
+        # Don't try to write to package.json
+        # https://github.com/jdx/mise/discussions/10590
+        if [[ /$f != */mise*toml ]]; then
+          continue
+        fi
         found=$f
       done
       [[ -n $found ]] && echo "$found"
