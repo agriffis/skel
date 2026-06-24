@@ -5,6 +5,8 @@ main() {
     exec grep -q ' @mykitty$' /proc/net/unix
   fi
 
+  source ~/.bash_profile
+
   local -a overrides
   if [[ $1 == @ ]]; then
     set -- @ --to=unix:@mykitty "${@:2}"
