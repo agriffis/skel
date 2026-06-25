@@ -26,7 +26,6 @@ meson = "latest"
 ninja = "latest"
 jj = "latest"
 jq = "latest"
-pi = "latest"
 
 [settings]
 idiomatic_version_file_enable_tools = ["node"]
