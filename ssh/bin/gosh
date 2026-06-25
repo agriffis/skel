@@ -3,15 +3,19 @@
 main() {
   ensure-ssh-identity "$@"
 
+  declare mgr=zellij
   declare pile=false
-  case $1 in
-    pile) pile=true; shift ;;
-  esac
-
   declare backend=et
-  case $1 in
-    et|mosh|ssh) backend=$1; shift ;;
-  esac
+  while true; do
+    case $1 in
+      pile) pile=true; shift ;;
+      et|mosh|ssh) backend=$1; shift ;;
+      hmx|honey) mgr=hmx; shift ;;
+      tmux) mgr=tmux; shift ;;
+      zellij|z) mgr=zellij; shift ;;
+      *) break ;;
+    esac
+  done
 
   declare host="${1:-junco}"
   shift
@@ -32,10 +36,22 @@ main() {
   esac
 
   # -E to avoid wiping out DISPLAY set by tunnel
-  declare cmd="tmux new-session -ADEs $session"
-  if $pile; then
-    cmd="tmux new-session -Et $session"
-  fi
+  declare cmd 
+  case $mgr in
+    tmux)
+      cmd="tmux new-session -ADEs $session"
+      if $pile; then
+        cmd="tmux new-session -Et $session"
+      fi ;;
+    hmx)
+      # TODO: pile
+      cmd=hmx ;;
+    zellij)
+      # TODO: iple
+      cmd=zellij ;;
+    *)
+      echo "What is $mgr?" >&2; exit 1 ;;
+  esac
 
   case $backend in
     et) et -c "$cmd" "$host" ;;

@@ -1,0 +1,42 @@
+# .bashrc.zellij
+#
+# Keep inner zellij shell updated from tunneled environment.
+#
+# Written in 2026 by Aron Griffis <aron@arongriffis.com>
+#
+# To the extent possible under law, the author(s) have dedicated all copyright
+# and related and neighboring rights to this software to the public domain
+# worldwide. This software is distributed without any warranty.
+#
+# CC0 Public Domain Dedication at
+# http://creativecommons.org/publicdomain/zero/1.0/
+#======================================================================
+
+[[ -z $ZELLIJ_SESSION_NAME ]] && return
+
+ps1_mod_zellij_env() {
+  declare f="$HOME/.config/zellij/$ZELLIJ_SESSION_NAME.env.sh"
+  if [[ -e $f ]]; then
+    source "$f"
+  fi
+}
+
+if [[ $(type -t ps1_add) == function ]]; then
+  ps1_add zellij_env
+else
+  append_cmd PROMPT_COMMAND ps1_mod_zellij_env
+fi
+
+#======================================================================
+# The following lines enforce a consistent indentation for this file.
+# Keep this comment at the end of file.
+#
+# Local Variables:
+# mode: shell-script
+# sh-basic-offset: 2
+# sh-indentation: 2
+# evil-shift-width: 2
+# indent-tabs-mode: nil
+# End:
+#
+# vim:shiftwidth=2 expandtab smarttab filetype=sh

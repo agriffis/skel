@@ -85,6 +85,7 @@ fi
 
 [[ -r ~/.bashrc.prompt ]] && source ~/.bashrc.prompt
 [[ -r ~/.bashrc.tmux ]] && source ~/.bashrc.tmux  # after .bashrc.prompt
+[[ -r ~/.bashrc.zellij ]] && source ~/.bashrc.zellij  # after .bashrc.prompt
 
 if [[ -r /usr/local/lib/powerline/bindings/bash/powerline.sh ]]; then
   # We don't want the actual prompt, just the tmux support.

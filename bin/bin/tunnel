@@ -48,8 +48,8 @@ main() {
     fi
 
     case $host in
-      (junco-tunnel) vars+=( TMUX_SESSION=scampersand ) ;;
-      (jx-tunnel) vars+=( TMUX_SESSION=jx ) ;;
+      (junco-tunnel) vars+=( TMUX_SESSION=scampersand ZELLIJ_SESSION=scampersand ) ;;
+      (jx-tunnel) vars+=( TMUX_SESSION=jx ZELLIJ_SESSION=jx ) ;;
     esac
 
     ssh -t -Y "${forwards[@]}" "$host" "tunnel --remote $(printf '%q ' ${vars[@]})"
@@ -89,7 +89,39 @@ remote() {
     # The new-session/detach here allows update-environment to apply the new
     # setting of DISPLAY. Source .ssh/agent first to avoid overriding agent
     # vars in tmux session.
-    (source .ssh/agent; tmux new-session -As $TMUX_SESSION \; detach)
+    (source .ssh/agent/env.sh; tmux new-session -As $TMUX_SESSION \; detach)
+  fi
+
+  if [[ -n $ZELLIJ_SESSION ]]; then
+    (
+        # Source .ssh/agent first to avoid overriding agent vars in zellij
+        # session. (Alternatively, don't include the SSH vars in the list of vars?)
+        source .ssh/agent/env.sh
+
+        # Copied from tmux.conf update-environment config
+        exports=(
+          DISPLAY
+          COLORTERM
+          SSH_ASKPASS
+          SSH_AUTH_SOCK
+          SSH_AGENT_PID
+          SSH_CONNECTION
+          WINDOWID
+          XAUTHORITY
+          DBUS_SESSION_BUS_ADDRESS
+          WAYPIPE_SOCK
+          WAYLAND_DISPLAY
+        )
+        mkdir -p ~/.config/zellij
+        for k in "${exports[@]}"; do
+          v=${!k}
+          if [[ -n $v ]]; then
+            echo "export $k=$(printf %q "$v")"
+          else
+            echo "unset $k"
+          fi
+        done > ~/.config/zellij/"$ZELLIJ_SESSION".env.sh
+    )
   fi
 
   # Don't use ssh -N because it prevents ForwardX11.
