@@ -37,27 +37,6 @@ EOT
     s|shell)
       eval "$(command mise "$@")"
       ;;
-    # https://github.com/jdx/mise/discussions/6475
-    use)
-      local file=$(mise use-what-file)
-      command mise use ${file:+--path "$file"} "${@:2}"
-      ;;
-    use-what-file)
-      local files f found
-      mapfile -t files <<<"$(mise config -J | jq -r '.[] | .path')"
-      for f in "${files[@]}"; do
-        if [[ -n $found && ${found%/*} != "${f%/*}" ]]; then
-          break
-        fi
-        # Don't try to write to package.json
-        # https://github.com/jdx/mise/discussions/10590
-        if [[ /$f != */mise*toml ]]; then
-          continue
-        fi
-        found=$f
-      done
-      [[ -n $found ]] && echo "$found"
-      ;;
     *)
       command mise "$@"
       ;;
